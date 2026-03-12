@@ -84,6 +84,11 @@ const INIT_SHIFTS=[
 ];
 const INIT_MASS=[{id:1,model:"Autumn",sentBy:"Tate",message:"Hey babe 🍂 just dropped something special for my top fans 💌",target:"All subscribers",sentAt:"10:30 AM",date:today(),revenue:340,notes:"Valentine's lead-in"}];
 const INIT_QA=[{id:1,chatter:"Chatter1",model:"Autumn",date:today(),reviewer:"Kayla",upsellAttempt:true,toneMatch:true,hardNoViolation:false,escalationHandled:null,score:90,notes:"Good upsell on beach set"}];
+const INIT_CUSTOMS=[
+  {id:1,model:"Autumn",price:250,fan:"bigspender99",description:"Personalised beach video, mention his name",paid:false,status:"In Progress",loggedBy:"Tate",date:today()},
+  {id:2,model:"Mia",price:400,fan:"whale_miami",description:"Full custom set, 3 outfits",paid:true,status:"Paid",loggedBy:"Tate",date:today()},
+  {id:3,model:"Jordan",price:150,fan:"regularfan22",description:"Birthday shoutout video",paid:false,status:"Pending Confirmation",loggedBy:"Jonathan",date:today()},
+];
 // ── DESIGN SYSTEM ────────────────────────────────────────────
 const s = {
   card: {background:C.white,borderRadius:14,padding:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04)"},
@@ -1157,8 +1162,107 @@ function ChatterPerformance({sales,qaLogs,users}){
     </div>
   );
 }
+// ── CUSTOMS TRACKER ──────────────────────────────────────────
+const CUSTOM_STATUSES=["Pending Confirmation","In Progress","Sent to Fan","Paid"];
+const statusColor={"Pending Confirmation":C.yellow,"In Progress":C.blue,"Sent to Fan":C.purple,"Paid":C.green};
+function CustomsTracker({user,customs,setCustoms,models}){
+  const allModels=models.filter(m=>!m.archived).map(m=>m.name);
+  const [showAdd,setShowAdd]=useState(false);
+  const [fm,setFm]=useState("All");
+  const [fs,setFs]=useState("All");
+  const blank={model:allModels[0]||"",price:"",fan:"",description:"",paid:false,status:"Pending Confirmation"};
+  const [form,setForm]=useState(blank);
+  const filtered=customs.filter(c=>(fm==="All"||c.model===fm)&&(fs==="All"||c.status===fs));
+  const totalValue=filtered.reduce((a,c)=>a+Number(c.price||0),0);
+  const paidValue=filtered.filter(c=>c.paid).reduce((a,c)=>a+Number(c.price||0),0);
+  const unpaidCount=filtered.filter(c=>!c.paid).length;
+  const submit=()=>{
+    if(!form.fan||!form.description||!form.price)return;
+    setCustoms(p=>[{...form,id:Date.now(),price:Number(form.price),loggedBy:user.name,date:today()},...p]);
+    setForm(blank);setShowAdd(false);
+  };
+  const updateField=(id,field,val)=>setCustoms(p=>p.map(c=>c.id===id?{...c,[field]:val}:c));
+  return(
+    <div>
+      <SectionHeader icon="🎨" title="Customs Tracker"
+        action={<Btn size="sm" onClick={()=>setShowAdd(true)}>+ Log Custom</Btn>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+        <StatCard label="Total Value" value={fmtMoney(totalValue)} color={C.purple}/>
+        <StatCard label="Collected" value={fmtMoney(paidValue)} color={C.green}/>
+        <StatCard label="Awaiting Payment" value={unpaidCount} color={unpaidCount>0?C.yellow:C.green}/>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{allModels.map(m=><option key={m}>{m}</option>)}
+        </select>
+        <select value={fs} onChange={e=>setFs(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{CUSTOM_STATUSES.map(st=><option key={st}>{st}</option>)}
+        </select>
+      </div>
+      {showAdd&&(
+        <Modal title="Log Custom Order" onClose={()=>setShowAdd(false)}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={allModels}/>
+            <Input label="Price ($)" value={form.price} onChange={v=>setForm(p=>({...p,price:v}))} placeholder="250" type="number"/>
+            <Input label="Fan Username" value={form.fan} onChange={v=>setForm(p=>({...p,fan:v}))} placeholder="fanusername" style={{gridColumn:"1/-1"}}/>
+          </div>
+          <TA label="Custom Description" value={form.description} onChange={v=>setForm(p=>({...p,description:v}))} placeholder="e.g. Personalised beach video, mention his name" rows={3}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Status" value={form.status} onChange={v=>setForm(p=>({...p,status:v}))} options={CUSTOM_STATUSES}/>
+            <div style={{marginBottom:14}}>
+              <label style={s.label}>Paid?</label>
+              <div style={{display:"flex",gap:8,marginTop:2}}>
+                {[["Yes",true],["No",false]].map(([l,v])=>(
+                  <button key={l} onClick={()=>setForm(p=>({...p,paid:v}))}
+                    style={{flex:1,padding:"8px 0",borderRadius:10,border:`1.5px solid ${form.paid===v?C.purple:C.border}`,background:form.paid===v?C.purpleXL:C.white,color:form.paid===v?C.purple:C.muted,fontWeight:600,fontSize:13,cursor:"pointer"}}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
+            <Btn size="sm" onClick={submit}>Log Custom</Btn>
+          </div>
+        </Modal>
+      )}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {filtered.map(c=>(
+          <Card key={c.id} style={{borderLeft:`3px solid ${statusColor[c.status]}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:10}}>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                <Badge label={c.model} color={C.blue}/>
+                <span style={{fontWeight:700,fontSize:15,color:C.green}}>{fmtMoney(c.price)}</span>
+                <Badge label={c.fan} color={C.muted} bg="#f1f5f9"/>
+                <Badge label={c.paid?"Paid ✓":"Unpaid"} color={c.paid?C.green:C.yellow}/>
+              </div>
+              <span style={{fontSize:11,color:C.muted}}>{c.loggedBy} · {c.date}</span>
+            </div>
+            <p style={{fontSize:13,color:C.text,margin:"0 0 12px",lineHeight:1.5}}>{c.description}</p>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+              <select value={c.status} onChange={e=>updateField(c.id,"status",e.target.value)}
+                style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"5px 10px",borderColor:statusColor[c.status],color:statusColor[c.status],fontWeight:700}}>
+                {CUSTOM_STATUSES.map(st=><option key={st}>{st}</option>)}
+              </select>
+              <button onClick={()=>updateField(c.id,"paid",!c.paid)}
+                style={{padding:"5px 14px",borderRadius:8,border:`1.5px solid ${c.paid?C.green:C.border}`,background:c.paid?C.greenL:C.white,color:c.paid?C.green:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                {c.paid?"✓ Paid":"Mark Paid"}
+              </button>
+              <button onClick={()=>setCustoms(p=>p.filter(x=>x.id!==c.id))}
+                style={{marginLeft:"auto",background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:12,fontWeight:600}}>
+                Remove
+              </button>
+            </div>
+          </Card>
+        ))}
+        {!filtered.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No customs logged yet</div>}
+      </div>
+    </div>
+  );
+}
 // ── DASHBOARDS ───────────────────────────────────────────────
-function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs}){
+function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms}){
   const [tab,setTab]=useState("overview");
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
   const amStats=users.filter(u=>u.role==="am").map(am=>{const t=tasks.filter(x=>x.am===am.name);const keys=["bos","eos","content","notion","promos"];const total=t.length*keys.length,done=t.reduce((a,x)=>a+keys.filter(k=>x[k]===true).length,0),inc=t.reduce((a,x)=>a+keys.filter(k=>x[k]===false).length,0);return{am:am.name,pct:total?Math.round(done/total*100):0,inc,done,total};});
@@ -1166,7 +1270,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const flagged=fans.filter(f=>f.flag);
   const low=models.filter(m=>!m.archived&&campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
   const alerts=buildAlerts(tasks,shifts,models,campaigns,fans);
-  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["todos","To-Dos"],["admin","⚙️ Admin"]];
+  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["customs","Customs"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["todos","To-Dos"],["admin","⚙️ Admin"]];
   return(
     <div>
       <div style={{marginBottom:4}}><span style={{fontSize:22,fontWeight:800}}>Leadership</span></div>
@@ -1219,6 +1323,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={true} isAM={false} myModels={allModels} users={users}/>}
       {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={true} isAM={false} myModels={allModels} models={models}/>}
       {tab==="content"&&<ContentLog user={user} content={content} setContent={()=>{}} promos={promos} setPromos={()=>{}} myModels={allModels} isLeadership={true} platforms={platforms}/>}
+      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
       {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={allModels} isLeadership={true} isAM={false}/>}
       {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
       {tab==="performance"&&<ChatterPerformance sales={sales} qaLogs={qaLogs} users={users}/>}
@@ -1229,28 +1334,29 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
     </div>
   );
 }
-function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setShifts,tasks,setTasks,todos,setTodos,slingApiKey,setSlingApiKey,modelPlatforms}){
+function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setShifts,tasks,setTasks,todos,setTodos,slingApiKey,setSlingApiKey,modelPlatforms,customs,setCustoms}){
   const [tab,setTab]=useState("models");
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
   return(
     <div>
       <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Ops Dashboard</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()}</div>
-      <Tabs tabs={[["models","Models"],["team","Team"],["schedule","Schedule"],["todos","To-Dos"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["models","Models"],["team","Team"],["schedule","Schedule"],["customs","Customs"],["todos","To-Dos"]]} active={tab} onChange={setTab}/>
       {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
       {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
       {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
+      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
       {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
     </div>
   );
 }
-function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts}){
+function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms}){
   const [tab,setTab]=useState("overview");
   const myModels=models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name);
   const myTasks=tasks.filter(t=>t.am===user.name);
   const myFans=fans.filter(f=>myModels.includes(f.model));
   const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});
-  const navTabs=[["overview","Overview"],["todos","To-Dos"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["schedule","Sling"]];
+  const navTabs=[["overview","Overview"],["todos","To-Dos"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["schedule","Sling"]];
   return(
     <div>
       <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Hey {user.name} 👋</div>
@@ -1290,6 +1396,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
       {tab==="ttk"&&<TTKEditor user={user} ttks={ttks} setTtks={setTtks} myModels={myModels}/>}
       {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} isLeadership={false} isAM={true}/>}
       {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={myModels} isLeadership={false} platforms={platforms}/>}
+      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
       {tab==="fans"&&<div>
         <SectionHeader icon="🌟" title="Fans" action={null}/>
         {myFans.map(f=>(
@@ -1324,7 +1431,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
     </div>
   );
 }
-function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,users,slingApiKey,setSlingApiKey}){
+function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms}){
   const [tab,setTab]=useState("sales");
   const todayShift=shifts.find(sh=>sh.chatter===user.name&&sh.date===today());
   const myModels=todayShift?todayShift.models:models.filter(m=>!m.archived).map(m=>m.name);
@@ -1343,8 +1450,9 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
         <StatCard label="QA Score" value={avgQA!==null?`${avgQA}%`:"—"} color={avgQA!==null?scoreCol(avgQA):C.muted}/>
         <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&!t.done).length} color={C.blue}/>
       </div>
-      <Tabs tabs={[["sales","Sales"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["sales","Sales"],["customs","Customs"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
+      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
       {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models}/>}
       {tab==="ref"&&<div>
         <SectionHeader icon="📋" title="Quick Reference"/>
@@ -1377,7 +1485,7 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
     </div>
   );
 }
-function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey}){
+function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms}){
   const [tab,setTab]=useState("sales");
   const todayShift=shifts.find(sh=>sh.chatter===user.name&&sh.date===today());
   const myModels=todayShift?todayShift.models:models.filter(m=>!m.archived).map(m=>m.name);
@@ -1392,8 +1500,9 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
         <StatCard label="QA Reviews" value={qaLogs.filter(q=>q.reviewer===user.name).length} color={C.purple}/>
         <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&!t.done).length} color={C.blue}/>
       </div>
-      <Tabs tabs={[["sales","Sales"],["qa","QA Reviews"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["sales","Sales"],["customs","Customs"],["qa","QA Reviews"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
+      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
       {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
       {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models}/>}
       {tab==="ref"&&<div>
@@ -1461,13 +1570,14 @@ export default function App(){
   const [ttks,setTtks]=useState(INIT_TTKS);
   const [massMessages,setMassMessages]=useState(INIT_MASS);
   const [qaLogs,setQaLogs]=useState(INIT_QA);
+  const [customs,setCustoms]=useState(INIT_CUSTOMS);
   const [showSearch,setShowSearch]=useState(false);
   useEffect(()=>{
     const down=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setShowSearch(p=>!p);}if(e.key==="Escape")setShowSearch(false);};
     window.addEventListener("keydown",down);return()=>window.removeEventListener("keydown",down);
   },[]);
   if(!user)return <LoginView onLogin={setUser} users={users}/>;
-  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs};
+  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms};
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
