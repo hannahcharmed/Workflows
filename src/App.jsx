@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 const C = {
-  dark:"#0f172a", mid:"#1e293b", slate:"#334155",
+  dark:"#07070e", mid:"#0f0f1a", slate:"#1e1e30",
   purple:"#7c3aed", purpleL:"#a78bfa", purpleXL:"#ede9fe",
   green:"#16a34a", greenL:"#dcfce7",
   red:"#dc2626", redL:"#fee2e2",
   yellow:"#d97706", yellowL:"#fef3c7",
   blue:"#2563eb", blueL:"#dbeafe",
-  pink:"#db2777", pinkL:"#fce7f3",
+  pink:"#c026d3", pinkL:"#fae8ff",
   orange:"#ea580c",
   text:"#0f172a", muted:"#64748b", border:"#e2e8f0", bg:"#f8fafc", white:"#ffffff",
 };
@@ -106,7 +106,12 @@ const Btn=({children,onClick,variant="primary",size="md",color,style={}})=>{
   const colors={primary:{bg:color||C.purple,text:C.white,border:color||C.purple},secondary:{bg:"transparent",text:color||C.purple,border:color||C.border},ghost:{bg:"transparent",text:C.muted,border:"transparent"},danger:{bg:C.red,text:C.white,border:C.red}};
   const sizes={sm:{padding:"5px 12px",fontSize:12,borderRadius:8},md:{padding:"8px 18px",fontSize:13,borderRadius:10},lg:{padding:"11px 24px",fontSize:14,borderRadius:11}};
   const v=colors[variant]||colors.primary;const z=sizes[size]||sizes.md;
-  return(<button onClick={onClick} style={{background:v.bg,color:v.text,border:`1.5px solid ${v.border}`,fontWeight:600,cursor:"pointer",transition:"opacity 0.15s",...z,...style}}
+  const isGradient=variant==="primary"&&!color;
+  return(<button onClick={onClick} style={{
+    background:isGradient?"linear-gradient(135deg,#7c3aed 0%,#c026d3 100%)":v.bg,
+    color:v.text,
+    border:isGradient?"1.5px solid transparent":`1.5px solid ${v.border}`,
+    fontWeight:600,cursor:"pointer",transition:"opacity 0.15s",fontFamily:"inherit",...z,...style}}
     onMouseEnter={e=>e.currentTarget.style.opacity="0.85"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>{children}</button>);
 };
 const Input=({label,value,onChange,placeholder,type="text",style={}})=>(
@@ -1524,27 +1529,30 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
 function LoginView({onLogin,users}){
   const [email,setEmail]=useState("");const [pw,setPw]=useState("");const [err,setErr]=useState("");
   return(
-    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{width:400,background:"rgba(30,27,75,0.8)",backdropFilter:"blur(20px)",borderRadius:20,padding:40,boxShadow:"0 25px 60px rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.08)"}}>
-        <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{fontSize:32,fontWeight:900,color:C.white,letterSpacing:-1}}>✦ Charmed</div>
-          <div style={{fontSize:13,color:"#94a3b8",marginTop:6}}>Operations Platform</div>
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 28% 65%,rgba(109,40,217,0.5) 0%,transparent 55%),radial-gradient(ellipse at 78% 18%,rgba(192,38,211,0.28) 0%,transparent 48%),linear-gradient(160deg,#07070e 0%,#0d0a1a 60%,#07070e 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',system-ui,sans-serif"}}>
+      <div style={{width:420,maxWidth:"calc(100vw - 40px)",background:"rgba(7,7,18,0.82)",backdropFilter:"blur(28px)",borderRadius:24,padding:48,boxShadow:"0 32px 80px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06)",border:"1px solid rgba(124,58,237,0.22)"}}>
+        <div style={{textAlign:"center",marginBottom:44}}>
+          <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:40,fontWeight:900,color:C.white,letterSpacing:"0.04em",lineHeight:1}}>
+            CHARM<span style={{background:"linear-gradient(135deg,#c026d3,#a78bfa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>✦</span>ED
+          </div>
+          <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:13,fontStyle:"italic",color:"#a78bfa",letterSpacing:"0.18em",marginTop:8}}>collective</div>
+          <div style={{fontSize:10,color:"#374151",marginTop:16,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:600}}>Operations Platform</div>
         </div>
         <div style={{marginBottom:14}}>
-          <label style={{...s.label,color:"#94a3b8"}}>Email</label>
+          <label style={{...s.label,color:"#6b7280"}}>Email</label>
           <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}} placeholder="you@charmed.com"
-            style={{...s.input,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:C.white}} onFocus={e=>e.target.style.borderColor="#7c3aed"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.12)"}/>
+            style={{...s.input,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:C.white}} onFocus={e=>e.target.style.borderColor="#7c3aed"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.1)"}/>
         </div>
         <div style={{marginBottom:14}}>
-          <label style={{...s.label,color:"#94a3b8"}}>Password</label>
+          <label style={{...s.label,color:"#6b7280"}}>Password</label>
           <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} placeholder="••••••••"
             onKeyDown={e=>{if(e.key==="Enter"){const u=users.find(u=>u.email===email&&u.password===pw);if(u)onLogin(u);else setErr("Incorrect.");}}}
-            style={{...s.input,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:C.white}} onFocus={e=>e.target.style.borderColor="#7c3aed"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.12)"}/>
+            style={{...s.input,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:C.white}} onFocus={e=>e.target.style.borderColor="#7c3aed"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.1)"}/>
         </div>
         {err&&<div style={{color:"#f87171",fontSize:12,marginBottom:12}}>{err}</div>}
         <button onClick={()=>{const u=users.find(u=>u.email===email&&u.password===pw);if(u)onLogin(u);else setErr("Incorrect email or password.");}}
-          style={{width:"100%",background:"linear-gradient(135deg,#7c3aed,#6d28d9)",color:C.white,border:"none",borderRadius:10,padding:"11px 0",fontSize:14,fontWeight:700,cursor:"pointer",marginTop:4,boxShadow:"0 4px 15px rgba(124,58,237,0.4)"}}>Sign In</button>
-        <div style={{marginTop:20,fontSize:11,color:"#475569",textAlign:"center",lineHeight:2}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@charmed.com<br/>Password: charmed123</div>
+          style={{width:"100%",background:"linear-gradient(135deg,#7c3aed 0%,#c026d3 100%)",color:C.white,border:"none",borderRadius:12,padding:"13px 0",fontSize:14,fontWeight:700,cursor:"pointer",marginTop:4,boxShadow:"0 4px 24px rgba(124,58,237,0.45)",letterSpacing:"0.04em",fontFamily:"'DM Sans',sans-serif"}}>Sign In</button>
+        <div style={{marginTop:24,fontSize:11,color:"#374151",textAlign:"center",lineHeight:2.2}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@charmed.com · pw: charmed123</div>
       </div>
     </div>
   );
@@ -1579,10 +1587,13 @@ export default function App(){
   if(!user)return <LoginView onLogin={setUser} users={users}/>;
   const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms};
   return(
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
-      <div style={{background:C.dark,padding:"0 24px",height:54,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 0 rgba(255,255,255,0.05)"}}>
-        <div style={{fontSize:17,fontWeight:800,color:C.white,letterSpacing:-0.5}}>✦ Charmed</div>
+      <div style={{background:"linear-gradient(180deg,#0a0a14 0%,#07070e 100%)",padding:"0 24px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid rgba(124,58,237,0.22)"}}>
+        <div style={{display:"flex",alignItems:"baseline",gap:5,lineHeight:1}}>
+          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:900,color:C.white,letterSpacing:"0.03em"}}>CHARM<span style={{background:"linear-gradient(135deg,#c026d3,#a78bfa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>✦</span>ED</span>
+          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:10,fontStyle:"italic",color:"#a78bfa",letterSpacing:"0.14em",marginLeft:2}}>collective</span>
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setShowSearch(true)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"5px 14px",color:"#94a3b8",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:6}}>
             🔍 Search <kbd style={{fontSize:10,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:4,padding:"1px 5px"}}>⌘K</kbd>
