@@ -1532,10 +1532,7 @@ function LoginView({onLogin,users}){
     <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 28% 65%,rgba(109,40,217,0.5) 0%,transparent 55%),radial-gradient(ellipse at 78% 18%,rgba(192,38,211,0.28) 0%,transparent 48%),linear-gradient(160deg,#07070e 0%,#0d0a1a 60%,#07070e 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',system-ui,sans-serif"}}>
       <div style={{width:420,maxWidth:"calc(100vw - 40px)",background:"rgba(7,7,18,0.82)",backdropFilter:"blur(28px)",borderRadius:24,padding:48,boxShadow:"0 32px 80px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06)",border:"1px solid rgba(124,58,237,0.22)"}}>
         <div style={{textAlign:"center",marginBottom:44}}>
-          <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:40,fontWeight:900,color:C.white,letterSpacing:"0.04em",lineHeight:1}}>
-            CHARM<span style={{background:"linear-gradient(135deg,#c026d3,#a78bfa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>✦</span>ED
-          </div>
-          <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:13,fontStyle:"italic",color:"#a78bfa",letterSpacing:"0.18em",marginTop:8}}>collective</div>
+          <img src="/logo.png" alt="Charmed Collective" style={{width:220,height:"auto",display:"block",margin:"0 auto"}}/>
           <div style={{fontSize:10,color:"#374151",marginTop:16,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:600}}>Operations Platform</div>
         </div>
         <div style={{marginBottom:14}}>
@@ -1589,10 +1586,9 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
-      <div style={{background:"linear-gradient(180deg,#0a0a14 0%,#07070e 100%)",padding:"0 24px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid rgba(124,58,237,0.22)"}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:5,lineHeight:1}}>
-          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:900,color:C.white,letterSpacing:"0.03em"}}>CHARM<span style={{background:"linear-gradient(135deg,#c026d3,#a78bfa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>✦</span>ED</span>
-          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:10,fontStyle:"italic",color:"#a78bfa",letterSpacing:"0.14em",marginLeft:2}}>collective</span>
+      <div style={{background:"linear-gradient(180deg,#0a0a14 0%,#07070e 100%)",padding:"0 20px",height:64,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid rgba(124,58,237,0.22)"}}>
+        <div style={{display:"flex",alignItems:"center",paddingLeft:4}}>
+          <img src="/logo.png" alt="Charmed Collective" style={{height:36,width:"auto"}}/>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setShowSearch(true)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"5px 14px",color:"#94a3b8",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:6}}>
