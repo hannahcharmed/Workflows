@@ -310,10 +310,12 @@ function QAReview({user,qaLogs,setQaLogs,users,models}){
   const blank={chatter:chatters[0]||"",model:activeModels[0]||"",upsellAttempt:null,toneMatch:null,hardNoViolation:null,escalationHandled:null,notes:""};
   const [form,setForm]=useState(blank);
   const [fc,setFc]=useState("All");
+  const [fm,setFm]=useState("All");
+  const [fd,setFd]=useState("");
   const calcScore=f=>{let sc=100;if(f.upsellAttempt===false)sc-=20;if(f.toneMatch===false)sc-=20;if(f.hardNoViolation===true)sc-=40;if(f.escalationHandled===false)sc-=20;return Math.max(0,sc);};
   const scoreCol=sc=>sc>=80?C.green:sc>=60?C.yellow:C.red;
   const submit=()=>{setQaLogs(p=>[{...form,id:Date.now(),reviewer:user.name,date:today(),score:calcScore(form)},...p]);setForm(blank);setShowAdd(false);};
-  const visible=qaLogs.filter(q=>fc==="All"||q.chatter===fc);
+  const visible=qaLogs.filter(q=>(fc==="All"||q.chatter===fc)&&(fm==="All"||q.model===fm)&&(!fd||q.date.startsWith(fd)));
   const avg=visible.length?Math.round(visible.reduce((a,q)=>a+q.score,0)/visible.length):null;
   const BoolRow=({label,field})=>(
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
@@ -337,11 +339,15 @@ function QAReview({user,qaLogs,setQaLogs,users,models}){
         <StatCard label="Avg Score" value={avg!==null?`${avg}%`:"—"} color={avg!==null?scoreCol(avg):C.muted}/>
         <StatCard label="Violations" value={qaLogs.filter(q=>q.hardNoViolation).length} color={C.red}/>
       </div>
-      <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
-        <label style={s.label}>Filter by chatter</label>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         <select value={fc} onChange={e=>setFc(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
-          <option>All</option>{chatters.map(c=><option key={c}>{c}</option>)}
+          <option value="All">All Chatters</option>{chatters.map(c=><option key={c}>{c}</option>)}
         </select>
+        <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option value="All">All Models</option>{activeModels.map(m=><option key={m}>{m}</option>)}
+        </select>
+        <input type="month" value={fd} onChange={e=>setFd(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}} title="Filter by month"/>
+        {fd&&<button onClick={()=>setFd("")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13}}>✕ Clear date</button>}
       </div>
       {showAdd&&(
         <Modal title="New QA Review" onClose={()=>setShowAdd(false)}>
@@ -696,14 +702,44 @@ function SalesTracker({user,sales,setSales,isLeadership,isAM,myModels,users}){
 // ── CAMPAIGNS ────────────────────────────────────────────────
 function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,models}){
   const [fm,setFm]=useState("All");const [fs,setFs]=useState("All");const [showAdd,setShowAdd]=useState(false);
+  const [viewMode,setViewMode]=useState("list");
+  const now=new Date();
+  const [calYear,setCalYear]=useState(now.getFullYear());
+  const [calMonth,setCalMonth]=useState(now.getMonth());
   const blank={model:myModels[0]||"",name:"",type:"Flash Sale",startDate:"",endDate:"",notes:""};const [form,setForm]=useState(blank);
   const sc={Planning:C.yellow,Scheduled:C.blue,Live:C.green,Complete:C.muted};
   const vm=isLeadership?models.filter(m=>!m.archived):models.filter(m=>myModels.includes(m.name)&&!m.archived);
   const filtered=campaigns.filter(c=>(fm==="All"||c.model===fm)&&(fs==="All"||c.status===fs));
   const low=vm.filter(m=>campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const daysInMonth=(y,m)=>new Date(y,m+1,0).getDate();
+  const firstDayOfMonth=(y,m)=>new Date(y,m,1).getDay();
+  const pad=n=>String(n).padStart(2,"0");
+  const calDays=daysInMonth(calYear,calMonth);
+  const calStart=firstDayOfMonth(calYear,calMonth);
+  const calCells=[];
+  for(let i=0;i<calStart;i++)calCells.push(null);
+  for(let d=1;d<=calDays;d++)calCells.push(d);
+  const getCampaignsForDay=(d)=>{
+    const dateStr=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    return filtered.filter(c=>c.startDate&&c.endDate&&dateStr>=c.startDate&&dateStr<=c.endDate);
+  };
+  const prevMonth=()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);};
+  const nextMonth=()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);};
   return(
     <div>
-      <SectionHeader icon="📅" title="Campaign Planner" action={(isAM||isLeadership)&&<Btn size="sm" onClick={()=>setShowAdd(true)}>+ New Campaign</Btn>}/>
+      <SectionHeader icon="📅" title="Campaign Planner" action={
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`}}>
+            {["list","calendar"].map(v=>(
+              <button key={v} onClick={()=>setViewMode(v)} style={{padding:"5px 14px",background:viewMode===v?C.purple:"transparent",color:viewMode===v?C.white:C.muted,border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>
+                {v==="list"?"☰ List":"📅 Calendar"}
+              </button>
+            ))}
+          </div>
+          {(isAM||isLeadership)&&<Btn size="sm" onClick={()=>setShowAdd(true)}>+ New Campaign</Btn>}
+        </div>
+      }/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
         <StatCard label="Live" value={campaigns.filter(c=>c.status==="Live").length} color={C.green}/>
         <StatCard label="Revenue" value={fmtMoney(campaigns.filter(c=>["Complete","Live"].includes(c.status)).reduce((a,c)=>a+Number(c.revenue),0))} color={C.purple}/>
@@ -720,8 +756,8 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
             <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={vm.map(m=>m.name)}/>
             <Sel label="Type" value={form.type} onChange={v=>setForm(p=>({...p,type:v}))} options={["Flash Sale","Bundle","Discount Code","Live","Advent","Holiday","Secret Emoji"]}/>
             <Input label="Name" value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="Valentine's Flash Sale" style={{gridColumn:"1/-1"}}/>
-            <Input label="Start Date" value={form.startDate} onChange={v=>setForm(p=>({...p,startDate:v}))} placeholder="2024-03-01"/>
-            <Input label="End Date" value={form.endDate} onChange={v=>setForm(p=>({...p,endDate:v}))} placeholder="2024-03-07"/>
+            <Input label="Start Date" value={form.startDate} onChange={v=>setForm(p=>({...p,startDate:v}))} placeholder="2024-03-01" type="date"/>
+            <Input label="End Date" value={form.endDate} onChange={v=>setForm(p=>({...p,endDate:v}))} placeholder="2024-03-07" type="date"/>
           </div>
           <Input label="Notes" value={form.notes} onChange={v=>setForm(p=>({...p,notes:v}))} placeholder="Details…"/>
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
@@ -730,7 +766,7 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
           </div>
         </Modal>
       )}
-      {vm.map(m=>{const mc=filtered.filter(c=>c.model===m.name);if(!mc.length&&fm!=="All"&&fm!==m.name)return null;return(
+      {viewMode==="list"&&vm.map(m=>{const mc=filtered.filter(c=>c.model===m.name);if(!mc.length&&fm!=="All"&&fm!==m.name)return null;return(
         <div key={m.id} style={{marginBottom:20}}>
           <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>{m.name}</div>
           {!mc.length?<div style={{color:C.muted,fontSize:13,padding:"8px 0"}}>No campaigns.</div>:mc.map(c=>(
@@ -747,6 +783,46 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
           ))}
         </div>
       );})}
+      {viewMode==="calendar"&&(
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+            <button onClick={prevMonth} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>‹</button>
+            <span style={{fontWeight:700,fontSize:16,flex:1,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
+            <button onClick={nextMonth} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>›</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
+            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
+              <div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:C.muted,padding:"4px 0"}}>{d}</div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+            {calCells.map((d,i)=>{
+              const dayStr=d?`${calYear}-${pad(calMonth+1)}-${pad(d)}`:"";
+              const isToday=dayStr===today();
+              const dayCampaigns=d?getCampaignsForDay(d):[];
+              return(
+                <div key={i} style={{minHeight:72,background:d?C.white:"transparent",borderRadius:8,padding:d?"4px 6px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?C.border:"transparent"}`,position:"relative"}}>
+                  {d&&<div style={{fontSize:11,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:2}}>{d}</div>}
+                  {dayCampaigns.slice(0,3).map(c=>(
+                    <div key={c.id} title={`${c.model}: ${c.name}`} style={{fontSize:10,background:sc[c.status],color:C.white,borderRadius:4,padding:"1px 4px",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      {c.name}
+                    </div>
+                  ))}
+                  {dayCampaigns.length>3&&<div style={{fontSize:9,color:C.muted}}>+{dayCampaigns.length-3} more</div>}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
+            {Object.entries(sc).map(([st,col])=>(
+              <div key={st} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.muted}}>
+                <div style={{width:10,height:10,borderRadius:2,background:col}}/>
+                {st}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -834,10 +910,25 @@ function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeaders
 }
 // ── TODOS ────────────────────────────────────────────────────
 function TodoPanel({user,todos,setTodos,myModels}){
-  const [form,setForm]=useState({scope:"personal",model:myModels[0]||"",task:"",priority:"Medium"});
+  const [form,setForm]=useState({scope:"personal",model:myModels[0]||"",task:"",priority:"Medium",dueDate:""});
+  const [filterScope,setFilterScope]=useState("All");
+  const [sortBy,setSortBy]=useState("priority");
   const myTodos=todos.filter(t=>t.owner===user.name);
-  const open=myTodos.filter(t=>!t.done);const done=myTodos.filter(t=>t.done);
   const pc={High:C.red,Medium:C.yellow,Low:C.green};
+  const pOrder={High:0,Medium:1,Low:2};
+  const scopeOptions=["All","personal",...myModels];
+  const filtered=myTodos.filter(t=>{
+    if(filterScope==="All")return true;
+    if(filterScope==="personal")return t.scope==="personal";
+    return t.scope==="model"&&t.model===filterScope;
+  });
+  const sortFn=(a,b)=>{
+    if(sortBy==="priority")return pOrder[a.priority]-pOrder[b.priority];
+    if(sortBy==="dueDate"){if(!a.dueDate&&!b.dueDate)return 0;if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate.localeCompare(b.dueDate);}
+    return 0;
+  };
+  const open=filtered.filter(t=>!t.done).sort(sortFn);
+  const done=filtered.filter(t=>t.done);
   return(
     <div>
       <SectionHeader icon="✅" title="To-Dos"/>
@@ -846,17 +937,34 @@ function TodoPanel({user,todos,setTodos,myModels}){
           <Sel label="Scope" value={form.scope} onChange={v=>setForm(p=>({...p,scope:v}))} options={["personal","model"]}/>
           {form.scope==="model"&&<Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={myModels}/>}
           <Sel label="Priority" value={form.priority} onChange={v=>setForm(p=>({...p,priority:v}))} options={["High","Medium","Low"]}/>
+          <Input label="Due Date" value={form.dueDate} onChange={v=>setForm(p=>({...p,dueDate:v}))} placeholder="" type="date"/>
         </div>
         <Input label="Task" value={form.task} onChange={v=>setForm(p=>({...p,task:v}))} placeholder="e.g. Schedule mass message"/>
-        <Btn size="sm" onClick={()=>{if(!form.task)return;setTodos(p=>[...p,{...form,id:Date.now(),owner:user.name,done:false,date:today()}]);setForm(p=>({...p,task:""}));}}>Add Task</Btn>
+        <Btn size="sm" onClick={()=>{if(!form.task)return;setTodos(p=>[...p,{...form,id:Date.now(),owner:user.name,done:false,date:today()}]);setForm(p=>({...p,task:"",dueDate:""}));}}>Add Task</Btn>
       </Card>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+        <select value={filterScope} onChange={e=>setFilterScope(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          {scopeOptions.map(o=><option key={o}>{o}</option>)}
+        </select>
+        <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option value="priority">Sort: Priority</option>
+          <option value="dueDate">Sort: Due Date</option>
+        </select>
+      </div>
       {open.length>0&&(
         <div style={{marginBottom:16}}>
           <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Open · {open.length}</div>
           {open.map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.white,borderRadius:10,marginBottom:6,boxShadow:"0 1px 3px rgba(0,0,0,0.05)",borderLeft:`3px solid ${pc[t.priority]}`}}>
               <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer",width:15,height:15}}/>
-              <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{t.task}</div><div style={{display:"flex",gap:5,marginTop:4}}><Badge label={t.priority} color={pc[t.priority]}/>{t.scope==="model"&&t.model&&<Badge label={t.model} color={C.blue}/>}</div></div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600}}>{t.task}</div>
+                <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+                  <Badge label={t.priority} color={pc[t.priority]}/>
+                  {t.scope==="model"&&t.model&&<Badge label={t.model} color={C.blue}/>}
+                  {t.dueDate&&<span style={{fontSize:11,color:t.dueDate<today()?C.red:C.muted}}>Due {t.dueDate}</span>}
+                </div>
+              </div>
               <button onClick={()=>setTodos(p=>p.filter(x=>x.id!==t.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
             </div>
           ))}
