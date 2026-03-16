@@ -10,14 +10,14 @@ const C = {
   orange:"#ea580c",
   text:"#0f172a", muted:"#64748b", border:"#e2e8f0", bg:"#f8fafc", white:"#ffffff",
 };
-const roleColors={leadership:C.purple,am:C.blue,chatlead:C.green,chatter:C.pink,"ops-assistant":C.orange};
-const roleLabel={leadership:"Leadership",am:"Account Manager",chatlead:"Chat Lead",chatter:"Chatter","ops-assistant":"Ops Assistant"};
+const roleColors={leadership:C.purple,am:C.blue,chatlead:C.green,chatter:C.pink,"ops-assistant":C.orange,model:"#0ea5e9"};
+const roleLabel={leadership:"Leadership",am:"Account Manager",chatlead:"Chat Lead",chatter:"Chatter","ops-assistant":"Ops Assistant",model:"Model"};
 const CONTENT_TYPES=["PS","VID","PPV","CUS","LIVE","CLIP","BTS"];
 const PRICE_TIERS=["$","$$","$$$"];
 const DEFAULT_PLATFORMS=["Instagram","TikTok","Snapchat","X / Twitter","Reddit","Other"];
 const DEFAULT_MODEL_PLATFORMS=["OnlyFans","Passes","Both"];
 const SHIFTS=["11-7","7-3","3-11"];
-const ALL_ROLES=["leadership","am","chatlead","chatter","ops-assistant"];
+const ALL_ROLES=["leadership","am","chatlead","chatter","ops-assistant","model"];
 const TTK_SECTIONS=["identity","voice","interests","physical","personal","rules","scripts"];
 const OUTREACH_GROUPS=["Subs","Whales","Online Fans","VIPs","Recent Spenders L7","Recent Spenders MTD","Followers"];
 function today(){return new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
@@ -32,6 +32,8 @@ const INIT_USERS=[
   {id:6,name:"Chatter1",role:"chatter",email:"chatter1@charmed.com",password:"charmed123"},
   {id:7,name:"Chatter2",role:"chatter",email:"chatter2@charmed.com",password:"charmed123"},
   {id:8,name:"OpsUser",role:"ops-assistant",email:"ops@charmed.com",password:"charmed123"},
+  {id:9,name:"Autumn",role:"model",email:"autumn@charmed.com",password:"charmed123"},
+  {id:10,name:"Mia",role:"model",email:"mia@charmed.com",password:"charmed123"},
 ];
 const INIT_MODELS=[
   {id:1,name:"Autumn",am:"Tate",platform:"Passes",status:"Active",flirtLevel:"PG-17",archived:false},
@@ -88,6 +90,28 @@ const INIT_CUSTOMS=[
   {id:1,model:"Autumn",price:250,fan:"bigspender99",description:"Personalised beach video, mention his name",paid:false,status:"In Progress",loggedBy:"Tate",date:today()},
   {id:2,model:"Mia",price:400,fan:"whale_miami",description:"Full custom set, 3 outfits",paid:true,status:"Paid",loggedBy:"Tate",date:today()},
   {id:3,model:"Jordan",price:150,fan:"regularfan22",description:"Birthday shoutout video",paid:false,status:"Pending Confirmation",loggedBy:"Jonathan",date:today()},
+];
+const INIT_SOCIAL_METRICS=[
+  {id:1,model:"Autumn",platform:"TikTok",date:"2026-03-01",followers:45200,views:128000,likes:9200,comments:410,shares:1380,notes:"Spring campaign boosted views"},
+  {id:2,model:"Autumn",platform:"Instagram",date:"2026-03-01",followers:12800,views:0,likes:1850,comments:124,shares:0,notes:""},
+  {id:3,model:"Autumn",platform:"Snapchat",date:"2026-03-01",followers:8400,views:22000,likes:0,comments:0,shares:0,notes:"Story views up 12%"},
+  {id:4,model:"Mia",platform:"TikTok",date:"2026-03-01",followers:31000,views:89000,likes:6100,comments:280,shares:940,notes:""},
+  {id:5,model:"Jordan",platform:"Instagram",date:"2026-03-01",followers:9200,views:0,likes:1100,comments:78,shares:0,notes:""},
+];
+const INIT_GROWTH_CAMPAIGNS=[
+  {id:1,model:"Autumn",platform:"TikTok",type:"Sound Promo",name:"Spring Vibe Sound",status:"Active",startDate:"2026-03-01",endDate:"2026-03-31",notes:"Trending audio collaboration"},
+  {id:2,model:"Mia",platform:"Snapchat",type:"Trend Tracking",name:"March Spotlight",status:"Planned",startDate:"2026-03-15",endDate:"2026-03-22",notes:""},
+  {id:3,model:"Jordan",platform:"Instagram",type:"Viral Content",name:"Before & After Reel",status:"Active",startDate:"2026-03-10",endDate:"2026-03-20",notes:""},
+];
+const INIT_BRAND_DEALS=[
+  {id:1,model:"Autumn",brand:"FitTea Co",type:"Sponsored Post",deliverables:"1 TikTok + 2 IG Stories",deadline:"2026-03-31",payment:1500,paid:false,status:"In Progress",stripeId:"",notes:"Send product shots by 3/20"},
+  {id:2,model:"Mia",brand:"GlowSkin",type:"Ambassador",deliverables:"Monthly IG post + Story",deadline:"2026-04-30",payment:3000,paid:true,status:"Active",stripeId:"pi_mock_001",notes:"Ongoing monthly deal"},
+];
+const INIT_SNAP_REVENUE=[
+  {id:1,model:"Autumn",date:"2026-03-14",revenue:320,notes:""},
+  {id:2,model:"Autumn",date:"2026-03-15",revenue:410,notes:"Story promo active"},
+  {id:3,model:"Mia",date:"2026-03-14",revenue:190,notes:""},
+  {id:4,model:"Mia",date:"2026-03-15",revenue:240,notes:""},
 ];
 // ── DESIGN SYSTEM ────────────────────────────────────────────
 const s = {
@@ -986,6 +1010,500 @@ function TodoPanel({user,todos,setTodos,myModels}){
     </div>
   );
 }
+// ── HOME DASHBOARD ───────────────────────────────────────────
+function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLogs,shifts,models,snapRevenue,socialMetrics,onAction}){
+  const myModels=role==="am"?models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name):models.filter(m=>!m.archived).map(m=>m.name);
+  const mySales=sales.filter(s=>role==="am"?myModels.includes(s.model):true);
+  const todayRev=mySales.reduce((a,s)=>a+Number(s.amount),0);
+  const myTodos=todos.filter(t=>t.owner===user.name&&!t.done);
+  const overdue=myTodos.filter(t=>t.dueDate&&t.dueDate<new Date().toISOString().slice(0,10));
+  const myBrandDeals=brandDeals.filter(d=>(role==="am"?myModels.includes(d.model):true)&&d.status!=="Complete");
+  const activeCampaigns=campaigns.filter(c=>(role==="am"?myModels.includes(c.model):true)&&["Live","Scheduled"].includes(c.status));
+  const avgQA=qaLogs.length?Math.round(qaLogs.reduce((a,q)=>a+q.score,0)/qaLogs.length):null;
+  const violations=qaLogs.filter(q=>q.hardNoViolation).length;
+  const scoreCol=sc=>sc>=80?C.green:sc>=60?C.yellow:C.red;
+  const todaySnap=snapRevenue.filter(r=>r.date===new Date().toISOString().slice(0,10)).reduce((a,r)=>a+Number(r.revenue),0);
+  const latestMetrics={};
+  socialMetrics.forEach(m=>{const k=`${m.model}|${m.platform}`;if(!latestMetrics[k]||m.date>latestMetrics[k].date)latestMetrics[k]=m;});
+  const totalFollowers=Object.values(latestMetrics).reduce((a,m)=>a+Number(m.followers||0),0);
+  return(
+    <div>
+      <div style={{fontSize:24,fontWeight:800,marginBottom:2}}>Welcome back, {user.name} 👋</div>
+      <div style={{fontSize:13,color:C.muted,marginBottom:24}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:24}}>
+        <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.green} icon="💰"/>
+        <StatCard label="Open To-Dos" value={myTodos.length} color={overdue.length>0?C.red:C.blue} icon="✅" sub={overdue.length>0?`${overdue.length} overdue`:""}/>
+        <StatCard label="Active Campaigns" value={activeCampaigns.length} color={C.purple} icon="📅"/>
+        {(role==="leadership"||role==="am")&&<StatCard label="Brand Deals" value={myBrandDeals.length} color={C.orange} icon="🤝"/>}
+        {role==="leadership"&&<StatCard label="Avg QA Score" value={avgQA!==null?`${avgQA}%`:"—"} color={avgQA!==null?scoreCol(avgQA):C.muted} icon="🎯" sub={violations>0?`${violations} violations`:""}/>}
+        {(role==="leadership"||role==="am")&&<StatCard label="Snap Revenue" value={todaySnap>0?fmtMoney(todaySnap):"—"} color="#f59e0b" icon="👻" sub="today"/>}
+        {role==="leadership"&&<StatCard label="Total Followers" value={totalFollowers>999?`${(totalFollowers/1000).toFixed(1)}k`:totalFollowers} color="#0ea5e9" icon="📱"/>}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>📋 Open To-Dos</span>
+            <Btn size="sm" variant="secondary" onClick={()=>onAction("todos")}>View all</Btn>
+          </div>
+          {myTodos.length===0&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
+          {myTodos.slice(0,4).map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+              <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer"}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600}}>{t.task}</div>
+                {t.dueDate&&<div style={{fontSize:11,color:t.dueDate<new Date().toISOString().slice(0,10)?C.red:C.muted}}>Due {t.dueDate}</div>}
+              </div>
+              <Badge label={t.priority} color={{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}/>
+            </div>
+          ))}
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>📅 Active Campaigns</span>
+            <Btn size="sm" variant="secondary" onClick={()=>onAction("campaigns")}>View all</Btn>
+          </div>
+          {activeCampaigns.length===0&&<div style={{color:C.muted,fontSize:13}}>No active campaigns</div>}
+          {activeCampaigns.slice(0,4).map(c=>(
+            <div key={c.id} style={{padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{fontSize:13,fontWeight:600}}>{c.name}</div><div style={{fontSize:11,color:C.muted}}>{c.model} · {c.type}</div></div>
+                <Badge label={c.status} color={c.status==="Live"?C.green:C.blue}/>
+              </div>
+            </div>
+          ))}
+        </Card>
+      </div>
+      {(role==="leadership"||role==="am")&&myBrandDeals.length>0&&(
+        <Card style={{marginBottom:16}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>🤝 Brand Deals In Progress</span>
+            <Btn size="sm" variant="secondary" onClick={()=>onAction("brand")}>View all</Btn>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+            {myBrandDeals.slice(0,4).map(d=>(
+              <div key={d.id} style={{background:C.bg,borderRadius:10,padding:"10px 12px",borderLeft:`3px solid ${d.paid?C.green:C.orange}`}}>
+                <div style={{fontWeight:700,fontSize:13}}>{d.brand}</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:2}}>{d.model} · {fmtMoney(d.payment)}</div>
+                <div style={{fontSize:11,color:d.deadline<new Date().toISOString().slice(0,10)?C.red:C.muted,marginTop:2}}>Due {d.deadline}</div>
+                <Badge label={d.status} color={d.status==="Active"?C.green:d.status==="In Progress"?C.blue:C.muted}/>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+      <Card>
+        <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>⚡ Quick Actions</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <Btn size="sm" onClick={()=>onAction("todos")}>+ New To-Do</Btn>
+          <Btn size="sm" variant="secondary" onClick={()=>onAction("campaigns")}>+ Campaign</Btn>
+          {(role==="leadership"||role==="am")&&<Btn size="sm" variant="secondary" onClick={()=>onAction("brand")}>+ Brand Deal</Btn>}
+          {(role==="leadership"||role==="am")&&<Btn size="sm" variant="secondary" onClick={()=>onAction("social")}>📱 Log Metrics</Btn>}
+          {(role==="leadership"||role==="am")&&<Btn size="sm" variant="secondary" onClick={()=>onAction("snap")}>👻 Log Snap Rev</Btn>}
+          {role==="leadership"&&<Btn size="sm" variant="secondary" onClick={()=>onAction("qa")}>+ QA Review</Btn>}
+        </div>
+      </Card>
+    </div>
+  );
+}
+// ── SOCIAL METRICS ────────────────────────────────────────────
+function SocialMetrics({user,socialMetrics,setSocialMetrics,models,isLeadership,myModels}){
+  const PLATFORMS=["TikTok","Instagram","Snapchat","Streaming"];
+  const PLAT_ICON={TikTok:"🎵",Instagram:"📸",Snapchat:"👻",Streaming:"🎥"};
+  const PLAT_COL={TikTok:"#000000",Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple};
+  const [platform,setPlatform]=useState("TikTok");
+  const [fm,setFm]=useState("All");
+  const [showAdd,setShowAdd]=useState(false);
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
+  const blank={model:vm[0]||"",platform,date:new Date().toISOString().slice(0,10),followers:"",views:"",likes:"",comments:"",shares:"",notes:""};
+  const [form,setForm]=useState(blank);
+  useEffect(()=>setForm(p=>({...p,platform})),[platform]);
+  const entries=socialMetrics.filter(e=>(fm==="All"||e.model===fm)&&e.platform===platform&&(isLeadership||myModels.includes(e.model))).sort((a,b)=>b.date.localeCompare(a.date));
+  const latestByModel={};
+  entries.forEach(e=>{if(!latestByModel[e.model])latestByModel[e.model]=e;});
+  const totalFollowers=Object.values(latestByModel).reduce((a,e)=>a+Number(e.followers||0),0);
+  const totalViews=Object.values(latestByModel).reduce((a,e)=>a+Number(e.views||0),0);
+  return(
+    <div>
+      <SectionHeader icon="📱" title="Social Platform Metrics" action={<Btn size="sm" onClick={()=>{setForm({...blank,platform});setShowAdd(true);}}>+ Log Metrics</Btn>}/>
+      <div style={{display:"flex",gap:4,marginBottom:16,background:"#f1f5f9",borderRadius:10,padding:3}}>
+        {PLATFORMS.map(p=>(
+          <button key={p} onClick={()=>setPlatform(p)} style={{flex:1,padding:"7px 4px",borderRadius:8,border:"none",background:platform===p?C.white:"transparent",color:platform===p?PLAT_COL[p]:C.muted,fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:platform===p?"0 1px 3px rgba(0,0,0,0.08)":"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+            {PLAT_ICON[p]} {p}
+          </button>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12,marginBottom:16}}>
+        <StatCard label="Total Followers" value={totalFollowers>999?`${(totalFollowers/1000).toFixed(1)}k`:totalFollowers||"—"} color={PLAT_COL[platform]}/>
+        {platform!=="Instagram"&&<StatCard label="Total Views" value={totalViews>999?`${(totalViews/1000).toFixed(1)}k`:totalViews||"—"} color={PLAT_COL[platform]}/>}
+        <StatCard label="Models Tracked" value={Object.keys(latestByModel).length} color={C.muted}/>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{vm.map(m=><option key={m}>{m}</option>)}
+        </select>
+      </div>
+      {showAdd&&(
+        <Modal title={`Log ${platform} Metrics`} onClose={()=>setShowAdd(false)}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={vm}/>
+            <Input label="Date" value={form.date} onChange={v=>setForm(p=>({...p,date:v}))} type="date"/>
+            <Input label="Followers" value={form.followers} onChange={v=>setForm(p=>({...p,followers:v}))} placeholder="45000" type="number"/>
+            {platform!=="Instagram"&&<Input label="Views" value={form.views} onChange={v=>setForm(p=>({...p,views:v}))} placeholder="120000" type="number"/>}
+            <Input label="Likes" value={form.likes} onChange={v=>setForm(p=>({...p,likes:v}))} placeholder="8400" type="number"/>
+            <Input label="Comments" value={form.comments} onChange={v=>setForm(p=>({...p,comments:v}))} placeholder="340" type="number"/>
+            {platform!=="Instagram"&&<Input label="Shares" value={form.shares} onChange={v=>setForm(p=>({...p,shares:v}))} placeholder="1200" type="number"/>}
+          </div>
+          <Input label="Notes" value={form.notes} onChange={v=>setForm(p=>({...p,notes:v}))} placeholder="Any context…"/>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
+            <Btn size="sm" onClick={()=>{if(!form.model)return;setSocialMetrics(p=>[{...form,id:Date.now()},...p]);setShowAdd(false);}}>Save</Btn>
+          </div>
+        </Modal>
+      )}
+      {entries.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No {platform} metrics logged yet</div>}
+      {Object.keys(latestByModel).map(model=>{
+        const latest=latestByModel[model];
+        const prev=entries.filter(e=>e.model===model)[1];
+        const followerDelta=prev?Number(latest.followers)-Number(prev.followers):null;
+        return(
+          <Card key={model} style={{marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:16}}>{PLAT_ICON[platform]}</span>
+                <span style={{fontWeight:700,fontSize:14}}>{model}</span>
+                {followerDelta!==null&&<span style={{fontSize:11,fontWeight:700,color:followerDelta>=0?C.green:C.red}}>{followerDelta>=0?"+":""}{followerDelta>=1000?`${(followerDelta/1000).toFixed(1)}k`:followerDelta} followers</span>}
+              </div>
+              <span style={{fontSize:11,color:C.muted}}>{latest.date}</span>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:8}}>
+              {[["Followers",latest.followers],["Views",latest.views],["Likes",latest.likes],["Comments",latest.comments],["Shares",latest.shares]].filter(([,v])=>v!==undefined&&v!=="").map(([l,v])=>(
+                <div key={l} style={{background:C.bg,borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                  <div style={{fontSize:14,fontWeight:800,color:PLAT_COL[platform]}}>{Number(v)>999?`${(Number(v)/1000).toFixed(1)}k`:v}</div>
+                  <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",fontWeight:600,letterSpacing:"0.04em"}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            {latest.notes&&<p style={{fontSize:12,color:C.muted,margin:"8px 0 0"}}>{latest.notes}</p>}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+// ── GROWTH CAMPAIGNS ──────────────────────────────────────────
+function GrowthCampaigns({user,growthCampaigns,setGrowthCampaigns,models,isLeadership,myModels}){
+  const TYPES=["Sound Promo","Trend Tracking","Viral Content","Collab","Paid Promo","Other"];
+  const PLATFORMS=["TikTok","Instagram","Snapchat","Streaming"];
+  const PLAT_COL={TikTok:"#000000",Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple};
+  const STATUS_COL={Active:C.green,Planned:C.blue,Paused:C.yellow,Complete:C.muted};
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
+  const [fp,setFp]=useState("All");const [fs,setFs]=useState("All");
+  const [showAdd,setShowAdd]=useState(false);
+  const blank={model:vm[0]||"",platform:"TikTok",type:"Sound Promo",name:"",status:"Planned",startDate:new Date().toISOString().slice(0,10),endDate:"",notes:""};
+  const [form,setForm]=useState(blank);
+  const visible=growthCampaigns.filter(g=>(fp==="All"||g.platform===fp)&&(fs==="All"||g.status===fs)&&(isLeadership||myModels.includes(g.model)));
+  return(
+    <div>
+      <SectionHeader icon="🚀" title="Growth Campaigns" action={<Btn size="sm" onClick={()=>{setForm(blank);setShowAdd(true);}}>+ New Campaign</Btn>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
+        {PLATFORMS.map(p=>{const count=visible.filter(g=>g.platform===p&&g.status==="Active").length;return(
+          <Card key={p} style={{padding:12,textAlign:"center",borderTop:`3px solid ${PLAT_COL[p]}`}}>
+            <div style={{fontSize:18,fontWeight:800,color:PLAT_COL[p]}}>{count}</div>
+            <div style={{fontSize:10,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em"}}>{p} Active</div>
+          </Card>
+        );})}
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        <select value={fp} onChange={e=>setFp(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{PLATFORMS.map(p=><option key={p}>{p}</option>)}
+        </select>
+        <select value={fs} onChange={e=>setFs(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{["Active","Planned","Paused","Complete"].map(st=><option key={st}>{st}</option>)}
+        </select>
+      </div>
+      {showAdd&&(
+        <Modal title="New Growth Campaign" onClose={()=>setShowAdd(false)}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={vm}/>
+            <Sel label="Platform" value={form.platform} onChange={v=>setForm(p=>({...p,platform:v}))} options={PLATFORMS}/>
+            <Sel label="Type" value={form.type} onChange={v=>setForm(p=>({...p,type:v}))} options={TYPES}/>
+            <Sel label="Status" value={form.status} onChange={v=>setForm(p=>({...p,status:v}))} options={["Active","Planned","Paused","Complete"]}/>
+            <Input label="Start Date" value={form.startDate} onChange={v=>setForm(p=>({...p,startDate:v}))} type="date"/>
+            <Input label="End Date" value={form.endDate} onChange={v=>setForm(p=>({...p,endDate:v}))} type="date"/>
+          </div>
+          <Input label="Campaign Name" value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="e.g. Spring Sound Promo" style={{gridColumn:"1/-1"}}/>
+          <Input label="Notes" value={form.notes} onChange={v=>setForm(p=>({...p,notes:v}))} placeholder="Details, links, strategy…"/>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
+            <Btn size="sm" onClick={()=>{if(!form.name)return;setGrowthCampaigns(p=>[...p,{...form,id:Date.now()}]);setShowAdd(false);}}>Add Campaign</Btn>
+          </div>
+        </Modal>
+      )}
+      {visible.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No growth campaigns yet</div>}
+      {visible.map(g=>(
+        <Card key={g.id} style={{marginBottom:10,borderLeft:`3px solid ${PLAT_COL[g.platform]}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:13}}>{g.name}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:2}}>{g.model} · {g.platform} · {g.type}</div>
+              {g.startDate&&<div style={{fontSize:11,color:C.muted}}>{g.startDate}{g.endDate?` → ${g.endDate}`:""}</div>}
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <Badge label={g.platform} color={PLAT_COL[g.platform]}/>
+              <select value={g.status} onChange={e=>setGrowthCampaigns(p=>p.map(x=>x.id===g.id?{...x,status:e.target.value}:x))} style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"4px 10px"}}>{["Active","Planned","Paused","Complete"].map(st=><option key={st}>{st}</option>)}</select>
+            </div>
+          </div>
+          {g.notes&&<p style={{fontSize:12,color:C.muted,margin:"8px 0 0"}}>{g.notes}</p>}
+        </Card>
+      ))}
+    </div>
+  );
+}
+// ── BRAND DEALS ───────────────────────────────────────────────
+function BrandDeals({user,brandDeals,setBrandDeals,models,isLeadership,myModels}){
+  const STATUS_COL={Active:C.green,"In Progress":C.blue,Negotiating:C.yellow,Complete:C.muted,Cancelled:C.red};
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
+  const [fs,setFs]=useState("All");const [fm,setFm]=useState("All");
+  const [showAdd,setShowAdd]=useState(false);
+  const blank={model:vm[0]||"",brand:"",type:"Sponsored Post",deliverables:"",deadline:"",payment:"",paid:false,status:"Negotiating",stripeId:"",notes:""};
+  const [form,setForm]=useState(blank);
+  const visible=brandDeals.filter(d=>(fm==="All"||d.model===fm)&&(fs==="All"||d.status===fs)&&(isLeadership||myModels.includes(d.model)));
+  const totalPending=visible.filter(d=>!d.paid).reduce((a,d)=>a+Number(d.payment||0),0);
+  const totalPaid=visible.filter(d=>d.paid).reduce((a,d)=>a+Number(d.payment||0),0);
+  return(
+    <div>
+      <SectionHeader icon="🤝" title="Brand Deals & Partnerships" action={<Btn size="sm" onClick={()=>{setForm(blank);setShowAdd(true);}}>+ New Deal</Btn>}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+        <StatCard label="Active Deals" value={visible.filter(d=>["Active","In Progress"].includes(d.status)).length} color={C.green}/>
+        <StatCard label="Pending Payment" value={fmtMoney(totalPending)} color={C.orange}/>
+        <StatCard label="Paid Out" value={fmtMoney(totalPaid)} color={C.purple}/>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{vm.map(m=><option key={m}>{m}</option>)}
+        </select>
+        <select value={fs} onChange={e=>setFs(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{Object.keys(STATUS_COL).map(st=><option key={st}>{st}</option>)}
+        </select>
+      </div>
+      {showAdd&&(
+        <Modal title="New Brand Deal" onClose={()=>setShowAdd(false)} width={520}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={vm}/>
+            <Sel label="Type" value={form.type} onChange={v=>setForm(p=>({...p,type:v}))} options={["Sponsored Post","Ambassador","Affiliate","Collaboration","Product Gift","Other"]}/>
+            <Input label="Brand Name" value={form.brand} onChange={v=>setForm(p=>({...p,brand:v}))} placeholder="e.g. FitTea Co" style={{gridColumn:"1/-1"}}/>
+            <Input label="Payment ($)" value={form.payment} onChange={v=>setForm(p=>({...p,payment:v}))} placeholder="1500" type="number"/>
+            <Input label="Deadline" value={form.deadline} onChange={v=>setForm(p=>({...p,deadline:v}))} type="date"/>
+            <Input label="Stripe Payment ID" value={form.stripeId} onChange={v=>setForm(p=>({...p,stripeId:v}))} placeholder="pi_… (optional)" style={{gridColumn:"1/-1"}}/>
+          </div>
+          <TA label="Deliverables" value={form.deliverables} onChange={v=>setForm(p=>({...p,deliverables:v}))} placeholder="e.g. 1 TikTok, 2 IG Stories, 1 IG Reel" rows={2}/>
+          <TA label="Notes" value={form.notes} onChange={v=>setForm(p=>({...p,notes:v}))} placeholder="Any deal terms, contacts, requirements…" rows={2}/>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
+            <Btn size="sm" onClick={()=>{if(!form.brand)return;setBrandDeals(p=>[...p,{...form,id:Date.now()}]);setShowAdd(false);}}>Save Deal</Btn>
+          </div>
+        </Modal>
+      )}
+      {visible.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No brand deals yet</div>}
+      {visible.map(d=>(
+        <Card key={d.id} style={{marginBottom:12,borderLeft:`3px solid ${STATUS_COL[d.status]||C.muted}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:14}}>{d.brand}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:2}}>{d.model} · {d.type}</div>
+              {d.deliverables&&<div style={{fontSize:12,color:C.text,marginTop:4}}><b>Deliverables:</b> {d.deliverables}</div>}
+              {d.deadline&&<div style={{fontSize:11,color:d.deadline<new Date().toISOString().slice(0,10)?C.red:C.muted,marginTop:2}}>Due {d.deadline}</div>}
+              {d.stripeId&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>Stripe: {d.stripeId}</div>}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+              <span style={{fontSize:18,fontWeight:800,color:d.paid?C.green:C.orange}}>{fmtMoney(d.payment||0)}</span>
+              <select value={d.status} onChange={e=>setBrandDeals(p=>p.map(x=>x.id===d.id?{...x,status:e.target.value}:x))} style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"4px 10px"}}>{Object.keys(STATUS_COL).map(st=><option key={st}>{st}</option>)}</select>
+              <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12}}>
+                <input type="checkbox" checked={d.paid} onChange={e=>setBrandDeals(p=>p.map(x=>x.id===d.id?{...x,paid:e.target.checked}:x))} style={{cursor:"pointer"}}/>
+                <span style={{color:d.paid?C.green:C.muted,fontWeight:600}}>{d.paid?"Paid ✓":"Mark paid"}</span>
+              </div>
+            </div>
+          </div>
+          {d.notes&&<p style={{fontSize:12,color:C.muted,margin:"8px 0 0"}}>{d.notes}</p>}
+        </Card>
+      ))}
+    </div>
+  );
+}
+// ── SNAP REVENUE ──────────────────────────────────────────────
+function SnapRevenue({user,snapRevenue,setSnapRevenue,models,isLeadership,myModels}){
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
+  const [fm,setFm]=useState("All");
+  const blank={model:vm[0]||"",date:new Date().toISOString().slice(0,10),revenue:"",notes:""};
+  const [form,setForm]=useState(blank);
+  const visible=snapRevenue.filter(r=>(fm==="All"||r.model===fm)&&(isLeadership||myModels.includes(r.model))).sort((a,b)=>b.date.localeCompare(a.date));
+  const todayStr=new Date().toISOString().slice(0,10);
+  const todayRev=visible.filter(r=>r.date===todayStr).reduce((a,r)=>a+Number(r.revenue||0),0);
+  const weekRev=visible.filter(r=>r.date>=new Date(Date.now()-7*864e5).toISOString().slice(0,10)).reduce((a,r)=>a+Number(r.revenue||0),0);
+  const avgDaily=visible.length?Math.round(visible.reduce((a,r)=>a+Number(r.revenue||0),0)/visible.length):0;
+  return(
+    <div>
+      <SectionHeader icon="👻" title="Daily Snapchat Revenue"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+        <StatCard label="Today" value={fmtMoney(todayRev)} color="#f59e0b"/>
+        <StatCard label="Last 7 Days" value={fmtMoney(weekRev)} color={C.orange}/>
+        <StatCard label="Avg Per Day" value={fmtMoney(avgDaily)} color={C.purple}/>
+      </div>
+      <Card style={{marginBottom:16}}>
+        <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>Log Revenue</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:12,alignItems:"end"}}>
+          <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={vm}/>
+          <Input label="Date" value={form.date} onChange={v=>setForm(p=>({...p,date:v}))} type="date"/>
+          <Input label="Revenue ($)" value={form.revenue} onChange={v=>setForm(p=>({...p,revenue:v}))} placeholder="0" type="number"/>
+          <Btn size="sm" onClick={()=>{if(!form.revenue)return;setSnapRevenue(p=>[...p,{...form,id:Date.now()}]);setForm(p=>({...p,revenue:"",notes:""}));}}>Log</Btn>
+        </div>
+        <Input label="Notes (optional)" value={form.notes} onChange={v=>setForm(p=>({...p,notes:v}))} placeholder="e.g. Story promo active"/>
+      </Card>
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{vm.map(m=><option key={m}>{m}</option>)}
+        </select>
+      </div>
+      {visible.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No Snapchat revenue logged yet</div>}
+      {visible.map(r=>(
+        <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:C.white,borderRadius:10,marginBottom:6,boxShadow:"0 1px 3px rgba(0,0,0,0.05)",borderLeft:"3px solid #f59e0b"}}>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700,fontSize:13}}>{r.model}</span><Badge label="Snapchat" color="#f59e0b"/><span style={{fontSize:11,color:C.muted}}>{r.date}</span></div>
+            {r.notes&&<div style={{fontSize:12,color:C.muted,marginTop:2}}>{r.notes}</div>}
+          </div>
+          <span style={{fontWeight:800,fontSize:16,color:C.green}}>{fmtMoney(r.revenue)}</span>
+          <button onClick={()=>setSnapRevenue(p=>p.filter(x=>x.id!==r.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16}}>×</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+// ── MODEL PORTAL ──────────────────────────────────────────────
+function ModelPortal({user,models,ttks,campaigns,brandDeals,content,socialMetrics,growthCampaigns}){
+  const [tab,setTab]=useState("home");
+  const modelName=user.name;
+  const model=models.find(m=>m.name===modelName);
+  const ttk=ttks.find(t=>t.model===modelName);
+  const myCampaigns=campaigns.filter(c=>c.model===modelName);
+  const myDeals=brandDeals.filter(d=>d.model===modelName);
+  const myContent=content.filter(c=>c.model===modelName);
+  const myGrowth=growthCampaigns.filter(g=>g.model===modelName);
+  const myMetrics=socialMetrics.filter(m=>m.model===modelName);
+  const activeCampaigns=myCampaigns.filter(c=>["Live","Scheduled"].includes(c.status));
+  const openDeals=myDeals.filter(d=>d.status!=="Complete"&&d.status!=="Cancelled");
+  const unpaidDeals=myDeals.filter(d=>!d.paid&&d.status!=="Cancelled");
+  return(
+    <div>
+      <div style={{fontSize:22,fontWeight:800,marginBottom:2}}>Hey {modelName} 👋</div>
+      <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+      <Tabs tabs={[["home","Home"],["campaigns","Campaigns"],["brand","Brand Deals"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
+      {tab==="home"&&(
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12,marginBottom:20}}>
+            <StatCard label="Active Campaigns" value={activeCampaigns.length} color={C.purple} icon="📅"/>
+            <StatCard label="Open Brand Deals" value={openDeals.length} color={C.orange} icon="🤝"/>
+            <StatCard label="Unpaid Amount" value={fmtMoney(unpaidDeals.reduce((a,d)=>a+Number(d.payment||0),0))} color={unpaidDeals.length>0?C.orange:C.green} icon="💸"/>
+            <StatCard label="Content Pieces" value={myContent.length} color={C.blue} icon="📸"/>
+          </div>
+          {openDeals.length>0&&(
+            <Card style={{marginBottom:16}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>🤝 Your Brand Deals</div>
+              {openDeals.map(d=>(
+                <div key={d.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div><div style={{fontWeight:600,fontSize:13}}>{d.brand}</div><div style={{fontSize:11,color:C.muted}}>{d.deliverables}</div>{d.deadline&&<div style={{fontSize:11,color:d.deadline<new Date().toISOString().slice(0,10)?C.red:C.muted}}>Due {d.deadline}</div>}</div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:d.paid?C.green:C.orange}}>{fmtMoney(d.payment||0)}</span><Badge label={d.paid?"Paid":"Pending"} color={d.paid?C.green:C.orange}/></div>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+          {activeCampaigns.length>0&&(
+            <Card>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>📅 Active Campaigns</div>
+              {activeCampaigns.map(c=>(
+                <div key={c.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div><div style={{fontWeight:600,fontSize:13}}>{c.name}</div><div style={{fontSize:11,color:C.muted}}>{c.type} · {c.startDate} → {c.endDate}</div></div>
+                    <Badge label={c.status} color={c.status==="Live"?C.green:C.blue}/>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+        </div>
+      )}
+      {tab==="campaigns"&&(
+        <div>
+          <SectionHeader icon="📅" title="Your Campaigns"/>
+          {myCampaigns.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No campaigns yet</div>}
+          {myCampaigns.map(c=>(
+            <Card key={c.id} style={{marginBottom:10,borderLeft:`3px solid ${{Planning:C.yellow,Scheduled:C.blue,Live:C.green,Complete:C.muted}[c.status]}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{fontWeight:700}}>{c.name}</div><div style={{fontSize:11,color:C.muted}}>{c.type}{c.startDate?` · ${c.startDate} → ${c.endDate}`:""}</div></div>
+                <div>{c.revenue>0&&<span style={{fontWeight:700,color:C.green,marginRight:8}}>{fmtMoney(c.revenue)}</span>}<Badge label={c.status} color={{Planning:C.yellow,Scheduled:C.blue,Live:C.green,Complete:C.muted}[c.status]}/></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+      {tab==="brand"&&(
+        <div>
+          <SectionHeader icon="🤝" title="Your Brand Deals"/>
+          {myDeals.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No brand deals yet</div>}
+          {myDeals.map(d=>(
+            <Card key={d.id} style={{marginBottom:10,borderLeft:`3px solid ${{Active:C.green,"In Progress":C.blue,Negotiating:C.yellow,Complete:C.muted,Cancelled:C.red}[d.status]||C.muted}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div><div style={{fontWeight:700,fontSize:14}}>{d.brand}</div><div style={{fontSize:11,color:C.muted}}>{d.type}</div>{d.deliverables&&<div style={{fontSize:12,marginTop:4}}><b>Deliverables:</b> {d.deliverables}</div>}{d.deadline&&<div style={{fontSize:11,color:d.deadline<new Date().toISOString().slice(0,10)?C.red:C.muted,marginTop:2}}>Due {d.deadline}</div>}</div>
+                <div style={{textAlign:"right"}}><div style={{fontSize:18,fontWeight:800,color:d.paid?C.green:C.orange}}>{fmtMoney(d.payment||0)}</div><Badge label={d.paid?"Paid ✓":"Pending"} color={d.paid?C.green:C.orange}/></div>
+              </div>
+              {d.notes&&<p style={{fontSize:12,color:C.muted,margin:"8px 0 0"}}>{d.notes}</p>}
+            </Card>
+          ))}
+        </div>
+      )}
+      {tab==="content"&&(
+        <div>
+          <SectionHeader icon="📸" title="Your Content"/>
+          {myContent.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No content logged yet</div>}
+          {myContent.map(c=>(
+            <Card key={c.id} style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{fontWeight:600}}>{c.tag||c.theme}</div><div style={{fontSize:11,color:C.muted}}>{c.type} · {c.date} · {c.assetCount} assets</div></div>
+                <Badge label={c.priceTier} color={C.purple}/>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+      {tab==="growth"&&(
+        <div>
+          <SectionHeader icon="🚀" title="Growth Activity"/>
+          {myGrowth.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No growth campaigns yet</div>}
+          {myGrowth.map(g=>(
+            <Card key={g.id} style={{marginBottom:10,borderLeft:`3px solid ${{TikTok:"#000",Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple}[g.platform]}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{fontWeight:600}}>{g.name}</div><div style={{fontSize:11,color:C.muted}}>{g.platform} · {g.type}</div>{g.startDate&&<div style={{fontSize:11,color:C.muted}}>{g.startDate}{g.endDate?` → ${g.endDate}`:""}</div>}</div>
+                <Badge label={g.status} color={{Active:C.green,Planned:C.blue,Paused:C.yellow,Complete:C.muted}[g.status]}/>
+              </div>
+            </Card>
+          ))}
+          <div style={{marginTop:16}}>
+            <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Platform Metrics</div>
+            {myMetrics.slice(0,5).map(m=>(
+              <div key={m.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div><span style={{fontWeight:600,fontSize:13}}>{m.platform}</span><span style={{fontSize:11,color:C.muted,marginLeft:8}}>{m.date}</span></div>
+                  <div style={{display:"flex",gap:12,fontSize:12}}>{m.followers&&<span><b>{Number(m.followers)>999?`${(Number(m.followers)/1000).toFixed(1)}k`:m.followers}</b> followers</span>}{m.views&&Number(m.views)>0&&<span><b>{Number(m.views)>999?`${(Number(m.views)/1000).toFixed(1)}k`:m.views}</b> views</span>}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 // ── SHIFT SCHEDULE ───────────────────────────────────────────
 function ShiftSchedule({shifts,setShifts,users,models,slingApiKey,setSlingApiKey}){
   const chatters=users.filter(u=>u.role==="chatter"||u.role==="chatlead").map(u=>u.name);
@@ -1375,7 +1893,8 @@ function CustomsTracker({user,customs,setCustoms,models}){
   );
 }
 // ── DASHBOARDS ───────────────────────────────────────────────
-function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms}){
+function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue}){
+  const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
   const amStats=users.filter(u=>u.role==="am").map(am=>{const t=tasks.filter(x=>x.am===am.name);const keys=["bos","eos","content","notion","promos"];const total=t.length*keys.length,done=t.reduce((a,x)=>a+keys.filter(k=>x[k]===true).length,0),inc=t.reduce((a,x)=>a+keys.filter(k=>x[k]===false).length,0);return{am:am.name,pct:total?Math.round(done/total*100):0,inc,done,total};});
@@ -1384,163 +1903,234 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const low=models.filter(m=>!m.archived&&campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
   const alerts=buildAlerts(tasks,shifts,models,campaigns,fans);
   const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["customs","Customs"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["todos","To-Dos"],["admin","⚙️ Admin"]];
+  const handleQuickAction=(action)=>{
+    if(action==="todos"||action==="campaigns"||action==="qa"){setSection("paywall");setTab(action);}
+    else if(action==="social"||action==="snap"){setSection("social");}
+    else if(action==="brand"){setSection("brand");}
+  };
+  const SECTIONS=[["home","🏠 Home"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
   return(
     <div>
       <div style={{marginBottom:4}}><span style={{fontSize:22,fontWeight:800}}>Leadership</span></div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()} · {models.filter(m=>!m.archived).length} active accounts</div>
       <AlertsBar alerts={alerts}/>
-      <Tabs tabs={navTabs} active={tab} onChange={setTab}/>
-      {tab==="overview"&&<div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
-          <StatCard label="Today's Revenue" value={fmtMoney(totalRev)} color={C.green}/>
-          <StatCard label="Live Campaigns" value={campaigns.filter(c=>c.status==="Live").length} color={C.purple}/>
-          <StatCard label="Flagged Fans" value={flagged.length} color={flagged.length>0?C.red:C.green}/>
-          <StatCard label="Need Campaigns" value={low.length} color={low.length>0?C.red:C.green}/>
-        </div>
-        <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>AM Accountability</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-          {amStats.map(s=>(
-            <Card key={s.am}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <span style={{fontWeight:700,fontSize:14}}>{s.am}</span>
-                <span style={{fontSize:22,fontWeight:800,color:s.inc>0?C.red:s.pct===100?C.green:C.yellow}}>{s.pct}%</span>
-              </div>
-              <div style={{height:5,borderRadius:99,background:C.border,marginBottom:8}}><div style={{width:`${s.pct}%`,height:"100%",borderRadius:99,background:s.inc>0?C.red:s.pct===100?C.green:C.yellow,transition:"width 0.3s"}}/></div>
-              <div style={{display:"flex",gap:6}}><Badge label={`${s.done}/${s.total} done`} color={C.green}/>{s.inc>0&&<Badge label={`⚠ ${s.inc} incomplete`} color={C.red}/>}</div>
-            </Card>
-          ))}
-        </div>
-        <Card style={{padding:0,overflow:"hidden",marginBottom:20}}>
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-              <thead><tr style={{background:C.dark,color:"#94a3b8"}}>{["AM","Model","BOS","EOS","Content","Notion","Promos","Notes"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:["AM","Model","Notes"].includes(h)?"left":"center",fontWeight:600,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
-              <tbody>{tasks.map((t,ri)=>{const inc=["bos","eos","content","notion","promos"].some(k=>t[k]===false),all=["bos","eos","content","notion","promos"].every(k=>t[k]===true);return(
-                <tr key={t.id} style={{background:inc?C.redL:all?C.greenL:ri%2===0?C.white:C.bg,borderBottom:`1px solid ${C.border}`}}>
-                  <td style={{padding:"8px 14px",fontWeight:600}}>{t.am}</td>
-                  <td style={{padding:"8px 14px",color:C.muted}}>{t.model}</td>
-                  {["bos","eos","content","notion","promos"].map(k=><td key={k} style={{padding:"8px 14px",textAlign:"center"}}><TaskCell val={t[k]} onChange={v=>setTasks(p=>p.map(r=>r.id===t.id?{...r,[k]:v}:r))}/></td>)}
-                  <td style={{padding:"8px 14px"}}><input value={t.notes} onChange={e=>setTasks(p=>p.map(r=>r.id===t.id?{...r,notes:e.target.value}:r))} style={{...s.input,width:140,padding:"4px 8px",fontSize:12}}/></td>
-                </tr>
-              );})}</tbody>
-            </table>
+      <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
+        {SECTIONS.map(([k,l])=>(
+          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",background:section===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:section===k?C.white:"#94a3b8",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
+            {l}
+          </button>
+        ))}
+      </div>
+      {section==="home"&&<HomeDashboard user={user} role="leadership" sales={sales} todos={todos} setTodos={setTodos} campaigns={campaigns} brandDeals={brandDeals} qaLogs={qaLogs} shifts={shifts} models={models} snapRevenue={snapRevenue} socialMetrics={socialMetrics} onAction={handleQuickAction}/>}
+      {section==="paywall"&&<div>
+        <Tabs tabs={navTabs} active={tab} onChange={setTab}/>
+        {tab==="overview"&&<div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+            <StatCard label="Today's Revenue" value={fmtMoney(totalRev)} color={C.green}/>
+            <StatCard label="Live Campaigns" value={campaigns.filter(c=>c.status==="Live").length} color={C.purple}/>
+            <StatCard label="Flagged Fans" value={flagged.length} color={flagged.length>0?C.red:C.green}/>
+            <StatCard label="Need Campaigns" value={low.length} color={low.length>0?C.red:C.green}/>
           </div>
-        </Card>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <Card><div style={{fontWeight:700,marginBottom:12,color:C.red,fontSize:13}}>⚠ Flagged Fans</div>{!flagged.length?<div style={{color:C.muted,fontSize:13}}>None ✓</div>:flagged.map(f=><div key={f.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}><div style={{fontWeight:600}}>{f.username} <Badge label={f.type} color={C.red}/></div><div style={{color:C.muted,fontSize:12}}>{f.model} · {f.notes}</div></div>)}</Card>
-          <Card><div style={{fontWeight:700,marginBottom:12,color:C.yellow,fontSize:13}}>⚠ Low Campaigns</div>{!low.length?<div style={{color:C.muted,fontSize:13}}>All good ✓</div>:low.map(m=><div key={m.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}><div style={{fontWeight:600}}>{m.name}</div><div style={{color:C.muted,fontSize:12}}>AM: {m.am}</div></div>)}</Card>
-        </div>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>AM Accountability</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+            {amStats.map(s=>(
+              <Card key={s.am}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <span style={{fontWeight:700,fontSize:14}}>{s.am}</span>
+                  <span style={{fontSize:22,fontWeight:800,color:s.inc>0?C.red:s.pct===100?C.green:C.yellow}}>{s.pct}%</span>
+                </div>
+                <div style={{height:5,borderRadius:99,background:C.border,marginBottom:8}}><div style={{width:`${s.pct}%`,height:"100%",borderRadius:99,background:s.inc>0?C.red:s.pct===100?C.green:C.yellow,transition:"width 0.3s"}}/></div>
+                <div style={{display:"flex",gap:6}}><Badge label={`${s.done}/${s.total} done`} color={C.green}/>{s.inc>0&&<Badge label={`⚠ ${s.inc} incomplete`} color={C.red}/>}</div>
+              </Card>
+            ))}
+          </div>
+          <Card style={{padding:0,overflow:"hidden",marginBottom:20}}>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+                <thead><tr style={{background:C.dark,color:"#94a3b8"}}>{["AM","Model","BOS","EOS","Content","Notion","Promos","Notes"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:["AM","Model","Notes"].includes(h)?"left":"center",fontWeight:600,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
+                <tbody>{tasks.map((t,ri)=>{const inc=["bos","eos","content","notion","promos"].some(k=>t[k]===false),all=["bos","eos","content","notion","promos"].every(k=>t[k]===true);return(
+                  <tr key={t.id} style={{background:inc?C.redL:all?C.greenL:ri%2===0?C.white:C.bg,borderBottom:`1px solid ${C.border}`}}>
+                    <td style={{padding:"8px 14px",fontWeight:600}}>{t.am}</td>
+                    <td style={{padding:"8px 14px",color:C.muted}}>{t.model}</td>
+                    {["bos","eos","content","notion","promos"].map(k=><td key={k} style={{padding:"8px 14px",textAlign:"center"}}><TaskCell val={t[k]} onChange={v=>setTasks(p=>p.map(r=>r.id===t.id?{...r,[k]:v}:r))}/></td>)}
+                    <td style={{padding:"8px 14px"}}><input value={t.notes} onChange={e=>setTasks(p=>p.map(r=>r.id===t.id?{...r,notes:e.target.value}:r))} style={{...s.input,width:140,padding:"4px 8px",fontSize:12}}/></td>
+                  </tr>
+                );})}</tbody>
+              </table>
+            </div>
+          </Card>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Card><div style={{fontWeight:700,marginBottom:12,color:C.red,fontSize:13}}>⚠ Flagged Fans</div>{!flagged.length?<div style={{color:C.muted,fontSize:13}}>None ✓</div>:flagged.map(f=><div key={f.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}><div style={{fontWeight:600}}>{f.username} <Badge label={f.type} color={C.red}/></div><div style={{color:C.muted,fontSize:12}}>{f.model} · {f.notes}</div></div>)}</Card>
+            <Card><div style={{fontWeight:700,marginBottom:12,color:C.yellow,fontSize:13}}>⚠ Low Campaigns</div>{!low.length?<div style={{color:C.muted,fontSize:13}}>All good ✓</div>:low.map(m=><div key={m.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}><div style={{fontWeight:600}}>{m.name}</div><div style={{color:C.muted,fontSize:12}}>AM: {m.am}</div></div>)}</Card>
+          </div>
+        </div>}
+        {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
+        {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
+        {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
+        {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={true} isAM={false} myModels={allModels} users={users}/>}
+        {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={true} isAM={false} myModels={allModels} models={models}/>}
+        {tab==="content"&&<ContentLog user={user} content={content} setContent={()=>{}} promos={promos} setPromos={()=>{}} myModels={allModels} isLeadership={true} platforms={platforms}/>}
+        {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
+        {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={allModels} isLeadership={true} isAM={false}/>}
+        {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
+        {tab==="performance"&&<ChatterPerformance sales={sales} qaLogs={qaLogs} users={users}/>}
+        {tab==="handoffs"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={true} isAM={false} models={models}/>}
+        {tab==="summary"&&<DailySummary tasks={tasks} sales={sales} handoffs={handoffs} shifts={shifts} fans={fans} qaLogs={qaLogs} models={models}/>}
+        {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
+        {tab==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
       </div>}
-      {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
-      {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
-      {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
-      {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={true} isAM={false} myModels={allModels} users={users}/>}
-      {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={true} isAM={false} myModels={allModels} models={models}/>}
-      {tab==="content"&&<ContentLog user={user} content={content} setContent={()=>{}} promos={promos} setPromos={()=>{}} myModels={allModels} isLeadership={true} platforms={platforms}/>}
-      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-      {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={allModels} isLeadership={true} isAM={false}/>}
-      {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
-      {tab==="performance"&&<ChatterPerformance sales={sales} qaLogs={qaLogs} users={users}/>}
-      {tab==="handoffs"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={true} isAM={false} models={models}/>}
-      {tab==="summary"&&<DailySummary tasks={tasks} sales={sales} handoffs={handoffs} shifts={shifts} fans={fans} qaLogs={qaLogs} models={models}/>}
-      {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
-      {tab==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
+      {section==="social"&&<div>
+        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"]]} active={tab==="snap"||tab==="growth"||tab==="metrics"?tab:"metrics"} onChange={setTab}/>
+        {(tab==="metrics"||(!["metrics","growth","snap"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={true} myModels={allModels}/>}
+        {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={true} myModels={allModels}/>}
+        {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={true} myModels={allModels}/>}
+      </div>}
+      {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={true} myModels={allModels}/>}
     </div>
   );
 }
-function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setShifts,tasks,setTasks,todos,setTodos,slingApiKey,setSlingApiKey,modelPlatforms,customs,setCustoms}){
+function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setShifts,tasks,setTasks,todos,setTodos,slingApiKey,setSlingApiKey,modelPlatforms,customs,setCustoms,sales,campaigns,brandDeals,setBrandDeals,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,snapRevenue,setSnapRevenue,qaLogs}){
+  const [section,setSection]=useState("home");
   const [tab,setTab]=useState("models");
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
+  const SECTIONS=[["home","🏠 Home"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
+  const handleQuickAction=(action)=>{
+    if(["models","team","schedule","customs","todos"].includes(action)){setSection("paywall");setTab(action);}
+    else if(action==="social"||action==="snap"){setSection("social");}
+    else if(action==="brand"){setSection("brand");}
+  };
   return(
     <div>
       <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Ops Dashboard</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()}</div>
-      <Tabs tabs={[["models","Models"],["team","Team"],["schedule","Schedule"],["customs","Customs"],["todos","To-Dos"]]} active={tab} onChange={setTab}/>
-      {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
-      {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
-      {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
-      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-      {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
+      <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
+        {SECTIONS.map(([k,l])=>(
+          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",background:section===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:section===k?C.white:"#94a3b8",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
+            {l}
+          </button>
+        ))}
+      </div>
+      {section==="home"&&<HomeDashboard user={user} role="ops-assistant" sales={sales||[]} todos={todos} setTodos={setTodos} campaigns={campaigns||[]} brandDeals={brandDeals||[]} qaLogs={qaLogs||[]} shifts={shifts} models={models} snapRevenue={snapRevenue||[]} socialMetrics={socialMetrics||[]} onAction={handleQuickAction}/>}
+      {section==="paywall"&&<div>
+        <Tabs tabs={[["models","Models"],["team","Team"],["schedule","Schedule"],["customs","Customs"],["todos","To-Dos"]]} active={tab} onChange={setTab}/>
+        {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
+        {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
+        {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
+        {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
+        {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
+      </div>}
+      {section==="social"&&<div>
+        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"]]} active={["metrics","growth","snap"].includes(tab)?tab:"metrics"} onChange={setTab}/>
+        {(tab==="metrics"||(!["metrics","growth","snap"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={allModels}/>}
+        {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={false} myModels={allModels}/>}
+        {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={false} myModels={allModels}/>}
+      </div>}
+      {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={allModels}/>}
     </div>
   );
 }
-function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms}){
+function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue}){
+  const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const myModels=models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name);
   const myTasks=tasks.filter(t=>t.am===user.name);
   const myFans=fans.filter(f=>myModels.includes(f.model));
   const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});
   const navTabs=[["overview","Overview"],["todos","To-Dos"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["schedule","Sling"]];
+  const SECTIONS=[["home","🏠 Home"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
+  const handleQuickAction=(action)=>{
+    if(["overview","todos","campaigns","qa"].includes(action)){setSection("paywall");setTab(action);}
+    else if(action==="social"||action==="snap"){setSection("social");}
+    else if(action==="brand"){setSection("brand");}
+  };
   return(
     <div>
       <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Hey {user.name} 👋</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()}</div>
-      <Tabs tabs={navTabs} active={tab} onChange={setTab}/>
-      {tab==="overview"&&<div>
-        <div style={{fontSize:14,fontWeight:700,marginBottom:12}}>Today's Tasks</div>
-        {myTasks.map(t=>{const keys=["bos","eos","content","notion","promos"],done=keys.filter(k=>t[k]===true).length,hasInc=keys.some(k=>t[k]===false);return(
-          <Card key={t.id} style={{marginBottom:12,borderLeft:`3px solid ${hasInc?C.red:done===keys.length?C.green:C.purple}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
-              <span style={{fontWeight:700,fontSize:14}}>{t.model}</span>
-              <Badge label={`${done}/${keys.length}`} color={done===keys.length?C.green:C.purple}/>
-            </div>
-            <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-              {[["bos","BOS"],["eos","EOS"],["content","Content"],["notion","Notion"],["promos","Promos"]].map(([k,l])=>(
-                <div key={k} style={{textAlign:"center"}}>
-                  <div style={{fontSize:10,color:C.muted,marginBottom:4,textTransform:"uppercase",fontWeight:600,letterSpacing:"0.05em"}}>{l}</div>
-                  <TaskCell val={t[k]} onChange={v=>setTasks(p=>p.map(r=>r.id===t.id?{...r,[k]:v}:r))}/>
-                </div>
-              ))}
-            </div>
-            <input value={t.notes} onChange={e=>setTasks(p=>p.map(r=>r.id===t.id?{...r,notes:e.target.value}:r))} placeholder="Notes…" style={{...s.input,marginTop:12}}/>
-          </Card>
-        );})}
-        <div style={{marginTop:20,fontSize:14,fontWeight:700,marginBottom:12}}>Open To-Dos</div>
-        {todos.filter(t=>t.owner===user.name&&!t.done).slice(0,3).map(t=>(
-          <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.white,borderRadius:10,marginBottom:6,boxShadow:"0 1px 3px rgba(0,0,0,0.05)",borderLeft:`3px solid ${{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}`}}>
-            <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer"}}/>
-            <div style={{flex:1,fontSize:13,fontWeight:600}}>{t.task}</div>
-            {t.model&&<Badge label={t.model} color={C.blue}/>}
-            <Badge label={t.priority} color={{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}/>
-          </div>
+      <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
+        {SECTIONS.map(([k,l])=>(
+          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",background:section===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:section===k?C.white:"#94a3b8",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
+            {l}
+          </button>
         ))}
-        {!todos.filter(t=>t.owner===user.name&&!t.done).length&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
-      </div>}
-      {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
-      {tab==="ttk"&&<TTKEditor user={user} ttks={ttks} setTtks={setTtks} myModels={myModels}/>}
-      {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} isLeadership={false} isAM={true}/>}
-      {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={myModels} isLeadership={false} platforms={platforms}/>}
-      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-      {tab==="fans"&&<div>
-        <SectionHeader icon="🌟" title="Fans" action={null}/>
-        {myFans.map(f=>(
-          <Card key={f.id} style={{marginBottom:10,borderLeft:`3px solid ${f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div><div style={{fontWeight:700}}>{f.username}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{f.model} · {f.spend}</div></div>
-              <div style={{display:"flex",gap:6,alignItems:"center"}}><Badge label={f.type} color={f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}/>{f.flag&&<Badge label="⚠" color={C.red}/>}</div>
+      </div>
+      {section==="home"&&<HomeDashboard user={user} role="am" sales={sales} todos={todos} setTodos={setTodos} campaigns={campaigns} brandDeals={brandDeals} qaLogs={qaLogs} shifts={shifts} models={models} snapRevenue={snapRevenue} socialMetrics={socialMetrics} onAction={handleQuickAction}/>}
+      {section==="paywall"&&<div>
+        <Tabs tabs={navTabs} active={tab} onChange={setTab}/>
+        {tab==="overview"&&<div>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:12}}>Today's Tasks</div>
+          {myTasks.map(t=>{const keys=["bos","eos","content","notion","promos"],done=keys.filter(k=>t[k]===true).length,hasInc=keys.some(k=>t[k]===false);return(
+            <Card key={t.id} style={{marginBottom:12,borderLeft:`3px solid ${hasInc?C.red:done===keys.length?C.green:C.purple}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+                <span style={{fontWeight:700,fontSize:14}}>{t.model}</span>
+                <Badge label={`${done}/${keys.length}`} color={done===keys.length?C.green:C.purple}/>
+              </div>
+              <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+                {[["bos","BOS"],["eos","EOS"],["content","Content"],["notion","Notion"],["promos","Promos"]].map(([k,l])=>(
+                  <div key={k} style={{textAlign:"center"}}>
+                    <div style={{fontSize:10,color:C.muted,marginBottom:4,textTransform:"uppercase",fontWeight:600,letterSpacing:"0.05em"}}>{l}</div>
+                    <TaskCell val={t[k]} onChange={v=>setTasks(p=>p.map(r=>r.id===t.id?{...r,[k]:v}:r))}/>
+                  </div>
+                ))}
+              </div>
+              <input value={t.notes} onChange={e=>setTasks(p=>p.map(r=>r.id===t.id?{...r,notes:e.target.value}:r))} placeholder="Notes…" style={{...s.input,marginTop:12}}/>
+            </Card>
+          );})}
+          <div style={{marginTop:20,fontSize:14,fontWeight:700,marginBottom:12}}>Open To-Dos</div>
+          {todos.filter(t=>t.owner===user.name&&!t.done).slice(0,3).map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.white,borderRadius:10,marginBottom:6,boxShadow:"0 1px 3px rgba(0,0,0,0.05)",borderLeft:`3px solid ${{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}`}}>
+              <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer"}}/>
+              <div style={{flex:1,fontSize:13,fontWeight:600}}>{t.task}</div>
+              {t.model&&<Badge label={t.model} color={C.blue}/>}
+              <Badge label={t.priority} color={{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}/>
             </div>
-            {f.notes&&<p style={{fontSize:13,color:C.muted,margin:"6px 0 0"}}>{f.notes}</p>}
+          ))}
+          {!todos.filter(t=>t.owner===user.name&&!t.done).length&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
+        </div>}
+        {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
+        {tab==="ttk"&&<TTKEditor user={user} ttks={ttks} setTtks={setTtks} myModels={myModels}/>}
+        {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} isLeadership={false} isAM={true}/>}
+        {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={myModels} isLeadership={false} platforms={platforms}/>}
+        {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
+        {tab==="fans"&&<div>
+          <SectionHeader icon="🌟" title="Fans" action={null}/>
+          {myFans.map(f=>(
+            <Card key={f.id} style={{marginBottom:10,borderLeft:`3px solid ${f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{fontWeight:700}}>{f.username}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{f.model} · {f.spend}</div></div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}><Badge label={f.type} color={f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}/>{f.flag&&<Badge label="⚠" color={C.red}/>}</div>
+              </div>
+              {f.notes&&<p style={{fontSize:13,color:C.muted,margin:"6px 0 0"}}>{f.notes}</p>}
+            </Card>
+          ))}
+          <Card style={{marginTop:12}}>
+            <div style={{fontWeight:700,marginBottom:14,fontSize:13}}>Add Fan</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <Input label="Username" value={newFan.username} onChange={v=>setNewFan(p=>({...p,username:v}))} placeholder="fanusername"/>
+              <Input label="Spend" value={newFan.spend} onChange={v=>setNewFan(p=>({...p,spend:v}))} placeholder="$500"/>
+              <Sel label="Model" value={newFan.model} onChange={v=>setNewFan(p=>({...p,model:v}))} options={myModels}/>
+              <Sel label="Type" value={newFan.type} onChange={v=>setNewFan(p=>({...p,type:v}))} options={["Whale","VIP","Watch List","Problem Fan"]}/>
+              <Input label="Notes" value={newFan.notes} onChange={v=>setNewFan(p=>({...p,notes:v}))} placeholder="Key notes" style={{gridColumn:"1/-1"}}/>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <input type="checkbox" checked={newFan.flag} onChange={e=>setNewFan(p=>({...p,flag:e.target.checked}))}/><label style={{fontSize:13,color:C.red,fontWeight:600}}>⚠ Flag this fan</label>
+            </div>
+            <Btn size="sm" onClick={()=>{if(!newFan.username)return;setFans(p=>[...p,{...newFan,id:Date.now()}]);setNewFan({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});}}>Add Fan</Btn>
           </Card>
-        ))}
-        <Card style={{marginTop:12}}>
-          <div style={{fontWeight:700,marginBottom:14,fontSize:13}}>Add Fan</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Input label="Username" value={newFan.username} onChange={v=>setNewFan(p=>({...p,username:v}))} placeholder="fanusername"/>
-            <Input label="Spend" value={newFan.spend} onChange={v=>setNewFan(p=>({...p,spend:v}))} placeholder="$500"/>
-            <Sel label="Model" value={newFan.model} onChange={v=>setNewFan(p=>({...p,model:v}))} options={myModels}/>
-            <Sel label="Type" value={newFan.type} onChange={v=>setNewFan(p=>({...p,type:v}))} options={["Whale","VIP","Watch List","Problem Fan"]}/>
-            <Input label="Notes" value={newFan.notes} onChange={v=>setNewFan(p=>({...p,notes:v}))} placeholder="Key notes" style={{gridColumn:"1/-1"}}/>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <input type="checkbox" checked={newFan.flag} onChange={e=>setNewFan(p=>({...p,flag:e.target.checked}))}/><label style={{fontSize:13,color:C.red,fontWeight:600}}>⚠ Flag this fan</label>
-          </div>
-          <Btn size="sm" onClick={()=>{if(!newFan.username)return;setFans(p=>[...p,{...newFan,id:Date.now()}]);setNewFan({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});}}>Add Fan</Btn>
-        </Card>
+        </div>}
+        {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={false} isAM={true} myModels={myModels} users={users}/>}
+        {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={false} isAM={true} myModels={myModels} models={models}/>}
+        {tab==="boseos"&&<BOSEOSView user={user} boseos={boseos} setBoseos={setBoseos} tasks={tasks} setTasks={setTasks} myModels={myModels}/>}
+        {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
+        {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={()=>{}} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
       </div>}
-      {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={false} isAM={true} myModels={myModels} users={users}/>}
-      {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={false} isAM={true} myModels={myModels} models={models}/>}
-      {tab==="boseos"&&<BOSEOSView user={user} boseos={boseos} setBoseos={setBoseos} tasks={tasks} setTasks={setTasks} myModels={myModels}/>}
-      {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
-      {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={()=>{}} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
+      {section==="social"&&<div>
+        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"]]} active={["metrics","growth","snap"].includes(tab)?tab:"metrics"} onChange={setTab}/>
+        {(tab==="metrics"||(!["metrics","growth","snap"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={myModels}/>}
+        {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={false} myModels={myModels}/>}
+        {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={false} myModels={myModels}/>}
+      </div>}
+      {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={myModels}/>}
     </div>
   );
 }
@@ -1657,7 +2247,7 @@ function LoginView({onLogin,users}){
         {err&&<div style={{color:"#f87171",fontSize:12,marginBottom:12}}>{err}</div>}
         <button onClick={()=>{const u=users.find(u=>u.email===email&&u.password===pw);if(u)onLogin(u);else setErr("Incorrect email or password.");}}
           style={{width:"100%",background:"linear-gradient(135deg,#7c3aed 0%,#c026d3 100%)",color:C.white,border:"none",borderRadius:12,padding:"13px 0",fontSize:14,fontWeight:700,cursor:"pointer",marginTop:4,boxShadow:"0 4px 24px rgba(124,58,237,0.45)",letterSpacing:"0.04em",fontFamily:"'DM Sans',sans-serif"}}>Sign In</button>
-        <div style={{marginTop:24,fontSize:11,color:"#374151",textAlign:"center",lineHeight:2.2}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@charmed.com · pw: charmed123</div>
+        <div style={{marginTop:24,fontSize:11,color:"#374151",textAlign:"center",lineHeight:2.2}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@ · autumn@ · mia@charmed.com · pw: charmed123</div>
       </div>
     </div>
   );
@@ -1684,13 +2274,17 @@ export default function App(){
   const [massMessages,setMassMessages]=useState(INIT_MASS);
   const [qaLogs,setQaLogs]=useState(INIT_QA);
   const [customs,setCustoms]=useState(INIT_CUSTOMS);
+  const [socialMetrics,setSocialMetrics]=useState(INIT_SOCIAL_METRICS);
+  const [growthCampaigns,setGrowthCampaigns]=useState(INIT_GROWTH_CAMPAIGNS);
+  const [brandDeals,setBrandDeals]=useState(INIT_BRAND_DEALS);
+  const [snapRevenue,setSnapRevenue]=useState(INIT_SNAP_REVENUE);
   const [showSearch,setShowSearch]=useState(false);
   useEffect(()=>{
     const down=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setShowSearch(p=>!p);}if(e.key==="Escape")setShowSearch(false);};
     window.addEventListener("keydown",down);return()=>window.removeEventListener("keydown",down);
   },[]);
   if(!user)return <LoginView onLogin={setUser} users={users}/>;
-  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms};
+  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue};
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
@@ -1713,6 +2307,7 @@ export default function App(){
         {user.role==="am"&&<AMDashboard user={user} {...shared}/>}
         {user.role==="chatlead"&&<ChatLeadDashboard user={user} {...shared}/>}
         {user.role==="chatter"&&<ChatterDashboard user={user} {...shared}/>}
+        {user.role==="model"&&<ModelPortal user={user} models={models} ttks={ttks} campaigns={campaigns} brandDeals={brandDeals} content={content} socialMetrics={socialMetrics} growthCampaigns={growthCampaigns}/>}
       </div>
     </div>
   );
