@@ -1026,6 +1026,29 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
   const latestMetrics={};
   socialMetrics.forEach(m=>{const k=`${m.model}|${m.platform}`;if(!latestMetrics[k]||m.date>latestMetrics[k].date)latestMetrics[k]=m;});
   const totalFollowers=Object.values(latestMetrics).reduce((a,m)=>a+Number(m.followers||0),0);
+  // Calendar state
+  const now=new Date();
+  const [calYear,setCalYear]=useState(now.getFullYear());
+  const [calMonth,setCalMonth]=useState(now.getMonth());
+  const [calFilter,setCalFilter]=useState("All");
+  const [gcalId,setGcalId]=useState("");const [gcalSaved,setGcalSaved]=useState("");const [showGcal,setShowGcal]=useState(false);
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const pad=n=>String(n).padStart(2,"0");
+  const daysInMo=(y,m)=>new Date(y,m+1,0).getDate();
+  const firstDay=(y,m)=>new Date(y,m,1).getDay();
+  const calDays=daysInMo(calYear,calMonth);const calStart=firstDay(calYear,calMonth);
+  const calCells=[];for(let i=0;i<calStart;i++)calCells.push(null);for(let d=1;d<=calDays;d++)calCells.push(d);
+  const getCalEvents=(d)=>{
+    const ds=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const evts=[];
+    const filteredCamps=activeCampaigns.filter(c=>calFilter==="All"||c.model===calFilter);
+    filteredCamps.filter(c=>c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate).forEach(c=>evts.push({label:c.name,color:C.purple,sub:c.model}));
+    const filteredTodos=myTodos.filter(t=>(calFilter==="All"||(t.model&&t.model===calFilter))&&t.dueDate===ds);
+    filteredTodos.forEach(t=>evts.push({label:t.task,color:{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}));
+    const filteredDeals=myBrandDeals.filter(d=>(calFilter==="All"||d.model===calFilter)&&d.deadline===ds);
+    filteredDeals.forEach(d=>evts.push({label:`⏰ ${d.brand}`,color:C.orange}));
+    return evts;
+  };
   return(
     <div>
       <div style={{fontSize:24,fontWeight:800,marginBottom:2}}>Welcome back, {user.name} 👋</div>
@@ -1084,9 +1107,59 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
               <div key={d.id} style={{background:C.bg,borderRadius:10,padding:"10px 12px",borderLeft:`3px solid ${d.paid?C.green:C.orange}`}}>
                 <div style={{fontWeight:700,fontSize:13}}>{d.brand}</div>
                 <div style={{fontSize:11,color:C.muted,marginTop:2}}>{d.model} · {fmtMoney(d.payment)}</div>
-                <div style={{fontSize:11,color:d.deadline<new Date().toISOString().slice(0,10)?C.red:C.muted,marginTop:2}}>Due {d.deadline}</div>
+                <div style={{fontSize:11,color:d.deadline&&d.deadline<new Date().toISOString().slice(0,10)?C.red:C.muted,marginTop:2}}>{d.deadline?`Due ${d.deadline}`:""}</div>
                 <Badge label={d.status} color={d.status==="Active"?C.green:d.status==="In Progress"?C.blue:C.muted}/>
               </div>
+            ))}
+          </div>
+        </Card>
+      )}
+      {(role==="leadership"||role==="am")&&(
+        <Card style={{marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontWeight:700,fontSize:13}}>🗓️ Calendar</span>
+              <select value={calFilter} onChange={e=>setCalFilter(e.target.value)} style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"4px 10px"}}>
+                <option>All</option>{myModels.map(m=><option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <button onClick={()=>setShowGcal(!showGcal)} style={{background:gcalSaved?"#dcfce7":"rgba(255,255,255,0.07)",border:`1px solid ${gcalSaved?C.green:C.border}`,borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:600,color:gcalSaved?C.green:C.muted}}>
+                {gcalSaved?"📅 GCal Connected":"🔗 Connect Google Calendar"}
+              </button>
+              <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>‹</button>
+              <span style={{fontSize:12,fontWeight:700,minWidth:120,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
+              <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>›</button>
+            </div>
+          </div>
+          {showGcal&&(
+            <div style={{marginBottom:12,padding:"10px 12px",background:C.bg,borderRadius:10}}>
+              <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Enter your Google Calendar ID. Live sync available when backend is connected.</div>
+              <div style={{display:"flex",gap:8}}>
+                <input value={gcalId} onChange={e=>setGcalId(e.target.value)} placeholder="your-email@gmail.com or calendar ID" style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor=C.border}/>
+                <Btn size="sm" onClick={()=>{setGcalSaved(gcalId);setShowGcal(false);}}>Save</Btn>
+              </div>
+            </div>
+          )}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:4}}>
+            {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:C.muted,padding:"2px 0"}}>{d}</div>)}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
+            {calCells.map((d,i)=>{
+              const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===new Date().toISOString().slice(0,10);
+              const evts=d?getCalEvents(d):[];
+              return(
+                <div key={i} style={{minHeight:60,background:d?C.bg:"transparent",borderRadius:6,padding:d?"3px 4px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"#e8edf2":"transparent"}`}}>
+                  {d&&<div style={{fontSize:10,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:1}}>{d}</div>}
+                  {evts.slice(0,2).map((e,ei)=><div key={ei} title={e.label} style={{fontSize:9,background:e.color+"22",color:e.color,borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>{e.label}</div>)}
+                  {evts.length>2&&<div style={{fontSize:9,color:C.muted}}>+{evts.length-2}</div>}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
+            {[["Campaigns",C.purple],["To-Do Due Dates",C.red],["Brand Deal Deadlines",C.orange]].map(([l,c])=>(
+              <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:C.muted}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>
             ))}
           </div>
         </Card>
@@ -1378,12 +1451,156 @@ function SnapRevenue({user,snapRevenue,setSnapRevenue,models,isLeadership,myMode
     </div>
   );
 }
+// ── STRIPE INVOICES ───────────────────────────────────────────
+function StripeInvoices({isLeadership,models,myModels}){
+  const [apiKey,setApiKey]=useState("");
+  const [savedKey,setSavedKey]=useState("");
+  const [invoices,setInvoices]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [err,setErr]=useState("");
+  const [fm,setFm]=useState("All");
+  const [showKey,setShowKey]=useState(false);
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels||[];
+  const SAMPLE_INVOICES=[
+    {id:"in_001",customer_name:"Brand Deal — FitTea Co",amount_paid:150000,currency:"usd",status:"paid",created:Date.now()/1000-86400*5,hosted_invoice_url:"#",model:"Autumn"},
+    {id:"in_002",customer_name:"Brand Deal — GlowSkin",amount_paid:300000,currency:"usd",status:"paid",created:Date.now()/1000-86400*12,hosted_invoice_url:"#",model:"Mia"},
+    {id:"in_003",customer_name:"Monthly Retainer",amount_paid:50000,currency:"usd",status:"open",created:Date.now()/1000-86400*2,hosted_invoice_url:"#",model:"Jordan"},
+  ];
+  const displayInvoices=(savedKey?invoices:SAMPLE_INVOICES).filter(inv=>fm==="All"||(inv.model&&inv.model===fm));
+  const fmtStripeAmt=(amt,cur)=>`${cur==="usd"?"$":""}${(amt/100).toLocaleString()}`;
+  const fetchInvoices=async()=>{
+    setLoading(true);setErr("");
+    try{
+      const res=await fetch("https://api.stripe.com/v1/invoices?limit=50",{headers:{Authorization:`Bearer ${apiKey}`}});
+      if(!res.ok){const d=await res.json();throw new Error(d.error?.message||`HTTP ${res.status}`);}
+      const data=await res.json();
+      setInvoices(data.data||[]);setSavedKey(apiKey);
+    }catch(e){
+      setErr(e.message.includes("Failed to fetch")?"Browser security blocks direct Stripe calls — a backend proxy is needed for live data. Sample data shown below.":e.message);
+      setSavedKey(apiKey);
+    }finally{setLoading(false);}
+  };
+  const totalPaid=displayInvoices.filter(i=>i.status==="paid").reduce((a,i)=>a+i.amount_paid,0);
+  const totalOpen=displayInvoices.filter(i=>i.status==="open").reduce((a,i)=>a+i.amount_paid,0);
+  return(
+    <div>
+      <SectionHeader icon="💳" title="Stripe Invoices"/>
+      <Card style={{marginBottom:16,background:savedKey?"#f0fdf4":"#fffbeb",border:`1px solid ${savedKey?C.green:C.yellow}30`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:36,height:36,borderRadius:10,background:savedKey?"#dcfce7":"#fef3c7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>💳</div>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:savedKey?C.green:C.yellow}}>{savedKey?"Stripe Connected":"Connect Stripe"}</div>
+              <div style={{fontSize:11,color:C.muted}}>{savedKey?"Invoice data active":"Enter your Stripe Secret Key to view invoices"}</div>
+            </div>
+          </div>
+          <Btn size="sm" variant="secondary" color={savedKey?C.green:C.yellow} onClick={()=>setShowKey(!showKey)}>{savedKey?"Manage Key":"Connect"}</Btn>
+        </div>
+        {showKey&&(
+          <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+            <div style={{fontSize:11,color:C.muted,marginBottom:8}}>⚠ For production use, route requests through a secure backend proxy. Never expose secret keys in a public app.</div>
+            <div style={{display:"flex",gap:8}}>
+              <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="sk_live_… or sk_test_…" style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor=C.border}/>
+              <Btn size="sm" onClick={fetchInvoices} style={{whiteSpace:"nowrap"}}>{loading?"Loading…":"Fetch Invoices"}</Btn>
+            </div>
+            {err&&<div style={{fontSize:12,color:C.orange,marginTop:8,background:"#fff7ed",borderRadius:8,padding:"8px 12px"}}>{err}</div>}
+          </div>
+        )}
+      </Card>
+      {!savedKey&&<div style={{fontSize:12,color:C.muted,marginBottom:12,background:C.bg,borderRadius:8,padding:"8px 12px"}}>📋 Showing sample data. Connect Stripe to see live invoices.</div>}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+        <StatCard label="Paid" value={fmtStripeAmt(totalPaid,"usd")} color={C.green}/>
+        <StatCard label="Outstanding" value={fmtStripeAmt(totalOpen,"usd")} color={totalOpen>0?C.orange:C.muted}/>
+      </div>
+      {vm.length>0&&<div style={{display:"flex",gap:8,marginBottom:12}}>
+        <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{vm.map(m=><option key={m}>{m}</option>)}
+        </select>
+      </div>}
+      {displayInvoices.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No invoices found</div>}
+      {displayInvoices.map(inv=>(
+        <Card key={inv.id} style={{marginBottom:10,borderLeft:`3px solid ${inv.status==="paid"?C.green:inv.status==="open"?C.orange:C.muted}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:13}}>{inv.customer_name||inv.id}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:2}}>{new Date(inv.created*1000).toLocaleDateString()}{inv.model&&` · ${inv.model}`}</div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <span style={{fontWeight:800,fontSize:15,color:inv.status==="paid"?C.green:C.orange}}>{fmtStripeAmt(inv.amount_paid,inv.currency)}</span>
+              <Badge label={inv.status} color={inv.status==="paid"?C.green:inv.status==="open"?C.orange:C.muted}/>
+              {inv.hosted_invoice_url&&inv.hosted_invoice_url!=="#"&&<a href={inv.hosted_invoice_url} target="_blank" rel="noreferrer" style={{fontSize:11,color:C.purple,fontWeight:600}}>View ↗</a>}
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+// ── PLATFORM CONNECTIONS ───────────────────────────────────────
+function PlatformConnections({models,isLeadership,myModels}){
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels||[];
+  const [connections,setConnections]=useState(()=>Object.fromEntries(vm.map(m=>[m,{tiktok:"",instagram:"",snapchat:""}])));
+  const [selModel,setSelModel]=useState(vm[0]||"");
+  const PLATFORMS=[
+    {key:"tiktok",label:"TikTok",icon:"🎵",color:"#000000",placeholder:"TikTok API Token",note:"TikTok for Developers → Long-lived access token"},
+    {key:"instagram",label:"Instagram",icon:"📸",color:C.pink,placeholder:"Instagram Graph API Token",note:"Meta for Developers → Graph API → User Access Token"},
+    {key:"snapchat",label:"Snapchat",icon:"👻",color:"#f59e0b",placeholder:"Snapchat Marketing API Token",note:"Snap Business → API Access → OAuth Bearer Token"},
+  ];
+  const conn=connections[selModel]||{tiktok:"",instagram:"",snapchat:""};
+  const setConn=(field,val)=>setConnections(p=>({...p,[selModel]:{...p[selModel],[field]:val}}));
+  const connectedCount=Object.values(conn).filter(v=>v).length;
+  return(
+    <div>
+      <SectionHeader icon="🔗" title="Platform API Connections"/>
+      <Card style={{marginBottom:16,background:"#eff6ff",border:`1px solid ${C.blue}25`}}>
+        <div style={{fontSize:13,color:C.blue,fontWeight:600,marginBottom:4}}>🔒 API-Ready — Connection UI</div>
+        <div style={{fontSize:12,color:C.muted}}>Store API tokens per model here. When backend proxy support is added, these tokens will be used to auto-pull follower counts, view metrics, and revenue data into the Social Metrics tracker.</div>
+      </Card>
+      {vm.length>1&&(
+        <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+          {vm.map(m=>{const c=connections[m]||{};const cnt=Object.values(c).filter(v=>v).length;return(
+            <button key={m} onClick={()=>setSelModel(m)} style={{padding:"6px 14px",borderRadius:99,border:`1.5px solid ${selModel===m?C.purple:C.border}`,background:selModel===m?C.purpleXL:C.white,color:selModel===m?C.purple:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+              {m} {cnt>0&&<Badge label={`${cnt}/3`} color={cnt===3?C.green:C.blue}/>}
+            </button>
+          );})}
+        </div>
+      )}
+      {selModel&&(
+        <Card>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{fontWeight:700,fontSize:14}}>{selModel} — Platform Connections</div>
+            <Badge label={`${connectedCount}/3 connected`} color={connectedCount===3?C.green:connectedCount>0?C.blue:C.muted}/>
+          </div>
+          {PLATFORMS.map(p=>(
+            <div key={p.key} style={{marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${C.border}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <span style={{fontSize:16}}>{p.icon}</span>
+                <span style={{fontWeight:700,color:p.color,fontSize:13}}>{p.label}</span>
+                {conn[p.key]&&<Badge label="Connected ✓" color={C.green}/>}
+              </div>
+              <div style={{fontSize:11,color:C.muted,marginBottom:8}}>{p.note}</div>
+              <div style={{display:"flex",gap:8}}>
+                <input type="password" value={conn[p.key]} onChange={e=>setConn(p.key,e.target.value)} placeholder={p.placeholder} style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=p.color} onBlur={e=>e.target.style.borderColor=C.border}/>
+                {conn[p.key]&&<Btn size="sm" variant="danger" onClick={()=>setConn(p.key,"")}>Clear</Btn>}
+              </div>
+            </div>
+          ))}
+          <Btn size="sm" onClick={()=>alert("Tokens saved locally. Backend integration coming soon.")}>Save Connections</Btn>
+        </Card>
+      )}
+      {!vm.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No models assigned</div>}
+    </div>
+  );
+}
 // ── MODEL PORTAL ──────────────────────────────────────────────
-function ModelPortal({user,models,ttks,campaigns,brandDeals,content,socialMetrics,growthCampaigns}){
+function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,socialMetrics,growthCampaigns}){
   const [tab,setTab]=useState("home");
   const modelName=user.name;
   const model=models.find(m=>m.name===modelName);
   const ttk=ttks.find(t=>t.model===modelName);
+  const [ttkForm,setTtkForm]=useState(ttk||{voice:"",endearments:"",hardNos:"",offlineTimes:""});
+  useEffect(()=>{const t=ttks.find(x=>x.model===modelName);if(t)setTtkForm({...t});},[ttks,modelName]);
+  const saveTtk=()=>setTtks(p=>p.map(x=>x.model===modelName?{...x,...ttkForm,lastUpdated:new Date().toISOString().slice(0,10),updatedBy:modelName}:x));
   const myCampaigns=campaigns.filter(c=>c.model===modelName);
   const myDeals=brandDeals.filter(d=>d.model===modelName);
   const myContent=content.filter(c=>c.model===modelName);
@@ -1392,11 +1609,28 @@ function ModelPortal({user,models,ttks,campaigns,brandDeals,content,socialMetric
   const activeCampaigns=myCampaigns.filter(c=>["Live","Scheduled"].includes(c.status));
   const openDeals=myDeals.filter(d=>d.status!=="Complete"&&d.status!=="Cancelled");
   const unpaidDeals=myDeals.filter(d=>!d.paid&&d.status!=="Cancelled");
+  const now=new Date();
+  const [calYear,setCalYear]=useState(now.getFullYear());
+  const [calMonth,setCalMonth]=useState(now.getMonth());
+  const [gcalId,setGcalId]=useState("");const [gcalSaved,setGcalSaved]=useState("");
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const pad=n=>String(n).padStart(2,"0");
+  const daysInMonth=(y,m)=>new Date(y,m+1,0).getDate();
+  const firstDay=(y,m)=>new Date(y,m,1).getDay();
+  const calDays=daysInMonth(calYear,calMonth);const calStart=firstDay(calYear,calMonth);
+  const calCells=[];for(let i=0;i<calStart;i++)calCells.push(null);for(let d=1;d<=calDays;d++)calCells.push(d);
+  const getEventsForDay=(d)=>{
+    const ds=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const evts=[];
+    myCampaigns.filter(c=>c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate).forEach(c=>evts.push({label:c.name,color:C.purple}));
+    myDeals.filter(d=>d.deadline===ds).forEach(d=>evts.push({label:`⏰ ${d.brand}`,color:C.orange}));
+    return evts;
+  };
   return(
     <div>
       <div style={{fontSize:22,fontWeight:800,marginBottom:2}}>Hey {modelName} 👋</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-      <Tabs tabs={[["home","Home"],["campaigns","Campaigns"],["brand","Brand Deals"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["home","Home"],["calendar","📅 Calendar"],["brand","Brand Deals"],["invoices","💳 Invoices"],["ttk","My Profile"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
       {tab==="home"&&(
         <div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12,marginBottom:20}}>
@@ -1433,18 +1667,50 @@ function ModelPortal({user,models,ttks,campaigns,brandDeals,content,socialMetric
           )}
         </div>
       )}
-      {tab==="campaigns"&&(
+      {tab==="calendar"&&(
         <div>
-          <SectionHeader icon="📅" title="Your Campaigns"/>
-          {myCampaigns.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No campaigns yet</div>}
-          {myCampaigns.map(c=>(
-            <Card key={c.id} style={{marginBottom:10,borderLeft:`3px solid ${{Planning:C.yellow,Scheduled:C.blue,Live:C.green,Complete:C.muted}[c.status]}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div><div style={{fontWeight:700}}>{c.name}</div><div style={{fontSize:11,color:C.muted}}>{c.type}{c.startDate?` · ${c.startDate} → ${c.endDate}`:""}</div></div>
-                <div>{c.revenue>0&&<span style={{fontWeight:700,color:C.green,marginRight:8}}>{fmtMoney(c.revenue)}</span>}<Badge label={c.status} color={{Planning:C.yellow,Scheduled:C.blue,Live:C.green,Complete:C.muted}[c.status]}/></div>
+          <SectionHeader icon="📅" title="My Calendar"/>
+          <Card style={{marginBottom:16,background:gcalSaved?"#f0fdf4":"#eff6ff",border:`1px solid ${gcalSaved?C.green:C.blue}25`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:20}}>🗓️</span>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:gcalSaved?C.green:C.blue}}>{gcalSaved?"Google Calendar Connected":"Connect Google Calendar"}</div>
+                  <div style={{fontSize:11,color:C.muted}}>{gcalSaved?"Calendar ID saved — API integration coming soon":"Paste your Calendar ID to link your schedule"}</div>
+                </div>
               </div>
-            </Card>
-          ))}
+              {gcalSaved&&<Badge label="API-Ready" color={C.green}/>}
+            </div>
+            <div style={{marginTop:12,display:"flex",gap:8}}>
+              <input value={gcalId} onChange={e=>setGcalId(e.target.value)} placeholder="your-calendar@gmail.com or Calendar ID" style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor=C.border}/>
+              <Btn size="sm" onClick={()=>setGcalSaved(gcalId)}>Save</Btn>
+            </div>
+            {gcalSaved&&<div style={{fontSize:11,color:C.muted,marginTop:8}}>Saved ID: {gcalSaved} · Live sync will be available when backend is connected.</div>}
+          </Card>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+            <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>‹</button>
+            <span style={{fontWeight:700,fontSize:16,flex:1,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
+            <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>›</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
+            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:C.muted,padding:"4px 0"}}>{d}</div>)}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+            {calCells.map((d,i)=>{
+              const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===new Date().toISOString().slice(0,10);
+              const evts=d?getEventsForDay(d):[];
+              return(
+                <div key={i} style={{minHeight:72,background:d?C.white:"transparent",borderRadius:8,padding:d?"4px 6px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?C.border:"transparent"}`}}>
+                  {d&&<div style={{fontSize:11,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:2}}>{d}</div>}
+                  {evts.slice(0,3).map((e,ei)=><div key={ei} style={{fontSize:10,background:e.color+"18",color:e.color,borderRadius:4,padding:"1px 4px",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>{e.label}</div>)}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.muted}}><div style={{width:10,height:10,borderRadius:2,background:C.purple}}/> Campaigns</div>
+            <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.muted}}><div style={{width:10,height:10,borderRadius:2,background:C.orange}}/> Brand Deal Deadlines</div>
+          </div>
         </div>
       )}
       {tab==="brand"&&(
@@ -1474,6 +1740,34 @@ function ModelPortal({user,models,ttks,campaigns,brandDeals,content,socialMetric
               </div>
             </Card>
           ))}
+        </div>
+      )}
+      {tab==="invoices"&&<StripeInvoices isLeadership={false} models={models} myModels={[modelName]}/>}
+      {tab==="ttk"&&(
+        <div>
+          <SectionHeader icon="✏️" title="My Profile & Voice Guide"/>
+          {!ttk&&<div style={{color:C.muted,fontSize:13,marginBottom:12}}>No profile set up yet. Ask your AM to create your TTK first.</div>}
+          {ttk&&(
+            <Card>
+              <div style={{fontSize:11,color:C.muted,marginBottom:16}}>Last updated {ttkForm.lastUpdated||"—"} · Changes will be reviewed by your AM.</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <Input label="Age" value={ttkForm.age||""} onChange={v=>setTtkForm(p=>({...p,age:v}))} placeholder="25"/>
+                <Input label="Location" value={ttkForm.location||""} onChange={v=>setTtkForm(p=>({...p,location:v}))} placeholder="California"/>
+                <Input label="Personality" value={ttkForm.personality||""} onChange={v=>setTtkForm(p=>({...p,personality:v}))} placeholder="Adventurous, playful…" style={{gridColumn:"1/-1"}}/>
+                <Input label="Interests" value={ttkForm.interests||""} onChange={v=>setTtkForm(p=>({...p,interests:v}))} placeholder="Hiking, photography…" style={{gridColumn:"1/-1"}}/>
+                <Input label="Fun Facts" value={ttkForm.personalFacts||""} onChange={v=>setTtkForm(p=>({...p,personalFacts:v}))} placeholder="Has a dog named Biscuit…" style={{gridColumn:"1/-1"}}/>
+              </div>
+              <div style={{marginTop:4,padding:"12px",background:C.redL,borderRadius:10,marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:C.red,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>🚫 Hard Nos (read-only — set by leadership)</div>
+                <div style={{fontSize:13,color:C.red,fontWeight:600}}>{ttkForm.hardNos||"None set"}</div>
+              </div>
+              <div style={{padding:"12px",background:C.bg,borderRadius:10,marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Voice Style (set by team)</div>
+                <div style={{fontSize:13}}>{ttkForm.voice||"—"}</div>
+              </div>
+              <Btn size="sm" onClick={saveTtk}>Save Profile</Btn>
+            </Card>
+          )}
         </div>
       )}
       {tab==="growth"&&(
@@ -1902,13 +2196,14 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const flagged=fans.filter(f=>f.flag);
   const low=models.filter(m=>!m.archived&&campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
   const alerts=buildAlerts(tasks,shifts,models,campaigns,fans);
-  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["customs","Customs"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["todos","To-Dos"],["admin","⚙️ Admin"]];
+  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["customs","Customs"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["admin","⚙️ Admin"]];
   const handleQuickAction=(action)=>{
-    if(action==="todos"||action==="campaigns"||action==="qa"){setSection("paywall");setTab(action);}
+    if(action==="todos"){setSection("todos");}
+    else if(action==="campaigns"||action==="qa"){setSection("paywall");setTab(action);}
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
   };
-  const SECTIONS=[["home","🏠 Home"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
+  const SECTIONS=[["home","🏠 Home"],["todos","📋 To-Dos"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
   return(
     <div>
       <div style={{marginBottom:4}}><span style={{fontSize:22,fontWeight:800}}>Leadership</span></div>
@@ -1976,16 +2271,21 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="performance"&&<ChatterPerformance sales={sales} qaLogs={qaLogs} users={users}/>}
         {tab==="handoffs"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={true} isAM={false} models={models}/>}
         {tab==="summary"&&<DailySummary tasks={tasks} sales={sales} handoffs={handoffs} shifts={shifts} fans={fans} qaLogs={qaLogs} models={models}/>}
-        {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
         {tab==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
       </div>}
+      {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
       {section==="social"&&<div>
-        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"]]} active={tab==="snap"||tab==="growth"||tab==="metrics"?tab:"metrics"} onChange={setTab}/>
-        {(tab==="metrics"||(!["metrics","growth","snap"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={true} myModels={allModels}/>}
+        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"],["connect","🔗 API Connections"]]} active={["metrics","growth","snap","connect"].includes(tab)?tab:"metrics"} onChange={setTab}/>
+        {(tab==="metrics"||(!["metrics","growth","snap","connect"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={true} myModels={allModels}/>}
+        {tab==="connect"&&<PlatformConnections models={models} isLeadership={true}/>}
       </div>}
-      {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={true} myModels={allModels}/>}
+      {section==="brand"&&<div>
+        <Tabs tabs={[["deals","Brand Deals"],["invoices","💳 Stripe Invoices"]]} active={["deals","invoices"].includes(tab)?tab:"deals"} onChange={setTab}/>
+        {(tab==="deals"||!["deals","invoices"].includes(tab))&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={true} myModels={allModels}/>}
+        {tab==="invoices"&&<StripeInvoices isLeadership={true} models={models}/>}
+      </div>}
     </div>
   );
 }
@@ -1995,7 +2295,8 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
   const SECTIONS=[["home","🏠 Home"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
   const handleQuickAction=(action)=>{
-    if(["models","team","schedule","customs","todos"].includes(action)){setSection("paywall");setTab(action);}
+    if(["models","team","schedule","customs"].includes(action)){setSection("paywall");setTab(action);}
+    else if(action==="todos"){setSection("todos");}
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
   };
@@ -2011,19 +2312,20 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
         ))}
       </div>
       {section==="home"&&<HomeDashboard user={user} role="ops-assistant" sales={sales||[]} todos={todos} setTodos={setTodos} campaigns={campaigns||[]} brandDeals={brandDeals||[]} qaLogs={qaLogs||[]} shifts={shifts} models={models} snapRevenue={snapRevenue||[]} socialMetrics={socialMetrics||[]} onAction={handleQuickAction}/>}
+      {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
       {section==="paywall"&&<div>
-        <Tabs tabs={[["models","Models"],["team","Team"],["schedule","Schedule"],["customs","Customs"],["todos","To-Dos"]]} active={tab} onChange={setTab}/>
+        <Tabs tabs={[["models","Models"],["team","Team"],["schedule","Schedule"],["customs","Customs"]]} active={tab} onChange={setTab}/>
         {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
         {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
         {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-        {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
       </div>}
       {section==="social"&&<div>
-        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"]]} active={["metrics","growth","snap"].includes(tab)?tab:"metrics"} onChange={setTab}/>
-        {(tab==="metrics"||(!["metrics","growth","snap"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={allModels}/>}
+        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"],["connect","🔗 API Connections"]]} active={["metrics","growth","snap","connect"].includes(tab)?tab:"metrics"} onChange={setTab}/>
+        {(tab==="metrics"||(!["metrics","growth","snap","connect"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={allModels}/>}
         {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={false} myModels={allModels}/>}
         {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={false} myModels={allModels}/>}
+        {tab==="connect"&&<PlatformConnections models={models} isLeadership={false}/>}
       </div>}
       {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={allModels}/>}
     </div>
@@ -2036,10 +2338,11 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
   const myTasks=tasks.filter(t=>t.am===user.name);
   const myFans=fans.filter(f=>myModels.includes(f.model));
   const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});
-  const navTabs=[["overview","Overview"],["todos","To-Dos"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["schedule","Sling"]];
-  const SECTIONS=[["home","🏠 Home"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
+  const navTabs=[["overview","Overview"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["schedule","Sling"]];
+  const SECTIONS=[["home","🏠 Home"],["todos","📋 To-Dos"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
   const handleQuickAction=(action)=>{
-    if(["overview","todos","campaigns","qa"].includes(action)){setSection("paywall");setTab(action);}
+    if(["overview","campaigns","qa"].includes(action)){setSection("paywall");setTab(action);}
+    else if(action==="todos"){setSection("todos");}
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
   };
@@ -2087,7 +2390,6 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
           ))}
           {!todos.filter(t=>t.owner===user.name&&!t.done).length&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
         </div>}
-        {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
         {tab==="ttk"&&<TTKEditor user={user} ttks={ttks} setTtks={setTtks} myModels={myModels}/>}
         {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} isLeadership={false} isAM={true}/>}
         {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={myModels} isLeadership={false} platforms={platforms}/>}
@@ -2124,13 +2426,19 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
         {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={()=>{}} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
       </div>}
+      {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
       {section==="social"&&<div>
-        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"]]} active={["metrics","growth","snap"].includes(tab)?tab:"metrics"} onChange={setTab}/>
-        {(tab==="metrics"||(!["metrics","growth","snap"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={myModels}/>}
+        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"],["connect","🔗 API Connections"]]} active={["metrics","growth","snap","connect"].includes(tab)?tab:"metrics"} onChange={setTab}/>
+        {(tab==="metrics"||(!["metrics","growth","snap","connect"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={false} myModels={myModels}/>}
+        {tab==="connect"&&<PlatformConnections models={models} isLeadership={false} myModels={myModels}/>}
       </div>}
-      {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={myModels}/>}
+      {section==="brand"&&<div>
+        <Tabs tabs={[["deals","Brand Deals"],["invoices","💳 Stripe Invoices"]]} active={["deals","invoices"].includes(tab)?tab:"deals"} onChange={setTab}/>
+        {(tab==="deals"||!["deals","invoices"].includes(tab))&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={myModels}/>}
+        {tab==="invoices"&&<StripeInvoices isLeadership={false} models={models} myModels={myModels}/>}
+      </div>}
     </div>
   );
 }
@@ -2307,7 +2615,7 @@ export default function App(){
         {user.role==="am"&&<AMDashboard user={user} {...shared}/>}
         {user.role==="chatlead"&&<ChatLeadDashboard user={user} {...shared}/>}
         {user.role==="chatter"&&<ChatterDashboard user={user} {...shared}/>}
-        {user.role==="model"&&<ModelPortal user={user} models={models} ttks={ttks} campaigns={campaigns} brandDeals={brandDeals} content={content} socialMetrics={socialMetrics} growthCampaigns={growthCampaigns}/>}
+        {user.role==="model"&&<ModelPortal user={user} models={models} ttks={ttks} setTtks={setTtks} campaigns={campaigns} brandDeals={brandDeals} content={content} socialMetrics={socialMetrics} growthCampaigns={growthCampaigns}/>}
       </div>
     </div>
   );
