@@ -937,6 +937,10 @@ function TodoPanel({user,todos,setTodos,myModels}){
   const [form,setForm]=useState({scope:"personal",model:myModels[0]||"",task:"",priority:"Medium",dueDate:""});
   const [filterScope,setFilterScope]=useState("All");
   const [sortBy,setSortBy]=useState("priority");
+  const [viewMode,setViewMode]=useState("list");
+  const now=new Date();
+  const [calYear,setCalYear]=useState(now.getFullYear());
+  const [calMonth,setCalMonth]=useState(now.getMonth());
   const myTodos=todos.filter(t=>t.owner===user.name);
   const pc={High:C.red,Medium:C.yellow,Low:C.green};
   const pOrder={High:0,Medium:1,Low:2};
@@ -953,6 +957,21 @@ function TodoPanel({user,todos,setTodos,myModels}){
   };
   const open=filtered.filter(t=>!t.done).sort(sortFn);
   const done=filtered.filter(t=>t.done);
+  // Calendar helpers
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const calDays=()=>{
+    const first=new Date(calYear,calMonth,1);
+    const last=new Date(calYear,calMonth+1,0);
+    const startDow=first.getDay();
+    const cells=[];
+    for(let i=0;i<startDow;i++)cells.push(null);
+    for(let d=1;d<=last.getDate();d++)cells.push(d);
+    return cells;
+  };
+  const pad=n=>String(n).padStart(2,"0");
+  const dsFor=d=>`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+  const todosOnDay=d=>myTodos.filter(t=>!t.done&&t.dueDate===dsFor(d));
+  const todayDs=today();
   return(
     <div>
       <SectionHeader icon="✅" title="To-Dos"/>
@@ -974,7 +993,51 @@ function TodoPanel({user,todos,setTodos,myModels}){
           <option value="priority">Sort: Priority</option>
           <option value="dueDate">Sort: Due Date</option>
         </select>
+        <div style={{marginLeft:"auto",display:"flex",gap:4,background:C.dark,borderRadius:8,padding:3}}>
+          {[["list","📋 List"],["calendar","📅 Calendar"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setViewMode(k)} style={{background:viewMode===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:C.white,border:"none",borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>
+          ))}
+        </div>
       </div>
+      {viewMode==="calendar"&&(
+        <Card style={{marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+            <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:"none",border:"none",color:C.white,cursor:"pointer",fontSize:18,padding:"0 6px"}}>‹</button>
+            <span style={{fontWeight:700,fontSize:14}}>{MONTHS[calMonth]} {calYear}</span>
+            <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:"none",border:"none",color:C.white,cursor:"pointer",fontSize:18,padding:"0 6px"}}>›</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
+            {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:C.muted,padding:"2px 0"}}>{d}</div>)}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+            {calDays().map((d,i)=>{
+              if(!d)return<div key={`e${i}`}/>;
+              const ds=dsFor(d);
+              const dayTodos=todosOnDay(d);
+              const isToday=ds===todayDs;
+              return(
+                <div key={d} style={{minHeight:60,background:isToday?"rgba(124,58,237,0.15)":C.dark,borderRadius:6,padding:3,border:isToday?`1px solid ${C.purple}`:"1px solid transparent"}}>
+                  <div style={{fontSize:10,fontWeight:isToday?700:400,color:isToday?C.purple:C.muted,marginBottom:2,textAlign:"right"}}>{d}</div>
+                  {dayTodos.map(t=>(
+                    <div key={t.id} onClick={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))}
+                      title={`${t.task} — click to complete`}
+                      style={{background:pc[t.priority],color:C.white,borderRadius:3,padding:"1px 4px",fontSize:9,fontWeight:600,marginBottom:1,cursor:"pointer",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {t.task}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"flex",gap:12,marginTop:10,fontSize:10,color:C.muted}}>
+            {[["High",C.red],["Medium",C.yellow],["Low",C.green]].map(([l,c])=>(
+              <span key={l} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:c,display:"inline-block"}}></span>{l}</span>
+            ))}
+            <span style={{color:C.muted,marginLeft:4}}>· Click task to complete</span>
+          </div>
+        </Card>
+      )}
+      {viewMode==="list"&&<>
       {open.length>0&&(
         <div style={{marginBottom:16}}>
           <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Open · {open.length}</div>
@@ -1007,6 +1070,7 @@ function TodoPanel({user,todos,setTodos,myModels}){
         </div>
       )}
       {!open.length&&!done.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No to-dos yet</div>}
+      </>}
     </div>
   );
 }
@@ -2442,7 +2506,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
     </div>
   );
 }
-function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms}){
+function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms,ttks}){
   const [tab,setTab]=useState("sales");
   const todayShift=shifts.find(sh=>sh.chatter===user.name&&sh.date===today());
   const myModels=todayShift?todayShift.models:models.filter(m=>!m.archived).map(m=>m.name);
@@ -2467,20 +2531,20 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
       {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models}/>}
       {tab==="ref"&&<div>
         <SectionHeader icon="📋" title="Quick Reference"/>
-        {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttk=INIT_TTKS.find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");return(
+        {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttkData=(ttks||[]).find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");return(
           <Card key={m.id} style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
               <span style={{fontWeight:700,fontSize:14}}>{m.name}</span>
               <Badge label={m.flirtLevel} color={C.purple}/>
             </div>
-            {ttk&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13}}>
-              <div><b>Voice:</b> {ttk.voice}</div>
-              <div style={{marginTop:4}}><b>Call fans:</b> {ttk.endearments}</div>
-              <div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttk.hardNos}</div>
-              <div style={{marginTop:4,color:C.muted}}>Offline: {ttk.offlineTimes}</div>
-              {ttk.scripts?.length>0&&<div style={{marginTop:8,borderTop:`1px solid ${C.border}`,paddingTop:8}}>
+            {ttkData&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13}}>
+              <div><b>Voice:</b> {ttkData.voice}</div>
+              <div style={{marginTop:4}}><b>Call fans:</b> {ttkData.endearments}</div>
+              <div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttkData.hardNos}</div>
+              <div style={{marginTop:4,color:C.muted}}>Offline: {ttkData.offlineTimes}</div>
+              {ttkData.scripts?.length>0&&<div style={{marginTop:8,borderTop:`1px solid ${C.border}`,paddingTop:8}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Scripts</div>
-                {ttk.scripts.map(sc=><div key={sc.id} style={{marginBottom:6}}><div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div><div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>"{sc.response}"</div></div>)}
+                {ttkData.scripts.map(sc=><div key={sc.id} style={{marginBottom:6}}><div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div><div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>"{sc.response}"</div></div>)}
               </div>}
             </div>}
             {wh.length>0&&<div style={{marginTop:8}}><div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Whales</div>{wh.map(f=><div key={f.id} style={{fontSize:12,padding:"2px 0",color:C.purple,fontWeight:600}}>{f.username} — {f.notes}</div>)}</div>}
@@ -2496,12 +2560,19 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
     </div>
   );
 }
-function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms}){
+function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms,ttks,setTtks}){
   const [tab,setTab]=useState("sales");
+  const [refEdit,setRefEdit]=useState(null); // model name being edited
+  const [refForm,setRefForm]=useState({});
+  const [newScript,setNewScript]=useState({trigger:"",response:""});
   const todayShift=shifts.find(sh=>sh.chatter===user.name&&sh.date===today());
   const myModels=todayShift?todayShift.models:models.filter(m=>!m.archived).map(m=>m.name);
   const mySales=sales.filter(s=>s.chatter===user.name);
   const todayRev=mySales.reduce((a,s)=>a+Number(s.amount),0);
+  const startEdit=(ttkData)=>{setRefEdit(ttkData.model);setRefForm({voice:ttkData.voice||"",endearments:ttkData.endearments||"",offlineTimes:ttkData.offlineTimes||"",scripts:[...(ttkData.scripts||[])]});setNewScript({trigger:"",response:""});};
+  const saveRef=()=>{setTtks(p=>p.map(x=>x.model===refEdit?{...x,...refForm,lastUpdated:new Date().toISOString().slice(0,10),updatedBy:user.name}:x));setRefEdit(null);};
+  const addScript=()=>{if(!newScript.trigger||!newScript.response)return;setRefForm(p=>({...p,scripts:[...p.scripts,{id:Date.now(),...newScript}]}));setNewScript({trigger:"",response:""});};
+  const removeScript=(id)=>setRefForm(p=>({...p,scripts:p.scripts.filter(sc=>sc.id!==id)}));
   return(
     <div>
       <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Hey {user.name} 👋</div>
@@ -2518,10 +2589,49 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
       {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models}/>}
       {tab==="ref"&&<div>
         <SectionHeader icon="📋" title="Quick Reference"/>
-        {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttk=INIT_TTKS.find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");return(
+        {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttkData=(ttks||[]).find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");const isEditing=refEdit===m.name;return(
           <Card key={m.id} style={{marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontWeight:700,fontSize:14}}>{m.name}</span><Badge label={m.flirtLevel} color={C.purple}/></div>
-            {ttk&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13}}><div><b>Voice:</b> {ttk.voice}</div><div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttk.hardNos}</div></div>}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <span style={{fontWeight:700,fontSize:14}}>{m.name}</span>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <Badge label={m.flirtLevel} color={C.purple}/>
+                {!isEditing&&<button onClick={()=>ttkData&&startEdit(ttkData)} style={{background:"linear-gradient(135deg,#7c3aed,#c026d3)",color:C.white,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>✏️ Edit</button>}
+                {isEditing&&<><button onClick={saveRef} style={{background:C.green,color:C.white,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Save</button><button onClick={()=>setRefEdit(null)} style={{background:C.dark,color:C.muted,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button></>}
+              </div>
+            </div>
+            {ttkData&&!isEditing&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13}}>
+              <div><b>Voice:</b> {ttkData.voice}</div>
+              <div style={{marginTop:4}}><b>Call fans:</b> {ttkData.endearments}</div>
+              <div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttkData.hardNos}</div>
+              <div style={{marginTop:4,color:C.muted}}>Offline: {ttkData.offlineTimes}</div>
+              {ttkData.scripts?.length>0&&<div style={{marginTop:8,borderTop:`1px solid ${C.border}`,paddingTop:8}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Scripts</div>
+                {ttkData.scripts.map(sc=><div key={sc.id} style={{marginBottom:6}}><div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div><div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>"{sc.response}"</div></div>)}
+              </div>}
+            </div>}
+            {isEditing&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13,display:"flex",flexDirection:"column",gap:8}}>
+              <div><label style={{...s.label,fontSize:11}}>Voice / Persona</label><textarea value={refForm.voice} onChange={e=>setRefForm(p=>({...p,voice:e.target.value}))} rows={2} style={{...s.input,resize:"vertical",fontSize:12}}/></div>
+              <div><label style={{...s.label,fontSize:11}}>Call fans (endearments)</label><input value={refForm.endearments} onChange={e=>setRefForm(p=>({...p,endearments:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
+              <div><label style={{...s.label,fontSize:11}}>Offline times</label><input value={refForm.offlineTimes} onChange={e=>setRefForm(p=>({...p,offlineTimes:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
+              <div style={{color:C.red,fontSize:11,fontWeight:600}}>🚫 Hard Nos: {ttkData?.hardNos} <span style={{color:C.muted,fontWeight:400}}>(managed by AM)</span></div>
+              <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Scripts</div>
+                {refForm.scripts.map(sc=>(
+                  <div key={sc.id} style={{display:"flex",alignItems:"flex-start",gap:6,marginBottom:6,background:C.dark,borderRadius:6,padding:"6px 8px"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div>
+                      <div style={{fontSize:11,color:C.muted,fontStyle:"italic"}}>"{sc.response}"</div>
+                    </div>
+                    <button onClick={()=>removeScript(sc.id)} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:14,lineHeight:1}}>×</button>
+                  </div>
+                ))}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:6,marginTop:4}}>
+                  <input value={newScript.trigger} onChange={e=>setNewScript(p=>({...p,trigger:e.target.value}))} placeholder="Trigger / topic" style={{...s.input,fontSize:11,marginBottom:0}}/>
+                  <input value={newScript.response} onChange={e=>setNewScript(p=>({...p,response:e.target.value}))} placeholder="Response script" style={{...s.input,fontSize:11,marginBottom:0}}/>
+                  <button onClick={addScript} style={{background:"linear-gradient(135deg,#7c3aed,#c026d3)",color:C.white,border:"none",borderRadius:8,padding:"0 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Add</button>
+                </div>
+              </div>
+            </div>}
             {wh.length>0&&<div style={{marginTop:8}}><div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Whales</div>{wh.map(f=><div key={f.id} style={{fontSize:12,color:C.purple,fontWeight:600}}>{f.username} — {f.notes}</div>)}</div>}
           </Card>
         );})}
