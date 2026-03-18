@@ -93,11 +93,22 @@ const INIT_CUSTOMS=[
   {id:3,model:"Jordan",price:150,fan:"regularfan22",description:"Birthday shoutout video",paid:false,status:"Pending Confirmation",loggedBy:"Jonathan",date:today()},
 ];
 const INIT_SOCIAL_METRICS=[
+  // March 2026 (current)
   {id:1,model:"Autumn",platform:"TikTok",date:"2026-03-01",followers:45200,views:128000,likes:9200,comments:410,shares:1380,notes:"Spring campaign boosted views"},
   {id:2,model:"Autumn",platform:"Instagram",date:"2026-03-01",followers:12800,views:0,likes:1850,comments:124,shares:0,notes:""},
   {id:3,model:"Autumn",platform:"Snapchat",date:"2026-03-01",followers:8400,views:22000,likes:0,comments:0,shares:0,notes:"Story views up 12%"},
   {id:4,model:"Mia",platform:"TikTok",date:"2026-03-01",followers:31000,views:89000,likes:6100,comments:280,shares:940,notes:""},
   {id:5,model:"Jordan",platform:"Instagram",date:"2026-03-01",followers:9200,views:0,likes:1100,comments:78,shares:0,notes:""},
+  // February 2026 (MOM baseline)
+  {id:6,model:"Autumn",platform:"TikTok",date:"2026-02-01",followers:41800,views:98000,likes:7200,comments:310,shares:1050,notes:"Feb baseline"},
+  {id:7,model:"Autumn",platform:"Instagram",date:"2026-02-01",followers:11500,views:0,likes:1520,comments:98,shares:0,notes:""},
+  {id:8,model:"Autumn",platform:"Snapchat",date:"2026-02-01",followers:7800,views:18500,likes:0,comments:0,shares:0,notes:""},
+  {id:9,model:"Mia",platform:"TikTok",date:"2026-02-01",followers:28200,views:72000,likes:5100,comments:220,shares:810,notes:""},
+  {id:10,model:"Jordan",platform:"Instagram",date:"2026-02-01",followers:8700,views:0,likes:950,comments:65,shares:0,notes:""},
+  // January 2026 (YOY reference)
+  {id:11,model:"Autumn",platform:"TikTok",date:"2025-03-01",followers:28400,views:61000,likes:4100,comments:190,shares:620,notes:"YOY reference"},
+  {id:12,model:"Mia",platform:"TikTok",date:"2025-03-01",followers:18900,views:44000,likes:3200,comments:140,shares:490,notes:""},
+  {id:13,model:"Jordan",platform:"Instagram",date:"2025-03-01",followers:6100,views:0,likes:710,comments:42,shares:0,notes:""},
 ];
 const INIT_GROWTH_CAMPAIGNS=[
   {id:1,model:"Autumn",platform:"TikTok",type:"Sound Promo",name:"Spring Vibe Sound",status:"Active",startDate:"2026-03-01",endDate:"2026-03-31",notes:"Trending audio collaboration"},
@@ -113,6 +124,35 @@ const INIT_SNAP_REVENUE=[
   {id:2,model:"Autumn",date:"2026-03-15",revenue:410,notes:"Story promo active"},
   {id:3,model:"Mia",date:"2026-03-14",revenue:190,notes:""},
   {id:4,model:"Mia",date:"2026-03-15",revenue:240,notes:""},
+];
+const INIT_CONTENT_METRICS=[
+  {id:1,model:"Autumn",platform:"TikTok",type:"Video",date:"2026-03-15",caption:"Day in my life ☀️",views:89400,likes:7100,comments:340,shares:1200,saves:0,engRate:9.5},
+  {id:2,model:"Autumn",platform:"TikTok",type:"Video",date:"2026-03-10",caption:"Spring vibes ✨",views:45200,likes:3200,comments:180,shares:560,saves:0,engRate:8.7},
+  {id:3,model:"Autumn",platform:"TikTok",type:"Video",date:"2026-03-05",caption:"GRWM morning routine",views:31800,likes:2400,comments:98,shares:310,saves:0,engRate:8.5},
+  {id:4,model:"Autumn",platform:"Instagram",type:"Reel",date:"2026-03-12",caption:"Glow up ✨",views:12000,likes:1800,comments:95,shares:0,saves:420,engRate:19.3},
+  {id:5,model:"Autumn",platform:"Instagram",type:"Photo",date:"2026-03-08",caption:"Golden hour 🌅",views:0,likes:1420,comments:76,shares:0,saves:280,engRate:13.9},
+  {id:6,model:"Autumn",platform:"Snapchat",type:"Story",date:"2026-03-14",caption:"BTS moment",views:8900,likes:0,comments:0,shares:0,saves:0,engRate:0},
+  {id:7,model:"Mia",platform:"TikTok",type:"Video",date:"2026-03-16",caption:"GRWM night out 💋",views:67300,likes:5400,comments:290,shares:890,saves:0,engRate:9.7},
+  {id:8,model:"Mia",platform:"TikTok",type:"Video",date:"2026-03-08",caption:"Fashion haul",views:32100,likes:2100,comments:120,shares:380,saves:0,engRate:8.1},
+  {id:9,model:"Jordan",platform:"Instagram",type:"Photo",date:"2026-03-11",caption:"Monday mood 💕",views:0,likes:980,comments:55,shares:0,saves:130,engRate:12.7},
+];
+const INIT_MODEL_EVENTS=[
+  {id:1,model:"Autumn",date:"2026-03-28",title:"Biscuit's Birthday",type:"birthday",notes:"Dog's birthday 🐶",color:"#ec4899"},
+  {id:2,model:"Autumn",date:"2026-04-20",title:"Fitness Competition",type:"competition",notes:"NPC Regional qualifier",color:"#f59e0b"},
+  {id:3,model:"Mia",date:"2026-04-05",title:"Miami Brand Event",type:"event",notes:"GlowSkin brand activation",color:"#0ea5e9"},
+];
+const INIT_MG=[
+  {id:1,model:"Autumn",mgAmount:3000,period:"2026-03",deliverables:[
+    {id:1,label:"1x TikTok Video",done:true,notes:"Posted 3/10"},
+    {id:2,label:"4x IG Stories",done:true,notes:""},
+    {id:3,label:"1x IG Reel",done:false,notes:""},
+    {id:4,label:"2x Snapchat Stories",done:false,notes:""},
+  ]},
+  {id:2,model:"Mia",mgAmount:5000,period:"2026-03",deliverables:[
+    {id:1,label:"2x TikTok Videos",done:true,notes:"Both posted"},
+    {id:2,label:"4x IG Stories",done:true,notes:""},
+    {id:3,label:"1x IG Reel",done:false,notes:"Scheduled for 3/28"},
+  ]},
 ];
 // ── DESIGN SYSTEM ────────────────────────────────────────────
 const s = {
@@ -219,7 +259,7 @@ function Tabs({tabs,active,onChange}){
 const StatCard=({label,value,color=C.purple,sub,icon})=>(
   <Card style={{textAlign:"center",padding:"18px 14px",position:"relative",overflow:"hidden"}}>
     <div style={{position:"absolute",top:-8,right:-8,opacity:0.06}}><StarMark size={44} color={color}/></div>
-    {icon&&<div style={{fontSize:22,marginBottom:6}}>{icon}</div>}
+    {icon&&<div style={{display:"flex",justifyContent:"center",marginBottom:8}}><IconBadge icon={icon} color={color} size={32}/></div>}
     <div style={{fontSize:26,fontWeight:800,color,lineHeight:1,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{value}</div>
     <div style={{fontSize:10,color:C.muted,marginTop:7,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em"}}>{label}</div>
     {sub&&<div style={{fontSize:11,color,marginTop:4,fontWeight:600}}>{sub}</div>}
@@ -408,7 +448,7 @@ function QAReview({user,qaLogs,setQaLogs,users,models}){
               <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                 <span style={{fontWeight:700}}>{q.chatter}</span>
                 <Badge label={q.model} color={C.blue}/>
-                <Badge label={`by ${q.reviewer}`} color={C.muted} bg="#f1f5f9"/>
+                <Badge label={`by ${q.reviewer}`} color={C.muted} bg="rgba(255,255,255,0.1)"/>
                 <span style={{fontSize:11,color:C.muted}}>{q.date}</span>
               </div>
               <span style={{fontSize:22,fontWeight:800,color:scoreCol(q.score)}}>{q.score}%</span>
@@ -455,7 +495,7 @@ function TTKEditor({user,ttks,setTtks,myModels}){
       <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:16}}>
         {tabs.map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)}
-            style={{padding:"6px 14px",borderRadius:99,border:`1.5px solid ${tab===k?C.purple:C.border}`,background:tab===k?C.purpleXL:C.white,color:tab===k?C.purple:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            style={{padding:"6px 14px",borderRadius:99,border:`1.5px solid ${tab===k?C.purple:"rgba(167,139,250,0.2)"}`,background:tab===k?C.purpleXL:"rgba(255,255,255,0.06)",color:tab===k?C.purpleL:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
             <span style={{width:6,height:6,borderRadius:99,background:form.sections?.[k]?C.green:C.red,display:"inline-block"}}/>
             {l}
           </button>
@@ -537,7 +577,7 @@ function MassMessageTracker({user,massMessages,setMassMessages,myModels,isLeader
           <Card key={m.id} style={{borderLeft:`3px solid ${C.purple}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:10}}>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                <Badge label={m.model} color={C.blue}/><Badge label={m.target} color={C.muted} bg="#f1f5f9"/>
+                <Badge label={m.model} color={C.blue}/><Badge label={m.target} color={C.muted} bg="rgba(255,255,255,0.1)"/>
                 {m.revenue>0&&<Badge label={`+${fmtMoney(m.revenue)}`} color={C.green} dot/>}
               </div>
               <span style={{fontSize:11,color:C.muted}}>{m.sentBy} · {m.sentAt} · {m.date}</span>
@@ -657,7 +697,7 @@ function ShiftHandoff({user,handoffs,setHandoffs,isLeadership,isAM,models}){
         <Card key={h.id} style={{marginBottom:8,borderLeft:`3px solid ${C.green}`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
             <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700}}>{h.model}</span><span style={{color:C.muted,fontSize:13}}>{h.outgoing} → {h.incoming}</span></div>
-            <Badge label={h.shift} color={C.slate} bg="#f1f5f9"/>
+            <Badge label={h.shift} color={C.slate} bg="rgba(255,255,255,0.1)"/>
           </div>
           {h.activeConvos&&<p style={{fontSize:12,color:C.muted,margin:0}}>{h.activeConvos}</p>}
         </Card>
@@ -704,14 +744,14 @@ function SalesTracker({user,sales,setSales,isLeadership,isAM,myModels,users}){
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead><tr style={{background:C.dark,color:"#94a3b8"}}>{["Chatter","Model","Type","Amount","Fan","Note","Shift"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
             <tbody>{filtered.map((s,i)=>(
-              <tr key={s.id} style={{background:i%2===0?C.white:C.bg,borderBottom:`1px solid ${C.border}`}}>
+              <tr key={s.id} style={{background:i%2===0?"rgba(255,255,255,0.04)":C.bg,borderBottom:`1px solid ${C.border}`}}>
                 <td style={{padding:"9px 14px",fontWeight:600}}>{s.chatter}</td>
                 <td style={{padding:"9px 14px"}}>{s.model}</td>
                 <td style={{padding:"9px 14px"}}><Badge label={s.type} color={s.type==="PPV"?C.purple:C.blue}/></td>
                 <td style={{padding:"9px 14px",fontWeight:700,color:C.green}}>{fmtMoney(s.amount)}</td>
                 <td style={{padding:"9px 14px",color:C.muted}}>{s.fanUsername}</td>
                 <td style={{padding:"9px 14px",color:C.muted}}>{s.note}</td>
-                <td style={{padding:"9px 14px"}}><Badge label={s.shift} color={C.muted} bg="#f1f5f9"/></td>
+                <td style={{padding:"9px 14px"}}><Badge label={s.shift} color={C.muted} bg="rgba(255,255,255,0.1)"/></td>
               </tr>
             ))}</tbody>
           </table>
@@ -905,7 +945,7 @@ function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeaders
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
               <thead><tr style={{background:C.dark,color:"#94a3b8"}}>{["Model","Tag","Type","Theme","Tier","Assets","Date"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
-              <tbody>{fc.map((c,i)=><tr key={c.id} style={{background:i%2===0?C.white:C.bg,borderBottom:`1px solid ${C.border}`}}>
+              <tbody>{fc.map((c,i)=><tr key={c.id} style={{background:i%2===0?"rgba(255,255,255,0.04)":C.bg,borderBottom:`1px solid ${C.border}`}}>
                 <td style={{padding:"9px 14px",fontWeight:600}}>{c.model}</td>
                 <td style={{padding:"9px 14px"}}><span style={{fontFamily:"monospace",fontWeight:700,background:C.purpleXL,color:C.purple,padding:"3px 8px",borderRadius:5,fontSize:11}}>{c.tag}</span></td>
                 <td style={{padding:"9px 14px"}}><Badge label={c.type} color={C.blue}/></td>
@@ -931,7 +971,7 @@ function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeaders
         )}
         <Card style={{padding:0,overflow:"hidden"}}>
           {!fp.length?<div style={{padding:24,color:C.muted,fontSize:13,textAlign:"center"}}>No promos</div>:fp.map((p,i)=>(
-            <div key={p.id} style={{padding:"12px 20px",background:i%2===0?C.white:C.bg,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+            <div key={p.id} style={{padding:"12px 20px",background:i%2===0?"rgba(255,255,255,0.04)":C.bg,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
               <span style={{fontWeight:700,minWidth:80}}>{p.model}</span>
               <Badge label={p.platform} color={platCol[p.platform]||C.muted}/>
               <span style={{fontSize:13,color:C.muted,flex:1}}>{p.notes||"—"}</span>
@@ -1086,7 +1126,7 @@ function TodoPanel({user,todos,setTodos,myModels}){
   );
 }
 // ── HOME DASHBOARD ───────────────────────────────────────────
-function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLogs,shifts,models,snapRevenue,socialMetrics,onAction}){
+function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLogs,shifts,models,snapRevenue,socialMetrics,modelEvents,onAction}){
   const myModels=role==="am"?models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name):models.filter(m=>!m.archived).map(m=>m.name);
   const mySales=sales.filter(s=>role==="am"?myModels.includes(s.model):true);
   const todayRev=mySales.reduce((a,s)=>a+Number(s.amount),0);
@@ -1122,6 +1162,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
     filteredTodos.forEach(t=>evts.push({label:t.task,color:{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}));
     const filteredDeals=myBrandDeals.filter(d=>(calFilter==="All"||d.model===calFilter)&&d.deadline===ds);
     filteredDeals.forEach(d=>evts.push({label:`⏰ ${d.brand}`,color:C.orange}));
+    if(modelEvents){const filteredEvts=(modelEvents||[]).filter(e=>(calFilter==="All"||e.model===calFilter)&&e.date===ds);filteredEvts.forEach(e=>evts.push({label:e.title,color:e.color||C.pink}));}
     return evts;
   };
   return(
@@ -1224,7 +1265,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
               const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===new Date().toISOString().slice(0,10);
               const evts=d?getCalEvents(d):[];
               return(
-                <div key={i} style={{minHeight:60,background:d?C.bg:"transparent",borderRadius:6,padding:d?"3px 4px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"#e8edf2":"transparent"}`}}>
+                <div key={i} style={{minHeight:60,background:d?C.bg:"transparent",borderRadius:6,padding:d?"3px 4px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"rgba(124,58,237,0.15)":"transparent"}`}}>
                   {d&&<div style={{fontSize:10,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:1}}>{d}</div>}
                   {evts.slice(0,2).map((e,ei)=><div key={ei} title={e.label} style={{fontSize:9,background:e.color+"22",color:e.color,borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>{e.label}</div>)}
                   {evts.length>2&&<div style={{fontSize:9,color:C.muted}}>+{evts.length-2}</div>}
@@ -1233,7 +1274,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
             })}
           </div>
           <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
-            {[["Campaigns",C.purple],["To-Do Due Dates",C.red],["Brand Deal Deadlines",C.orange]].map(([l,c])=>(
+            {[["Campaigns",C.purple],["To-Do Due Dates",C.red],["Brand Deal Deadlines",C.orange],["Model Events","#ec4899"]].map(([l,c])=>(
               <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:C.muted}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>
             ))}
           </div>
@@ -1273,9 +1314,9 @@ function SocialMetrics({user,socialMetrics,setSocialMetrics,models,isLeadership,
   return(
     <div>
       <SectionHeader icon="📱" title="Social Platform Metrics" action={<Btn size="sm" onClick={()=>{setForm({...blank,platform});setShowAdd(true);}}>+ Log Metrics</Btn>}/>
-      <div style={{display:"flex",gap:4,marginBottom:16,background:"#f1f5f9",borderRadius:10,padding:3}}>
+      <div style={{display:"flex",gap:4,marginBottom:16,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4}}>
         {PLATFORMS.map(p=>(
-          <button key={p} onClick={()=>setPlatform(p)} style={{flex:1,padding:"7px 4px",borderRadius:8,border:"none",background:platform===p?C.white:"transparent",color:platform===p?PLAT_COL[p]:C.muted,fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:platform===p?"0 1px 3px rgba(0,0,0,0.08)":"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+          <button key={p} onClick={()=>setPlatform(p)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:platform===p?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:platform===p?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:platform===p?C.white:C.muted,fontWeight:platform===p?700:500,fontSize:12,cursor:"pointer",boxShadow:platform===p?"0 2px 10px rgba(124,58,237,0.25)":"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif"}}>
             {PLAT_ICON[p]} {p}
           </button>
         ))}
@@ -1668,7 +1709,7 @@ function PlatformConnections({models,isLeadership,myModels}){
   );
 }
 // ── MODEL PORTAL ──────────────────────────────────────────────
-function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,socialMetrics,growthCampaigns}){
+function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,socialMetrics,growthCampaigns,modelEvents,setModelEvents,mg,setMg}){
   const [tab,setTab]=useState("home");
   const modelName=user.name;
   const model=models.find(m=>m.name===modelName);
@@ -1694,11 +1735,16 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
   const firstDay=(y,m)=>new Date(y,m,1).getDay();
   const calDays=daysInMonth(calYear,calMonth);const calStart=firstDay(calYear,calMonth);
   const calCells=[];for(let i=0;i<calStart;i++)calCells.push(null);for(let d=1;d<=calDays;d++)calCells.push(d);
+  const myModelEvents=(modelEvents||[]).filter(e=>e.model===modelName);
+  const [showEventForm,setShowEventForm]=useState(false);
+  const [evtForm,setEvtForm]=useState({date:"",title:"",type:"event",notes:"",color:"#ec4899"});
+  const EVENT_TYPES=[{k:"birthday",l:"Birthday",c:"#ec4899"},{k:"competition",l:"Competition",c:"#f59e0b"},{k:"event",l:"Event",c:"#0ea5e9"},{k:"reminder",l:"Reminder",c:"#a78bfa"}];
   const getEventsForDay=(d)=>{
     const ds=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
     const evts=[];
     myCampaigns.filter(c=>c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate).forEach(c=>evts.push({label:c.name,color:C.purple}));
-    myDeals.filter(d=>d.deadline===ds).forEach(d=>evts.push({label:`⏰ ${d.brand}`,color:C.orange}));
+    myDeals.filter(d=>d.deadline===ds).forEach(d=>evts.push({label:`${d.brand} deadline`,color:C.orange}));
+    myModelEvents.filter(e=>e.date===ds).forEach(e=>evts.push({label:e.title,color:e.color||"#ec4899"}));
     return evts;
   };
   return(
@@ -1708,7 +1754,7 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
         <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Hey {modelName}</span>
       </div>
       <div style={{fontSize:13,color:C.muted,marginBottom:20,paddingLeft:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-      <Tabs tabs={[["home","Home"],["calendar","📅 Calendar"],["brand","Brand Deals"],["invoices","💳 Invoices"],["ttk","My Profile"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["home","Home"],["calendar","Calendar"],["mg","Deliverables"],["brand","Brand Deals"],["invoices","Invoices"],["ttk","My Profile"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
       {tab==="home"&&(
         <div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12,marginBottom:20}}>
@@ -1786,11 +1832,52 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
             })}
           </div>
           <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
-            <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.muted}}><div style={{width:10,height:10,borderRadius:2,background:C.purple}}/> Campaigns</div>
-            <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.muted}}><div style={{width:10,height:10,borderRadius:2,background:C.orange}}/> Brand Deal Deadlines</div>
+            {[["Campaigns",C.purple],["Brand Deadlines",C.orange],["Personal Events","#ec4899"]].map(([l,c])=>(
+              <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.muted}}><div style={{width:10,height:10,borderRadius:2,background:c}}/>{l}</div>
+            ))}
+          </div>
+          <div style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={{fontWeight:700,fontSize:13}}>Personal Dates & Events</div>
+              <Btn size="sm" onClick={()=>setShowEventForm(!showEventForm)}>+ Add Date</Btn>
+            </div>
+            {showEventForm&&(
+              <Card style={{marginBottom:12,background:"rgba(124,58,237,0.06)",border:"1px solid rgba(124,58,237,0.2)"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <Input label="Date" value={evtForm.date} onChange={v=>setEvtForm(p=>({...p,date:v}))} type="date"/>
+                  <Input label="Title" value={evtForm.title} onChange={v=>setEvtForm(p=>({...p,title:v}))} placeholder="e.g. Birthday, Competition"/>
+                </div>
+                <div style={{marginBottom:10}}>
+                  <label style={s.label}>Type</label>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {EVENT_TYPES.map(t=>(
+                      <button key={t.k} onClick={()=>setEvtForm(p=>({...p,type:t.k,color:t.c}))} style={{padding:"4px 12px",borderRadius:99,border:`1.5px solid ${evtForm.type===t.k?t.c:"rgba(255,255,255,0.15)"}`,background:evtForm.type===t.k?t.c+"22":"rgba(255,255,255,0.04)",color:evtForm.type===t.k?t.c:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>{t.l}</button>
+                    ))}
+                  </div>
+                </div>
+                <Input label="Notes (optional)" value={evtForm.notes} onChange={v=>setEvtForm(p=>({...p,notes:v}))} placeholder="Any context…"/>
+                <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                  <Btn variant="secondary" size="sm" onClick={()=>setShowEventForm(false)}>Cancel</Btn>
+                  <Btn size="sm" onClick={()=>{if(!evtForm.date||!evtForm.title)return;setModelEvents(p=>[...p,{...evtForm,id:Date.now(),model:modelName}]);setEvtForm({date:"",title:"",type:"event",notes:"",color:"#ec4899"});setShowEventForm(false);}}>Save</Btn>
+                </div>
+              </Card>
+            )}
+            {myModelEvents.length===0&&!showEventForm&&<div style={{color:C.muted,fontSize:13}}>No personal dates added yet.</div>}
+            {myModelEvents.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>(
+              <div key={e.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div style={{width:10,height:10,borderRadius:99,background:e.color,flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{e.title}</div>
+                  <div style={{fontSize:11,color:C.muted}}>{e.date}{e.notes&&` · ${e.notes}`}</div>
+                </div>
+                <Badge label={e.type} color={e.color}/>
+                <button onClick={()=>setModelEvents(p=>p.filter(x=>x.id!==e.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16}}>×</button>
+              </div>
+            ))}
           </div>
         </div>
       )}
+      {tab==="mg"&&<MGDeliverables user={user} mg={mg} setMg={setMg} models={models} isLeadership={false} isAM={false} myModels={[modelName]}/>}
       {tab==="brand"&&(
         <div>
           <SectionHeader icon="🤝" title="Your Brand Deals"/>
@@ -1963,7 +2050,7 @@ function ModelManagement({models,setModels,users,tasks,setTasks,modelPlatforms})
             <div>
               <div style={{fontWeight:700,fontSize:14,marginBottom:6}}>{m.name}</div>
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                <Badge label={m.status} color={statusCol[m.status]}/><Badge label={m.platform} color={C.muted} bg="#f1f5f9"/>
+                <Badge label={m.status} color={statusCol[m.status]}/><Badge label={m.platform} color={C.muted} bg="rgba(255,255,255,0.1)"/>
                 <Badge label={m.flirtLevel} color={flirtCol[m.flirtLevel]}/><Badge label={`AM: ${m.am}`} color={C.blue}/>
               </div>
             </div>
@@ -2237,7 +2324,7 @@ function CustomsTracker({user,customs,setCustoms,models}){
               <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                 <Badge label={c.model} color={C.blue}/>
                 <span style={{fontWeight:700,fontSize:15,color:C.green}}>{fmtMoney(c.price)}</span>
-                <Badge label={c.fan} color={C.muted} bg="#f1f5f9"/>
+                <Badge label={c.fan} color={C.muted} bg="rgba(255,255,255,0.1)"/>
                 <Badge label={c.paid?"Paid ✓":"Unpaid"} color={c.paid?C.green:C.yellow}/>
               </div>
               <span style={{fontSize:11,color:C.muted}}>{c.loggedBy} · {c.date}</span>
@@ -2264,8 +2351,424 @@ function CustomsTracker({user,customs,setCustoms,models}){
     </div>
   );
 }
+// ── SOCIAL ANALYTICS (ENHANCED) ──────────────────────────────
+function SocialAnalytics({socialMetrics,contentMetrics,setContentMetrics,models,isLeadership,myModels}){
+  const PLATFORMS=["TikTok","Instagram","Snapchat"];
+  const PLAT_ICON={TikTok:"🎵",Instagram:"📸",Snapchat:"👻"};
+  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b"};
+  const [platform,setPlatform]=useState("TikTok");
+  const [subTab,setSubTab]=useState("overview");
+  const [fm,setFm]=useState("All");
+  const [showAdd,setShowAdd]=useState(false);
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
+  const blankPost={model:vm[0]||"",platform,type:"Video",date:new Date().toISOString().slice(0,10),caption:"",views:"",likes:"",comments:"",shares:"",saves:""};
+  const [postForm,setPostForm]=useState(blankPost);
+  const pc=PLAT_COL[platform];
+  const calcChange=(curr,prev,field)=>{if(!prev||!Number(prev[field]))return null;const diff=Number(curr[field])-Number(prev[field]);const pct=Math.round(diff/Number(prev[field])*100);return{diff,pct,up:pct>=0};};
+  const fmtChange=(ch)=>{if(!ch)return null;return`${ch.up?"+":""}${ch.pct}%`;};
+  const chgCol=(ch)=>ch?(ch.up?C.green:C.red):C.muted;
+  // Get latest and prev-month entries per model
+  const modelStats=vm.map(modelName=>{
+    const entries=socialMetrics.filter(e=>e.model===modelName&&e.platform===platform).sort((a,b)=>b.date.localeCompare(a.date));
+    const latest=entries[0];
+    const prevMonth=entries.find(e=>e.date<(latest?.date||"")&&e.date.slice(0,7)<(latest?.date||"").slice(0,7));
+    const yoy=entries.find(e=>e.date.slice(0,4)<(latest?.date||"").slice(0,4));
+    const followWOW=latest&&prevMonth?calcChange(latest,prevMonth,"followers"):null;
+    const followMOM=latest&&prevMonth?calcChange(latest,prevMonth,"followers"):null;
+    const viewMOM=latest&&prevMonth?calcChange(latest,prevMonth,"views"):null;
+    const engMOM=latest&&prevMonth?calcChange(latest,prevMonth,"likes"):null;
+    return{modelName,latest,prevMonth,yoy,followWOW,followMOM,viewMOM,engMOM};
+  }).filter(s=>s.latest);
+  const totals=modelStats.reduce((a,s)=>{a.followers+=Number(s.latest?.followers||0);a.views+=Number(s.latest?.views||0);a.likes+=Number(s.latest?.likes||0);return a;},{followers:0,views:0,likes:0});
+  const prevTotals=modelStats.reduce((a,s)=>{a.followers+=Number(s.prevMonth?.followers||0);a.views+=Number(s.prevMonth?.views||0);a.likes+=Number(s.prevMonth?.likes||0);return a;},{followers:0,views:0,likes:0});
+  const totalFollowCh=prevTotals.followers?calcChange({followers:totals.followers},{followers:prevTotals.followers},"followers"):null;
+  const totalViewCh=prevTotals.views?calcChange({views:totals.views},{views:prevTotals.views},"views"):null;
+  // Individual content
+  const myContent=contentMetrics.filter(c=>c.platform===platform&&(fm==="All"||c.model===fm)&&vm.includes(c.model)).sort((a,b)=>b.date.localeCompare(a.date));
+  const ChgPill=({ch})=>ch?(<span style={{fontSize:10,fontWeight:700,color:chgCol(ch),background:chgCol(ch)+"18",padding:"2px 6px",borderRadius:99,marginLeft:4}}>{fmtChange(ch)}</span>):null;
+  return(
+    <div>
+      <SectionHeader icon="📱" title="Social Analytics"/>
+      <div style={{display:"flex",gap:4,marginBottom:20,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4}}>
+        {PLATFORMS.map(p=>(
+          <button key={p} onClick={()=>{setPlatform(p);setSubTab("overview");}} style={{flex:1,padding:"9px 4px",borderRadius:9,border:platform===p?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:platform===p?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:platform===p?C.white:C.muted,fontWeight:platform===p?700:500,fontSize:13,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <span>{PLAT_ICON[p]}</span>{p}
+          </button>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+        <Card style={{padding:"16px 14px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-6,right:-6,opacity:0.05}}><StarMark size={40} color={pc}/></div>
+          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Total Followers</div>
+          <div style={{fontSize:24,fontWeight:800,color:pc,letterSpacing:"-0.02em",fontFamily:"'DM Sans',sans-serif"}}>{totals.followers>999?`${(totals.followers/1000).toFixed(1)}k`:totals.followers||"—"}</div>
+          <ChgPill ch={totalFollowCh}/>
+          <div style={{fontSize:10,color:C.muted,marginTop:4}}>vs last month</div>
+        </Card>
+        <Card style={{padding:"16px 14px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-6,right:-6,opacity:0.05}}><StarMark size={40} color={pc}/></div>
+          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{platform==="Instagram"?"Total Likes":"Total Views"}</div>
+          <div style={{fontSize:24,fontWeight:800,color:pc,letterSpacing:"-0.02em",fontFamily:"'DM Sans',sans-serif"}}>{platform==="Instagram"?(totals.likes>999?`${(totals.likes/1000).toFixed(1)}k`:totals.likes||"—"):(totals.views>999?`${(totals.views/1000).toFixed(1)}k`:totals.views||"—")}</div>
+          <ChgPill ch={platform==="Instagram"?null:totalViewCh}/>
+          <div style={{fontSize:10,color:C.muted,marginTop:4}}>vs last month</div>
+        </Card>
+        <Card style={{padding:"16px 14px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-6,right:-6,opacity:0.05}}><StarMark size={40} color={pc}/></div>
+          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Accounts Tracked</div>
+          <div style={{fontSize:24,fontWeight:800,color:pc,letterSpacing:"-0.02em",fontFamily:"'DM Sans',sans-serif"}}>{modelStats.length}</div>
+          <div style={{fontSize:10,color:C.muted,marginTop:10}}>active models</div>
+        </Card>
+      </div>
+      <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4,marginBottom:20}}>
+        {[["overview","Overview"],["content","Content Feed"],["log","Log Metrics"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSubTab(k)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:subTab===k?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:subTab===k?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:subTab===k?C.white:C.muted,fontWeight:subTab===k?700:500,fontSize:12,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif"}}>
+            {l}
+          </button>
+        ))}
+      </div>
+      {subTab==="overview"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {modelStats.map(s=>(
+            <Card key={s.modelName} style={{borderLeft:`3px solid ${pc}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+                <div style={{fontWeight:700,fontSize:15,fontFamily:"'Playfair Display',Georgia,serif"}}>{s.modelName}</div>
+                <div style={{fontSize:11,color:C.muted}}>{s.latest?.date}</div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10}}>
+                {[
+                  {label:"Followers",val:s.latest?.followers,ch:s.followMOM,fmt:(v)=>v>999?`${(v/1000).toFixed(1)}k`:v},
+                  ...(platform!=="Instagram"?[{label:"Views",val:s.latest?.views,ch:s.viewMOM,fmt:(v)=>v>999?`${(v/1000).toFixed(1)}k`:v}]:[]),
+                  {label:"Likes",val:s.latest?.likes,ch:s.engMOM,fmt:(v)=>v>999?`${(v/1000).toFixed(1)}k`:v},
+                  {label:"Comments",val:s.latest?.comments,ch:null,fmt:(v)=>v},
+                  ...(platform!=="Instagram"?[{label:"Shares",val:s.latest?.shares,ch:null,fmt:(v)=>v}]:[]),
+                ].map(({label,val,ch,fmt})=>(
+                  <div key={label} style={{background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
+                    <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{label}</div>
+                    <div style={{fontSize:18,fontWeight:800,color:pc,fontFamily:"'DM Sans',sans-serif"}}>{val!=null?fmt(val):"—"}</div>
+                    {ch&&<div style={{fontSize:10,color:chgCol(ch),fontWeight:700,marginTop:2}}>{fmtChange(ch)} MOM</div>}
+                  </div>
+                ))}
+              </div>
+              {s.latest?.notes&&<div style={{fontSize:12,color:C.muted,marginTop:10,fontStyle:"italic"}}>{s.latest.notes}</div>}
+            </Card>
+          ))}
+          {!modelStats.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No {platform} metrics logged yet</div>}
+        </div>
+      )}
+      {subTab==="content"&&(
+        <div>
+          <div style={{display:"flex",gap:8,marginBottom:16}}>
+            <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+              <option>All</option>{vm.map(m=><option key={m}>{m}</option>)}
+            </select>
+            <Btn size="sm" onClick={()=>{setPostForm({...blankPost,platform});setShowAdd(true);}}>+ Log Post</Btn>
+          </div>
+          {showAdd&&(
+            <Modal title={`Log ${platform} Post`} onClose={()=>setShowAdd(false)}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <Sel label="Model" value={postForm.model} onChange={v=>setPostForm(p=>({...p,model:v}))} options={vm}/>
+                <Sel label="Type" value={postForm.type} onChange={v=>setPostForm(p=>({...p,type:v}))} options={platform==="TikTok"?["Video","Live"]:platform==="Instagram"?["Reel","Photo","Story","Carousel"]:["Story","Spotlight"]}/>
+                <Input label="Date" value={postForm.date} onChange={v=>setPostForm(p=>({...p,date:v}))} type="date"/>
+                <Input label="Caption/Title" value={postForm.caption} onChange={v=>setPostForm(p=>({...p,caption:v}))} placeholder="Caption preview…"/>
+                {platform!=="Instagram"&&<Input label="Views" value={postForm.views} onChange={v=>setPostForm(p=>({...p,views:v}))} placeholder="45000" type="number"/>}
+                <Input label="Likes" value={postForm.likes} onChange={v=>setPostForm(p=>({...p,likes:v}))} placeholder="3200" type="number"/>
+                <Input label="Comments" value={postForm.comments} onChange={v=>setPostForm(p=>({...p,comments:v}))} placeholder="180" type="number"/>
+                {platform!=="Instagram"?<Input label="Shares" value={postForm.shares} onChange={v=>setPostForm(p=>({...p,shares:v}))} placeholder="560" type="number"/>:<Input label="Saves" value={postForm.saves} onChange={v=>setPostForm(p=>({...p,saves:v}))} placeholder="420" type="number"/>}
+              </div>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}>
+                <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
+                <Btn size="sm" onClick={()=>{if(!postForm.caption)return;const tot=Number(postForm.likes||0)+Number(postForm.comments||0)+Number(postForm.shares||0)+Number(postForm.saves||0);const base=Number(postForm.views||0)||Number(postForm.likes||0)*5||1;const er=Math.round(tot/base*100*10)/10;setContentMetrics(p=>[{...postForm,id:Date.now(),views:Number(postForm.views||0),likes:Number(postForm.likes||0),comments:Number(postForm.comments||0),shares:Number(postForm.shares||0),saves:Number(postForm.saves||0),engRate:er},...p]);setShowAdd(false);}}>Save Post</Btn>
+              </div>
+            </Modal>
+          )}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {myContent.map(c=>{
+              const engTot=c.likes+c.comments+c.shares+c.saves;
+              const engBase=c.views||c.likes*5||1;
+              const er=c.engRate||(Math.round(engTot/engBase*100*10)/10);
+              const erCol=er>=10?C.green:er>=5?C.yellow:C.muted;
+              return(
+                <Card key={c.id} style={{borderLeft:`3px solid ${pc}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:10}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>{c.caption}</div>
+                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                        <Badge label={c.model} color={C.blue}/>
+                        <Badge label={c.type} color={pc}/>
+                        <span style={{fontSize:11,color:C.muted}}>{c.date}</span>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:erCol,background:erCol+"18",padding:"3px 8px",borderRadius:99}}>{er}% eng rate</div>
+                    </div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(70px,1fr))",gap:8}}>
+                    {platform!=="Instagram"&&<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.views>999?`${(c.views/1000).toFixed(1)}k`:c.views}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Views</div></div>}
+                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.likes>999?`${(c.likes/1000).toFixed(1)}k`:c.likes}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Likes</div></div>
+                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.comments}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Comments</div></div>
+                    {platform!=="Instagram"?<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.shares}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Shares</div></div>:<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.saves}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Saves</div></div>}
+                  </div>
+                </Card>
+              );
+            })}
+            {!myContent.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No {platform} content logged yet. Click "+ Log Post" to add.</div>}
+          </div>
+        </div>
+      )}
+      {subTab==="log"&&(
+        <SocialMetrics user={{name:"log"}} socialMetrics={socialMetrics} setSocialMetrics={()=>{}} models={models} isLeadership={isLeadership} myModels={vm}/>
+      )}
+    </div>
+  );
+}
+// ── MG DELIVERABLES ───────────────────────────────────────────
+function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
+  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
+  const [selModel,setSelModel]=useState(vm[0]||"");
+  const [period,setPeriod]=useState(new Date().toISOString().slice(0,7));
+  const [showAdd,setShowAdd]=useState(false);
+  const [mgForm,setMgForm]=useState({model:vm[0]||"",mgAmount:"",period:new Date().toISOString().slice(0,7),deliverables:[]});
+  const [newDel,setNewDel]=useState("");
+  const myMg=isLeadership||isAM?mg:mg.filter(m=>m.model===user.name);
+  const selMg=myMg.find(m=>(isLeadership||isAM?m.model===selModel:m.model===user.name)&&m.period===period);
+  const toggleDel=(mgId,delId)=>setMg(p=>p.map(m=>m.id===mgId?{...m,deliverables:m.deliverables.map(d=>d.id===delId?{...d,done:!d.done}:d)}:m));
+  const pct=selMg?Math.round(selMg.deliverables.filter(d=>d.done).length/Math.max(selMg.deliverables.length,1)*100):0;
+  const pctCol=pct===100?C.green:pct>=50?C.yellow:C.red;
+  const addMg=()=>{if(!mgForm.model||!mgForm.mgAmount)return;setMg(p=>[...p,{...mgForm,id:Date.now(),mgAmount:Number(mgForm.mgAmount),deliverables:mgForm.deliverables.map((d,i)=>({id:i+1,label:d,done:false,notes:""}))}]);setShowAdd(false);setMgForm({model:vm[0]||"",mgAmount:"",period:new Date().toISOString().slice(0,7),deliverables:[]});setNewDel("");};
+  return(
+    <div>
+      <SectionHeader icon="📋" title="MG Deliverables" action={(isLeadership||isAM)&&<Btn size="sm" onClick={()=>setShowAdd(true)}>+ New MG</Btn>}/>
+      <Card style={{marginBottom:16,background:"rgba(124,58,237,0.06)",border:"1px solid rgba(124,58,237,0.25)"}}>
+        <div style={{fontSize:12,color:C.muted,marginBottom:2}}>Track monthly paywall deliverables against a model's Minimum Guarantee (MG).</div>
+        <div style={{fontSize:12,color:C.muted}}>Models check off completed deliverables. AM & Leadership have full visibility.</div>
+      </Card>
+      {showAdd&&(
+        <Modal title="Set Up MG Deliverables" onClose={()=>setShowAdd(false)} width={520}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Model" value={mgForm.model} onChange={v=>setMgForm(p=>({...p,model:v}))} options={vm}/>
+            <Input label="MG Amount ($)" value={mgForm.mgAmount} onChange={v=>setMgForm(p=>({...p,mgAmount:v}))} placeholder="3000" type="number"/>
+            <div style={{gridColumn:"1/-1",marginBottom:14}}>
+              <label style={s.label}>Period (YYYY-MM)</label>
+              <input type="month" value={mgForm.period} onChange={e=>setMgForm(p=>({...p,period:e.target.value}))} style={{...s.input}}/>
+            </div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={s.label}>Deliverables</label>
+            {mgForm.deliverables.map((d,i)=>(
+              <div key={i} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6}}>
+                <span style={{fontSize:13,flex:1,color:C.text}}>{d}</span>
+                <button onClick={()=>setMgForm(p=>({...p,deliverables:p.deliverables.filter((_,j)=>j!==i)}))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16}}>×</button>
+              </div>
+            ))}
+            <div style={{display:"flex",gap:8,marginTop:6}}>
+              <input value={newDel} onChange={e=>setNewDel(e.target.value)} onKeyDown={e=>e.key==="Enter"&&newDel.trim()&&(setMgForm(p=>({...p,deliverables:[...p.deliverables,newDel.trim()]})),setNewDel(""))} placeholder="e.g. 2x TikTok Videos" style={{...s.input,flex:1,marginBottom:0}}/>
+              <Btn size="sm" onClick={()=>{if(!newDel.trim())return;setMgForm(p=>({...p,deliverables:[...p.deliverables,newDel.trim()]}));setNewDel("");}}>Add</Btn>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
+            <Btn size="sm" onClick={addMg}>Create MG</Btn>
+          </div>
+        </Modal>
+      )}
+      {(isLeadership||isAM)&&(
+        <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          <select value={selModel} onChange={e=>setSelModel(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+            {vm.map(m=><option key={m}>{m}</option>)}
+          </select>
+          <input type="month" value={period} onChange={e=>setPeriod(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}/>
+        </div>
+      )}
+      {(isLeadership||isAM)&&!selMg&&myMg.length>0&&(
+        <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"24px 0"}}>No MG found for {selModel} in {period}</div>
+      )}
+      {(isLeadership||isAM)&&selMg&&(
+        <Card>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:15,fontFamily:"'Playfair Display',Georgia,serif"}}>{selMg.model} — {selMg.period}</div>
+              <div style={{fontSize:12,color:C.muted,marginTop:2}}>MG: <span style={{color:C.green,fontWeight:700}}>${Number(selMg.mgAmount).toLocaleString()}</span></div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:80,height:6,borderRadius:99,background:"rgba(255,255,255,0.1)"}}>
+                <div style={{width:`${pct}%`,height:"100%",borderRadius:99,background:pctCol,transition:"width 0.3s"}}/>
+              </div>
+              <Badge label={`${pct}%`} color={pctCol}/>
+            </div>
+          </div>
+          {selMg.deliverables.map(d=>(
+            <div key={d.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{width:22,height:22,borderRadius:6,background:d.done?C.green:"rgba(255,255,255,0.08)",border:`1.5px solid ${d.done?C.green:"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {d.done&&<span style={{color:C.white,fontSize:13,fontWeight:700}}>✓</span>}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:d.done?C.muted:C.text,textDecoration:d.done?"line-through":"none"}}>{d.label}</div>
+                {d.notes&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{d.notes}</div>}
+              </div>
+              <Badge label={d.done?"Done":"Pending"} color={d.done?C.green:C.yellow}/>
+            </div>
+          ))}
+        </Card>
+      )}
+      {!isLeadership&&!isAM&&(
+        <div>
+          {myMg.map(m=>{
+            const p=Math.round(m.deliverables.filter(d=>d.done).length/Math.max(m.deliverables.length,1)*100);
+            const pc=p===100?C.green:p>=50?C.yellow:C.red;
+            return(
+              <Card key={m.id} style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14}}>{m.period} MG</div>
+                    <div style={{fontSize:12,color:C.muted}}>Guarantee: <span style={{color:C.green,fontWeight:700}}>${Number(m.mgAmount).toLocaleString()}</span></div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:80,height:6,borderRadius:99,background:"rgba(255,255,255,0.1)"}}>
+                      <div style={{width:`${p}%`,height:"100%",borderRadius:99,background:pc,transition:"width 0.3s"}}/>
+                    </div>
+                    <Badge label={`${p}%`} color={pc}/>
+                  </div>
+                </div>
+                {m.deliverables.map(d=>(
+                  <div key={d.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+                    <button onClick={()=>toggleDel(m.id,d.id)} style={{width:24,height:24,borderRadius:7,background:d.done?C.green:"rgba(255,255,255,0.06)",border:`1.5px solid ${d.done?C.green:"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.2s"}}>
+                      {d.done&&<span style={{color:C.white,fontSize:13,fontWeight:700}}>✓</span>}
+                    </button>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600,color:d.done?C.muted:C.text,textDecoration:d.done?"line-through":"none"}}>{d.label}</div>
+                    </div>
+                    <Badge label={d.done?"Done":"Pending"} color={d.done?C.green:C.yellow}/>
+                  </div>
+                ))}
+              </Card>
+            );
+          })}
+          {!myMg.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No MG deliverables set up for you yet. Your AM or Leadership team will configure these.</div>}
+        </div>
+      )}
+      {(isLeadership||isAM)&&!myMg.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No MG deliverables set up yet. Click "+ New MG" to get started.</div>}
+    </div>
+  );
+}
+// ── ANALYTICS OVERVIEW ────────────────────────────────────────
+function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,snapRevenue,brandDeals}){
+  const [period,setPeriod]=useState("MOM");
+  const now=new Date();
+  const todayStr=now.toISOString().slice(0,10);
+  const thisMonthStr=todayStr.slice(0,7);
+  const lastMonthStr=new Date(now.getFullYear(),now.getMonth()-1,1).toISOString().slice(0,7);
+  const lastYearMonthStr=new Date(now.getFullYear()-1,now.getMonth(),1).toISOString().slice(0,7);
+  const thisWeekStart=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+  const lastWeekStart=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
+  const thisSales=period==="WOW"?sales.filter(s=>s.date>=thisWeekStart):period==="MOM"?sales.filter(s=>s.date&&s.date.slice(0,7)===thisMonthStr):sales.filter(s=>s.date&&s.date.slice(0,7)===thisMonthStr);
+  const prevSales=period==="WOW"?sales.filter(s=>s.date>=lastWeekStart&&s.date<thisWeekStart):period==="MOM"?sales.filter(s=>s.date&&s.date.slice(0,7)===lastMonthStr):sales.filter(s=>s.date&&s.date.slice(0,7)===lastYearMonthStr);
+  const thisRev=thisSales.reduce((a,s)=>a+Number(s.amount),0);
+  const prevRev=prevSales.reduce((a,s)=>a+Number(s.amount),0);
+  const revChg=prevRev?Math.round((thisRev-prevRev)/prevRev*100):null;
+  const thisSnap=snapRevenue.filter(r=>period==="WOW"?r.date>=thisWeekStart:r.date&&r.date.slice(0,7)===thisMonthStr).reduce((a,r)=>a+Number(r.revenue||0),0);
+  const prevSnap=snapRevenue.filter(r=>period==="WOW"?r.date>=lastWeekStart&&r.date<thisWeekStart:r.date&&r.date.slice(0,7)===lastMonthStr).reduce((a,r)=>a+Number(r.revenue||0),0);
+  const snapChg=prevSnap?Math.round((thisSnap-prevSnap)/prevSnap*100):null;
+  const avgQA=qaLogs.length?Math.round(qaLogs.reduce((a,q)=>a+q.score,0)/qaLogs.length):null;
+  const violations=qaLogs.filter(q=>q.hardNoViolation).length;
+  const activeModels=models.filter(m=>!m.archived);
+  const taskDone=tasks.reduce((a,t)=>a+["bos","eos","content","notion","promos"].filter(k=>t[k]===true).length,0);
+  const taskTotal=tasks.length*5;
+  const taskPct=taskTotal?Math.round(taskDone/taskTotal*100):0;
+  const activeCamps=campaigns.filter(c=>["Live","Scheduled"].includes(c.status));
+  const totalBrandVal=brandDeals.reduce((a,d)=>a+Number(d.payment||0),0);
+  const paidBrandVal=brandDeals.filter(d=>d.paid).reduce((a,d)=>a+Number(d.payment||0),0);
+  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b"};
+  const latestMetrics={};
+  socialMetrics.forEach(m=>{const k=`${m.model}|${m.platform}`;if(!latestMetrics[k]||m.date>latestMetrics[k].date)latestMetrics[k]=m;});
+  const prevMetrics={};
+  socialMetrics.filter(e=>{const latest=latestMetrics[`${e.model}|${e.platform}`];return latest&&e.date<latest.date&&e.date.slice(0,7)<latest.date.slice(0,7);}).forEach(m=>{const k=`${m.model}|${m.platform}`;if(!prevMetrics[k]||m.date>prevMetrics[k].date)prevMetrics[k]=m;});
+  const platSummary=["TikTok","Instagram","Snapchat"].map(plat=>{const ents=Object.entries(latestMetrics).filter(([k])=>k.includes(`|${plat}`)).map(([,v])=>v);const pEnts=Object.entries(prevMetrics).filter(([k])=>k.includes(`|${plat}`)).map(([,v])=>v);const totF=ents.reduce((a,e)=>a+Number(e.followers||0),0);const prevF=pEnts.reduce((a,e)=>a+Number(e.followers||0),0);const chg=prevF?Math.round((totF-prevF)/prevF*100):null;return{plat,totF,chg,count:ents.length};});
+  const PctChip=({chg,unit=""})=>{if(chg===null||chg===undefined)return null;const up=chg>=0;return(<span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:11,fontWeight:700,color:up?C.green:C.red,background:(up?C.green:C.red)+"18",padding:"2px 8px",borderRadius:99,marginLeft:6}}>{up?"↑":"↓"} {Math.abs(chg)}{unit}%</span>);};
+  return(
+    <div>
+      <SectionHeader icon="📊" title="Analytics Overview"/>
+      <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4,marginBottom:24}}>
+        {[["WOW","Week over Week"],["MOM","Month over Month"],["YOY","Year over Year"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setPeriod(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:period===k?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:period===k?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:period===k?C.white:C.muted,fontWeight:period===k?700:500,fontSize:12,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif"}}>
+            {k} <span style={{fontSize:10,opacity:0.7,display:"block"}}>{l}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:24}}>
+        <Card style={{padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-8,right:-8,opacity:0.05}}><StarMark size={44} color={C.green}/></div>
+          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Revenue <span style={{color:C.muted,fontWeight:400}}>({period})</span></div>
+          <div style={{fontSize:26,fontWeight:800,color:C.green,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{fmtMoney(thisRev)}</div>
+          <PctChip chg={revChg}/>
+          <div style={{fontSize:11,color:C.muted,marginTop:6}}>prev: {fmtMoney(prevRev)}</div>
+        </Card>
+        <Card style={{padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-8,right:-8,opacity:0.05}}><StarMark size={44} color="#f59e0b"/></div>
+          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Snap Revenue <span style={{color:C.muted,fontWeight:400}}>({period})</span></div>
+          <div style={{fontSize:26,fontWeight:800,color:"#f59e0b",fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{fmtMoney(thisSnap)}</div>
+          <PctChip chg={snapChg}/>
+          <div style={{fontSize:11,color:C.muted,marginTop:6}}>prev: {fmtMoney(prevSnap)}</div>
+        </Card>
+        <Card style={{padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-8,right:-8,opacity:0.05}}><StarMark size={44} color={C.purple}/></div>
+          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Task Completion</div>
+          <div style={{fontSize:26,fontWeight:800,color:taskPct>=80?C.green:taskPct>=50?C.yellow:C.red,fontFamily:"'DM Sans',sans-serif"}}>{taskPct}%</div>
+          <div style={{fontSize:11,color:C.muted,marginTop:6}}>{taskDone}/{taskTotal} items done</div>
+        </Card>
+        <Card style={{padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-8,right:-8,opacity:0.05}}><StarMark size={44} color={avgQA!==null?(avgQA>=80?C.green:avgQA>=60?C.yellow:C.red):C.muted}/></div>
+          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Avg QA Score</div>
+          <div style={{fontSize:26,fontWeight:800,color:avgQA!==null?(avgQA>=80?C.green:avgQA>=60?C.yellow:C.red):C.muted,fontFamily:"'DM Sans',sans-serif"}}>{avgQA!==null?`${avgQA}%`:"—"}</div>
+          {violations>0&&<Badge label={`${violations} violations`} color={C.red}/>}
+        </Card>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+        <Card>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:14,fontFamily:"'Playfair Display',Georgia,serif"}}>Social Follower Growth</div>
+          {platSummary.map(p=>(
+            <div key={p.plat} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:8,height:8,borderRadius:99,background:PLAT_COL[p.plat]}}/>
+                <span style={{fontSize:13,fontWeight:600}}>{p.plat}</span>
+                <span style={{fontSize:11,color:C.muted}}>({p.count} accounts)</span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontWeight:700,fontSize:13,color:PLAT_COL[p.plat]}}>{p.totF>999?`${(p.totF/1000).toFixed(1)}k`:p.totF}</span>
+                <PctChip chg={p.chg}/>
+              </div>
+            </div>
+          ))}
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:14,fontFamily:"'Playfair Display',Georgia,serif"}}>Model Overview</div>
+          {activeModels.map(m=>{const ms=tasks.find(t=>t.model===m.name);const done=ms?["bos","eos","content","notion","promos"].filter(k=>ms[k]===true).length:0;const p=Math.round(done/5*100);const actCamp=campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length;return(
+            <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:13}}>{m.name}</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:1}}>AM: {m.am} · {actCamp} campaign{actCamp!==1?"s":""}</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:50,height:4,borderRadius:99,background:"rgba(255,255,255,0.08)"}}>
+                  <div style={{width:`${p}%`,height:"100%",borderRadius:99,background:p>=80?C.green:p>=40?C.yellow:C.red}}/>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,color:p>=80?C.green:p>=40?C.yellow:C.red,minWidth:28}}>{p}%</span>
+              </div>
+            </div>
+          );})}
+        </Card>
+      </div>
+      <Card>
+        <div style={{fontWeight:700,fontSize:14,marginBottom:14,fontFamily:"'Playfair Display',Georgia,serif"}}>Brand Deals</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+          <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"12px 8px"}}><div style={{fontSize:20,fontWeight:800,color:C.green}}>{fmtMoney(paidBrandVal)}</div><div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:4}}>Paid Out</div></div>
+          <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"12px 8px"}}><div style={{fontSize:20,fontWeight:800,color:C.orange}}>{fmtMoney(totalBrandVal-paidBrandVal)}</div><div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:4}}>Outstanding</div></div>
+          <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"12px 8px"}}><div style={{fontSize:20,fontWeight:800,color:C.blue}}>{activeCamps.length}</div><div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:4}}>Active Campaigns</div></div>
+        </div>
+      </Card>
+    </div>
+  );
+}
 // ── DASHBOARDS ───────────────────────────────────────────────
-function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue}){
+function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg}){
   const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
@@ -2274,14 +2777,14 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const flagged=fans.filter(f=>f.flag);
   const low=models.filter(m=>!m.archived&&campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
   const alerts=buildAlerts(tasks,shifts,models,campaigns,fans);
-  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["customs","Customs"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["admin","⚙️ Admin"]];
+  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["customs","Customs"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["mg","MG Deliverables"]];
   const handleQuickAction=(action)=>{
     if(action==="todos"){setSection("todos");}
     else if(action==="campaigns"||action==="qa"){setSection("paywall");setTab(action);}
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
   };
-  const SECTIONS=[["home","🏠 Home"],["todos","📋 To-Dos"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["analytics","Analytics"],["admin","Admin"]];
   return(
     <div>
       <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
@@ -2297,7 +2800,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
           </button>
         ))}
       </div>
-      {section==="home"&&<HomeDashboard user={user} role="leadership" sales={sales} todos={todos} setTodos={setTodos} campaigns={campaigns} brandDeals={brandDeals} qaLogs={qaLogs} shifts={shifts} models={models} snapRevenue={snapRevenue} socialMetrics={socialMetrics} onAction={handleQuickAction}/>}
+      {section==="home"&&<HomeDashboard user={user} role="leadership" sales={sales} todos={todos} setTodos={setTodos} campaigns={campaigns} brandDeals={brandDeals} qaLogs={qaLogs} shifts={shifts} models={models} snapRevenue={snapRevenue} socialMetrics={socialMetrics} modelEvents={modelEvents} onAction={handleQuickAction}/>}
       {section==="paywall"&&<div>
         <Tabs tabs={navTabs} active={tab} onChange={setTab}/>
         {tab==="overview"&&<div>
@@ -2352,12 +2855,13 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="performance"&&<ChatterPerformance sales={sales} qaLogs={qaLogs} users={users}/>}
         {tab==="handoffs"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={true} isAM={false} models={models}/>}
         {tab==="summary"&&<DailySummary tasks={tasks} sales={sales} handoffs={handoffs} shifts={shifts} fans={fans} qaLogs={qaLogs} models={models}/>}
-        {tab==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
+        {tab==="mg"&&<MGDeliverables user={user} mg={mg} setMg={setMg} models={models} isLeadership={true} isAM={false} myModels={allModels}/>}
       </div>}
       {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
       {section==="social"&&<div>
-        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"],["connect","🔗 API Connections"]]} active={["metrics","growth","snap","connect"].includes(tab)?tab:"metrics"} onChange={setTab}/>
-        {(tab==="metrics"||(!["metrics","growth","snap","connect"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={true} myModels={allModels}/>}
+        <Tabs tabs={[["analytics","Analytics"],["metrics","Log Metrics"],["growth","Growth"],["snap","Snapchat Rev"],["connect","API Connections"]]} active={["analytics","metrics","growth","snap","connect"].includes(tab)?tab:"analytics"} onChange={setTab}/>
+        {(tab==="analytics"||(!["analytics","metrics","growth","snap","connect"].includes(tab)))&&<SocialAnalytics socialMetrics={socialMetrics} contentMetrics={contentMetrics} setContentMetrics={setContentMetrics} models={models} isLeadership={true} myModels={allModels}/>}
+        {tab==="metrics"&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="connect"&&<PlatformConnections models={models} isLeadership={true}/>}
@@ -2412,18 +2916,20 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
         {tab==="connect"&&<PlatformConnections models={models} isLeadership={false}/>}
       </div>}
       {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={allModels}/>}
+      {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
+      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
     </div>
   );
 }
-function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue}){
+function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg}){
   const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const myModels=models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name);
   const myTasks=tasks.filter(t=>t.am===user.name);
   const myFans=fans.filter(f=>myModels.includes(f.model));
   const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});
-  const navTabs=[["overview","Overview"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["schedule","Sling"]];
-  const SECTIONS=[["home","🏠 Home"],["todos","📋 To-Dos"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
+  const navTabs=[["overview","Overview"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["mg","MG Deliverables"],["schedule","Sling"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"]];
   const handleQuickAction=(action)=>{
     if(["overview","campaigns","qa"].includes(action)){setSection("paywall");setTab(action);}
     else if(action==="todos"){setSection("todos");}
@@ -2444,7 +2950,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
           </button>
         ))}
       </div>
-      {section==="home"&&<HomeDashboard user={user} role="am" sales={sales} todos={todos} setTodos={setTodos} campaigns={campaigns} brandDeals={brandDeals} qaLogs={qaLogs} shifts={shifts} models={models} snapRevenue={snapRevenue} socialMetrics={socialMetrics} onAction={handleQuickAction}/>}
+      {section==="home"&&<HomeDashboard user={user} role="am" sales={sales} todos={todos} setTodos={setTodos} campaigns={campaigns} brandDeals={brandDeals} qaLogs={qaLogs} shifts={shifts} models={models} snapRevenue={snapRevenue} socialMetrics={socialMetrics} modelEvents={modelEvents} onAction={handleQuickAction}/>}
       {section==="paywall"&&<div>
         <Tabs tabs={navTabs} active={tab} onChange={setTab}/>
         {tab==="overview"&&<div>
@@ -2512,11 +3018,13 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
         {tab==="boseos"&&<BOSEOSView user={user} boseos={boseos} setBoseos={setBoseos} tasks={tasks} setTasks={setTasks} myModels={myModels}/>}
         {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={()=>{}} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
+        {tab==="mg"&&<MGDeliverables user={user} mg={mg} setMg={setMg} models={models} isLeadership={false} isAM={true} myModels={myModels}/>}
       </div>}
       {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
       {section==="social"&&<div>
-        <Tabs tabs={[["metrics","Platform Metrics"],["growth","Growth Campaigns"],["snap","Snapchat Revenue"],["connect","🔗 API Connections"]]} active={["metrics","growth","snap","connect"].includes(tab)?tab:"metrics"} onChange={setTab}/>
-        {(tab==="metrics"||(!["metrics","growth","snap","connect"].includes(tab)))&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={myModels}/>}
+        <Tabs tabs={[["analytics","Analytics"],["metrics","Log Metrics"],["growth","Growth"],["snap","Snapchat Rev"],["connect","API Connections"]]} active={["analytics","metrics","growth","snap","connect"].includes(tab)?tab:"analytics"} onChange={setTab}/>
+        {(tab==="analytics"||(!["analytics","metrics","growth","snap","connect"].includes(tab)))&&<SocialAnalytics socialMetrics={socialMetrics} contentMetrics={contentMetrics} setContentMetrics={setContentMetrics} models={models} isLeadership={false} myModels={myModels}/>}
+        {tab==="metrics"&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="connect"&&<PlatformConnections models={models} isLeadership={false} myModels={myModels}/>}
@@ -2675,19 +3183,9 @@ function LoginView({onLogin,users}){
   const [email,setEmail]=useState("");const [pw,setPw]=useState("");const [err,setErr]=useState("");
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 28% 65%,rgba(109,40,217,0.55) 0%,transparent 55%),radial-gradient(ellipse at 78% 18%,rgba(192,38,211,0.32) 0%,transparent 48%),linear-gradient(160deg,#07070e 0%,#0d0a1a 60%,#07070e 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',system-ui,sans-serif",padding:20}}>
-      {/* Decorative floating stars */}
-      <div style={{position:"fixed",top:"12%",left:"8%",opacity:0.18}}><StarMark size={38} color="#b197fc"/></div>
-      <div style={{position:"fixed",bottom:"18%",right:"7%",opacity:0.12}}><StarMark size={54} color="#c026d3"/></div>
-      <div style={{position:"fixed",top:"55%",left:"3%",opacity:0.08}}><StarMark size={26} color="#a78bfa"/></div>
       <div style={{width:420,maxWidth:"100%",background:"rgba(7,7,18,0.88)",backdropFilter:"blur(32px)",borderRadius:28,padding:"44px 48px",boxShadow:"0 40px 100px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.07)",border:"1px solid rgba(167,139,250,0.28)"}}>
         <div style={{textAlign:"center",marginBottom:40}}>
-          {/* Star mark hero */}
-          <div style={{display:"flex",justifyContent:"center",marginBottom:20}}>
-            <div style={{position:"relative",width:56,height:84}}>
-              <StarMark size={56} color="white" style={{filter:"drop-shadow(0 0 16px rgba(167,139,250,0.6))"}}/>
-            </div>
-          </div>
-          <img src="/logo.png" alt="Charmed Collective" style={{width:200,height:"auto",display:"block",margin:"0 auto"}}/>
+          <img src="/logo.png" alt="Charmed Collective" style={{width:200,height:"auto",display:"block",margin:"0 auto 8px"}}/>
           <div style={{fontSize:10,color:C.muted,marginTop:12,letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:700}}>Operations Platform</div>
         </div>
         <div style={{marginBottom:16}}>
@@ -2739,13 +3237,16 @@ export default function App(){
   const [growthCampaigns,setGrowthCampaigns]=useState(INIT_GROWTH_CAMPAIGNS);
   const [brandDeals,setBrandDeals]=useState(INIT_BRAND_DEALS);
   const [snapRevenue,setSnapRevenue]=useState(INIT_SNAP_REVENUE);
+  const [contentMetrics,setContentMetrics]=useState(INIT_CONTENT_METRICS);
+  const [modelEvents,setModelEvents]=useState(INIT_MODEL_EVENTS);
+  const [mg,setMg]=useState(INIT_MG);
   const [showSearch,setShowSearch]=useState(false);
   useEffect(()=>{
     const down=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setShowSearch(p=>!p);}if(e.key==="Escape")setShowSearch(false);};
     window.addEventListener("keydown",down);return()=>window.removeEventListener("keydown",down);
   },[]);
   if(!user)return <LoginView onLogin={setUser} users={users}/>;
-  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue};
+  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg};
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 90%,rgba(124,58,237,0.18) 0%,transparent 50%),radial-gradient(ellipse at 80% 5%,rgba(192,38,211,0.12) 0%,transparent 45%),#07070e",fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
@@ -2772,7 +3273,7 @@ export default function App(){
         {user.role==="am"&&<AMDashboard user={user} {...shared}/>}
         {user.role==="chatlead"&&<ChatLeadDashboard user={user} {...shared}/>}
         {user.role==="chatter"&&<ChatterDashboard user={user} {...shared}/>}
-        {user.role==="model"&&<ModelPortal user={user} models={models} ttks={ttks} setTtks={setTtks} campaigns={campaigns} brandDeals={brandDeals} content={content} socialMetrics={socialMetrics} growthCampaigns={growthCampaigns}/>}
+        {user.role==="model"&&<ModelPortal user={user} models={models} ttks={ttks} setTtks={setTtks} campaigns={campaigns} brandDeals={brandDeals} content={content} socialMetrics={socialMetrics} growthCampaigns={growthCampaigns} modelEvents={modelEvents} setModelEvents={setModelEvents} mg={mg} setMg={setMg}/>}
       </div>
     </div>
   );
