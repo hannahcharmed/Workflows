@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 const C = {
   dark:"#07070e", mid:"#0f0f1a", slate:"#1a1730",
-  purple:"#7c3aed", purpleL:"#a78bfa", purpleXL:"#1e1235",
+  purple:"#7c3aed", purpleL:"#b197fc", purpleXL:"#1e1235",
   green:"#10b981", greenL:"#0a2a14",
   red:"#ef4444", redL:"#2a0a0a",
   yellow:"#f59e0b", yellowL:"#2a1a00",
   blue:"#3b82f6", blueL:"#0c1a3a",
   pink:"#c026d3", pinkL:"#2a0a2a",
   orange:"#f97316",
-  text:"#ede8ff", muted:"#7c7a9c", border:"rgba(124,58,237,0.22)", bg:"#07070e", white:"#ffffff",
-  surface:"rgba(255,255,255,0.05)", surfaceHover:"rgba(255,255,255,0.08)",
+  text:"#f5f0ff", muted:"#9d9abf", border:"rgba(167,139,250,0.28)", bg:"#07070e", white:"#ffffff",
+  surface:"rgba(255,255,255,0.06)", surfaceHover:"rgba(255,255,255,0.09)",
 };
 const roleColors={leadership:C.purple,am:C.blue,chatlead:C.green,chatter:C.pink,"ops-assistant":C.orange,model:"#0ea5e9"};
 const roleLabel={leadership:"Leadership",am:"Account Manager",chatlead:"Chat Lead",chatter:"Chatter","ops-assistant":"Ops Assistant",model:"Model"};
@@ -116,28 +116,37 @@ const INIT_SNAP_REVENUE=[
 ];
 // ── DESIGN SYSTEM ────────────────────────────────────────────
 const s = {
-  card: {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:14,padding:20,backdropFilter:"blur(8px)"},
-  input: {width:"100%",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box",background:"rgba(255,255,255,0.06)",color:C.text,transition:"border-color 0.15s",fontFamily:"inherit"},
-  label: {fontSize:11,fontWeight:700,color:C.muted,marginBottom:5,textTransform:"uppercase",letterSpacing:"0.05em",display:"block"},
+  card: {background:"rgba(255,255,255,0.05)",border:"1px solid rgba(167,139,250,0.22)",borderRadius:16,padding:22,backdropFilter:"blur(12px)"},
+  input: {width:"100%",border:"1px solid rgba(167,139,250,0.25)",borderRadius:10,padding:"10px 13px",fontSize:14,outline:"none",boxSizing:"border-box",background:"rgba(255,255,255,0.07)",color:C.text,transition:"border-color 0.2s",fontFamily:"'DM Sans',sans-serif",lineHeight:1.5},
+  label: {fontSize:11,fontWeight:700,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em",display:"block"},
   section: {fontSize:15,fontWeight:700,color:C.text,marginBottom:16,display:"flex",alignItems:"center",gap:8},
 };
 const Badge=({label,color=C.purple,bg,dot})=>(
-  <span style={{background:bg||color+"18",color,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:99,whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:4}}>
+  <span style={{background:bg||color+"22",color,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:99,whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:4,letterSpacing:"0.02em"}}>
     {dot&&<span style={{width:5,height:5,borderRadius:99,background:color,display:"inline-block"}}/>}{label}
   </span>
 );
-const Card=({children,style={}})=>(<div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:14,padding:20,backdropFilter:"blur(8px)",...style}}>{children}</div>);
+// ── BRAND MARK ────────────────────────────────────────────────
+const StarMark=({size=20,color="white",style={}})=>(
+  <svg width={size} height={Math.round(size*1.5)} viewBox="0 0 338 507" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0,...style}}>
+    <path d="M338 253.5L210.878 231.619L264.451 157.845L190.902 211.498L169 0L147.098 211.498L73.5488 157.845L127.122 231.619L0 253.5L127.122 275.382L73.5488 349.155L147.098 295.502L169 507L190.902 295.502L264.451 349.155L210.878 275.382L338 253.5ZM328.705 253.5H189.922L205.91 240.629L328.705 253.5ZM187.421 222.778L260.091 162.214L183.771 238.698L187.421 222.778ZM9.3288 253.5H148.112L132.124 266.371L9.3288 253.5ZM150.579 284.222L77.909 344.786L154.229 268.302L150.579 284.222ZM138.343 235.04L77.909 162.214L154.229 238.698L138.343 235.04ZM157.136 219.154L169.034 14.057L169.27 57.7861V232.533L157.136 219.187V219.154ZM169.237 492.909L169 449.18V274.433L181.134 287.779L169.237 492.875V492.909ZM260.091 344.786L183.771 268.302L199.657 271.96L260.091 344.786Z" fill={color}/>
+  </svg>
+);
+const IconBadge=({icon,color=C.purple,size=34})=>(
+  <div style={{width:size,height:size,borderRadius:Math.round(size*0.28),background:`linear-gradient(135deg,${color}28,${color}12)`,border:`1px solid ${color}38`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:Math.round(size*0.5),flexShrink:0,boxShadow:`0 2px 10px ${color}20`}}>{icon}</div>
+);
+const Card=({children,style={}})=>(<div style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(167,139,250,0.22)",borderRadius:16,padding:22,backdropFilter:"blur(12px)",...style}}>{children}</div>);
 const Btn=({children,onClick,variant="primary",size="md",color,style={}})=>{
-  const colors={primary:{bg:color||C.purple,text:C.white,border:color||C.purple},secondary:{bg:"transparent",text:color||C.purple,border:color||C.border},ghost:{bg:"transparent",text:C.muted,border:"transparent"},danger:{bg:C.red,text:C.white,border:C.red}};
-  const sizes={sm:{padding:"5px 12px",fontSize:12,borderRadius:8},md:{padding:"8px 18px",fontSize:13,borderRadius:10},lg:{padding:"11px 24px",fontSize:14,borderRadius:11}};
+  const colors={primary:{bg:color||C.purple,text:C.white,border:color||C.purple},secondary:{bg:"rgba(167,139,250,0.1)",text:color||C.purpleL,border:color||"rgba(167,139,250,0.35)"},ghost:{bg:"transparent",text:C.muted,border:"transparent"},danger:{bg:C.red,text:C.white,border:C.red}};
+  const sizes={sm:{padding:"5px 14px",fontSize:12,borderRadius:8},md:{padding:"9px 20px",fontSize:13,borderRadius:10},lg:{padding:"12px 26px",fontSize:14,borderRadius:12}};
   const v=colors[variant]||colors.primary;const z=sizes[size]||sizes.md;
   const isGradient=variant==="primary"&&!color;
   return(<button onClick={onClick} style={{
     background:isGradient?"linear-gradient(135deg,#7c3aed 0%,#c026d3 100%)":v.bg,
     color:v.text,
-    border:isGradient?"1.5px solid transparent":`1.5px solid ${v.border}`,
-    fontWeight:600,cursor:"pointer",transition:"opacity 0.15s",fontFamily:"inherit",...z,...style}}
-    onMouseEnter={e=>e.currentTarget.style.opacity="0.85"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>{children}</button>);
+    border:isGradient?"1.5px solid rgba(167,139,250,0.3)":`1.5px solid ${v.border}`,
+    fontWeight:600,cursor:"pointer",transition:"all 0.18s",fontFamily:"'DM Sans',sans-serif",letterSpacing:"0.01em",...z,...style}}
+    onMouseEnter={e=>{e.currentTarget.style.opacity="0.85";e.currentTarget.style.transform="translateY(-1px)";}} onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)";}}>{children}</button>);
 };
 const Input=({label,value,onChange,placeholder,type="text",style={}})=>(
   <div style={{marginBottom:14,...style}}>
@@ -150,7 +159,7 @@ const Sel=({label,value,onChange,options})=>(
   <div style={{marginBottom:14}}>
     {label&&<label style={s.label}>{label}</label>}
     <select value={value} onChange={e=>onChange(e.target.value)}
-      style={{...s.input,appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",paddingRight:32}}>
+      style={{...s.input,appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239d9abf' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",paddingRight:32}}>
       {options.map(o=><option key={o}>{o}</option>)}
     </select>
   </div>
@@ -184,22 +193,22 @@ const TaskCell=({val,onChange})=>{
     style={{width:34,height:34,borderRadius:8,border:"none",background:st.bg,color:st.c,fontWeight:700,fontSize:14,cursor:"pointer",transition:"all 0.15s"}}>{st.l}</button>);
 };
 const SectionHeader=({icon,title,action})=>(
-  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      {icon&&<span style={{fontSize:18}}>{icon}</span>}
-      <span style={{fontSize:17,fontWeight:700,color:C.text,fontFamily:"'Playfair Display',Georgia,serif"}}>{title}</span>
+  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:22,paddingBottom:14,borderBottom:"1px solid rgba(167,139,250,0.12)"}}>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      {icon&&<IconBadge icon={icon} color={C.purple} size={34}/>}
+      <span style={{fontSize:18,fontWeight:700,color:C.text,fontFamily:"'Playfair Display',Georgia,serif",letterSpacing:"-0.01em"}}>{title}</span>
     </div>
     {action}
   </div>
 );
 function Tabs({tabs,active,onChange}){
   return(
-    <div style={{display:"flex",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:10,padding:3,gap:2,flexWrap:"wrap",marginBottom:20}}>
+    <div style={{display:"flex",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4,gap:2,flexWrap:"wrap",marginBottom:24}}>
       {tabs.map(([k,l])=>{
         const isActive=active===k;
         return(
           <button key={k} onClick={()=>onChange(k)}
-            style={{padding:"6px 14px",borderRadius:8,border:"none",background:isActive?"linear-gradient(135deg,rgba(124,58,237,0.5),rgba(192,38,211,0.5))":"transparent",color:isActive?C.white:C.muted,fontWeight:isActive?700:500,fontSize:12,cursor:"pointer",boxShadow:isActive?"0 2px 8px rgba(124,58,237,0.3)":"none",transition:"all 0.15s",whiteSpace:"nowrap",fontFamily:"'DM Sans',sans-serif"}}>
+            style={{padding:"7px 16px",borderRadius:9,border:isActive?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:isActive?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:isActive?C.white:C.muted,fontWeight:isActive?700:500,fontSize:13,cursor:"pointer",boxShadow:isActive?"0 2px 10px rgba(124,58,237,0.25)":"none",transition:"all 0.2s",whiteSpace:"nowrap",fontFamily:"'DM Sans',sans-serif",letterSpacing:"0.01em"}}>
             {l}
           </button>
         );
@@ -208,17 +217,18 @@ function Tabs({tabs,active,onChange}){
   );
 }
 const StatCard=({label,value,color=C.purple,sub,icon})=>(
-  <Card style={{textAlign:"center",padding:16}}>
-    {icon&&<div style={{fontSize:22,marginBottom:4}}>{icon}</div>}
-    <div style={{fontSize:24,fontWeight:800,color,lineHeight:1}}>{value}</div>
-    <div style={{fontSize:11,color:C.muted,marginTop:5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</div>
+  <Card style={{textAlign:"center",padding:"18px 14px",position:"relative",overflow:"hidden"}}>
+    <div style={{position:"absolute",top:-8,right:-8,opacity:0.06}}><StarMark size={44} color={color}/></div>
+    {icon&&<div style={{fontSize:22,marginBottom:6}}>{icon}</div>}
+    <div style={{fontSize:26,fontWeight:800,color,lineHeight:1,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{value}</div>
+    <div style={{fontSize:10,color:C.muted,marginTop:7,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em"}}>{label}</div>
     {sub&&<div style={{fontSize:11,color,marginTop:4,fontWeight:600}}>{sub}</div>}
   </Card>
 );
 function Toggle({on,onToggle}){
   return(
-    <button onClick={onToggle} style={{width:40,height:22,borderRadius:99,background:on?C.purple:"#cbd5e1",border:"none",cursor:"pointer",position:"relative",transition:"background 0.2s",padding:0}}>
-      <div style={{width:16,height:16,borderRadius:99,background:C.white,position:"absolute",top:3,left:on?21:3,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+    <button onClick={onToggle} style={{width:42,height:24,borderRadius:99,background:on?"linear-gradient(135deg,#7c3aed,#c026d3)":"rgba(255,255,255,0.12)",border:`1px solid ${on?"rgba(167,139,250,0.4)":"rgba(255,255,255,0.15)"}`,cursor:"pointer",position:"relative",transition:"all 0.2s",padding:0,flexShrink:0}}>
+      <div style={{width:17,height:17,borderRadius:99,background:C.white,position:"absolute",top:3,left:on?22:3,transition:"left 0.2s",boxShadow:on?"0 0 6px rgba(124,58,237,0.6)":"0 1px 3px rgba(0,0,0,0.4)"}}/>
     </button>
   );
 }
@@ -1693,8 +1703,11 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
   };
   return(
     <div>
-      <div style={{fontSize:24,fontWeight:800,marginBottom:2,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {modelName} ✦</div>
-      <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+      <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
+        <StarMark size={22} color="white" style={{opacity:0.85,filter:"drop-shadow(0 0 8px rgba(167,139,250,0.7))"}}/>
+        <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Hey {modelName}</span>
+      </div>
+      <div style={{fontSize:13,color:C.muted,marginBottom:20,paddingLeft:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
       <Tabs tabs={[["home","Home"],["calendar","📅 Calendar"],["brand","Brand Deals"],["invoices","💳 Invoices"],["ttk","My Profile"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
       {tab==="home"&&(
         <div>
@@ -2271,12 +2284,15 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const SECTIONS=[["home","🏠 Home"],["todos","📋 To-Dos"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
   return(
     <div>
-      <div style={{marginBottom:4}}><span style={{fontSize:24,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Leadership ✦</span></div>
-      <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()} · {models.filter(m=>!m.archived).length} active accounts</div>
+      <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
+        <StarMark size={22} color="white" style={{opacity:0.85,filter:"drop-shadow(0 0 8px rgba(167,139,250,0.7))"}}/>
+        <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Leadership</span>
+      </div>
+      <div style={{fontSize:13,color:C.muted,marginBottom:20,paddingLeft:2}}>{today()} · {models.filter(m=>!m.archived).length} active accounts</div>
       <AlertsBar alerts={alerts}/>
-      <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
+      <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:14,padding:4,marginBottom:24}}>
         {SECTIONS.map(([k,l])=>(
-          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",background:section===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:section===k?C.white:"#94a3b8",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
+          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"9px 4px",borderRadius:11,border:section===k?"1px solid rgba(167,139,250,0.4)":"1px solid transparent",background:section===k?"linear-gradient(135deg,rgba(124,58,237,0.6),rgba(192,38,211,0.45))":"transparent",color:section===k?C.white:C.muted,fontWeight:section===k?700:500,fontSize:12,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",letterSpacing:"0.01em",boxShadow:section===k?"0 2px 10px rgba(124,58,237,0.3)":"none"}}>
             {l}
           </button>
         ))}
@@ -2310,10 +2326,10 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
                 <thead><tr style={{background:"rgba(124,58,237,0.2)",color:"#c4b5fd"}}>{["AM","Model","BOS","EOS","Content","Notion","Promos","Notes"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:["AM","Model","Notes"].includes(h)?"left":"center",fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
                 <tbody>{tasks.map((t,ri)=>{const inc=["bos","eos","content","notion","promos"].some(k=>t[k]===false),all=["bos","eos","content","notion","promos"].every(k=>t[k]===true);return(
                   <tr key={t.id} style={{background:inc?C.redL:all?C.greenL:ri%2===0?"rgba(255,255,255,0.03)":"transparent",borderBottom:`1px solid rgba(124,58,237,0.12)`}}>
-                    <td style={{padding:"8px 14px",fontWeight:600}}>{t.am}</td>
+                    <td style={{padding:"8px 14px",fontWeight:600,color:C.text}}>{t.am}</td>
                     <td style={{padding:"8px 14px",color:C.muted}}>{t.model}</td>
                     {["bos","eos","content","notion","promos"].map(k=><td key={k} style={{padding:"8px 14px",textAlign:"center"}}><TaskCell val={t[k]} onChange={v=>setTasks(p=>p.map(r=>r.id===t.id?{...r,[k]:v}:r))}/></td>)}
-                    <td style={{padding:"8px 14px"}}><input value={t.notes} onChange={e=>setTasks(p=>p.map(r=>r.id===t.id?{...r,notes:e.target.value}:r))} style={{...s.input,width:140,padding:"4px 8px",fontSize:12}}/></td>
+                    <td style={{padding:"8px 14px"}}><input value={t.notes} onChange={e=>setTasks(p=>p.map(r=>r.id===t.id?{...r,notes:e.target.value}:r))} style={{...s.input,width:140,padding:"4px 8px",fontSize:12,color:C.text}}/></td>
                   </tr>
                 );})}</tbody>
               </table>
@@ -2367,11 +2383,14 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
   };
   return(
     <div>
-      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Ops Dashboard ✦</div>
-      <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()}</div>
-      <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
+      <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
+        <StarMark size={22} color="white" style={{opacity:0.85,filter:"drop-shadow(0 0 8px rgba(167,139,250,0.7))"}}/>
+        <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Ops Dashboard</span>
+      </div>
+      <div style={{fontSize:13,color:C.muted,marginBottom:20,paddingLeft:2}}>{today()}</div>
+      <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:14,padding:4,marginBottom:24}}>
         {SECTIONS.map(([k,l])=>(
-          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",background:section===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:section===k?C.white:"#94a3b8",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
+          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"9px 4px",borderRadius:11,border:section===k?"1px solid rgba(167,139,250,0.4)":"1px solid transparent",background:section===k?"linear-gradient(135deg,rgba(124,58,237,0.6),rgba(192,38,211,0.45))":"transparent",color:section===k?C.white:C.muted,fontWeight:section===k?700:500,fontSize:12,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",letterSpacing:"0.01em",boxShadow:section===k?"0 2px 10px rgba(124,58,237,0.3)":"none"}}>
             {l}
           </button>
         ))}
@@ -2413,11 +2432,14 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
   };
   return(
     <div>
-      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {user.name} ✦</div>
+      <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
+        <StarMark size={22} color="white" style={{opacity:0.85,filter:"drop-shadow(0 0 8px rgba(167,139,250,0.7))"}}/>
+        <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Hey {user.name}</span>
+      </div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()}</div>
-      <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
+      <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:14,padding:4,marginBottom:24}}>
         {SECTIONS.map(([k,l])=>(
-          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"8px 4px",borderRadius:9,border:"none",background:section===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:section===k?C.white:"#94a3b8",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
+          <button key={k} onClick={()=>setSection(k)} style={{flex:1,padding:"9px 4px",borderRadius:11,border:section===k?"1px solid rgba(167,139,250,0.4)":"1px solid transparent",background:section===k?"linear-gradient(135deg,rgba(124,58,237,0.6),rgba(192,38,211,0.45))":"transparent",color:section===k?C.white:C.muted,fontWeight:section===k?700:500,fontSize:12,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",letterSpacing:"0.01em",boxShadow:section===k?"0 2px 10px rgba(124,58,237,0.3)":"none"}}>
             {l}
           </button>
         ))}
@@ -2518,7 +2540,10 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
   const scoreCol=sc=>sc>=80?C.green:sc>=60?C.yellow:C.red;
   return(
     <div>
-      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {user.name} ✦</div>
+      <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
+        <StarMark size={22} color="white" style={{opacity:0.85,filter:"drop-shadow(0 0 8px rgba(167,139,250,0.7))"}}/>
+        <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Hey {user.name}</span>
+      </div>
       {todayShift?<div style={{fontSize:13,color:C.green,marginBottom:4,fontWeight:600}}>✓ On shift: {todayShift.shift} · {myModels.join(", ")}</div>:<div style={{fontSize:13,color:C.muted,marginBottom:4}}>No shift scheduled today</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
         <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.pink}/>
@@ -2576,7 +2601,10 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
   const removeScript=(id)=>setRefForm(p=>({...p,scripts:p.scripts.filter(sc=>sc.id!==id)}));
   return(
     <div>
-      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {user.name} ✦</div>
+      <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
+        <StarMark size={22} color="white" style={{opacity:0.85,filter:"drop-shadow(0 0 8px rgba(167,139,250,0.7))"}}/>
+        <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Hey {user.name}</span>
+      </div>
       {todayShift?<div style={{fontSize:13,color:C.green,marginBottom:4,fontWeight:600}}>✓ On shift: {todayShift.shift} · {myModels.join(", ")}</div>:<div style={{fontSize:13,color:C.muted,marginBottom:4}}>No shift scheduled today</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
         <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.green}/>
@@ -2646,27 +2674,41 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
 function LoginView({onLogin,users}){
   const [email,setEmail]=useState("");const [pw,setPw]=useState("");const [err,setErr]=useState("");
   return(
-    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 28% 65%,rgba(109,40,217,0.5) 0%,transparent 55%),radial-gradient(ellipse at 78% 18%,rgba(192,38,211,0.28) 0%,transparent 48%),linear-gradient(160deg,#07070e 0%,#0d0a1a 60%,#07070e 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',system-ui,sans-serif"}}>
-      <div style={{width:420,maxWidth:"calc(100vw - 40px)",background:"rgba(7,7,18,0.82)",backdropFilter:"blur(28px)",borderRadius:24,padding:48,boxShadow:"0 32px 80px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06)",border:"1px solid rgba(124,58,237,0.22)"}}>
-        <div style={{textAlign:"center",marginBottom:44}}>
-          <img src="/logo.png" alt="Charmed Collective" style={{width:220,height:"auto",display:"block",margin:"0 auto"}}/>
-          <div style={{fontSize:10,color:"#374151",marginTop:16,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:600}}>Operations Platform</div>
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 28% 65%,rgba(109,40,217,0.55) 0%,transparent 55%),radial-gradient(ellipse at 78% 18%,rgba(192,38,211,0.32) 0%,transparent 48%),linear-gradient(160deg,#07070e 0%,#0d0a1a 60%,#07070e 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',system-ui,sans-serif",padding:20}}>
+      {/* Decorative floating stars */}
+      <div style={{position:"fixed",top:"12%",left:"8%",opacity:0.18}}><StarMark size={38} color="#b197fc"/></div>
+      <div style={{position:"fixed",bottom:"18%",right:"7%",opacity:0.12}}><StarMark size={54} color="#c026d3"/></div>
+      <div style={{position:"fixed",top:"55%",left:"3%",opacity:0.08}}><StarMark size={26} color="#a78bfa"/></div>
+      <div style={{width:420,maxWidth:"100%",background:"rgba(7,7,18,0.88)",backdropFilter:"blur(32px)",borderRadius:28,padding:"44px 48px",boxShadow:"0 40px 100px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.07)",border:"1px solid rgba(167,139,250,0.28)"}}>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          {/* Star mark hero */}
+          <div style={{display:"flex",justifyContent:"center",marginBottom:20}}>
+            <div style={{position:"relative",width:56,height:84}}>
+              <StarMark size={56} color="white" style={{filter:"drop-shadow(0 0 16px rgba(167,139,250,0.6))"}}/>
+            </div>
+          </div>
+          <img src="/logo.png" alt="Charmed Collective" style={{width:200,height:"auto",display:"block",margin:"0 auto"}}/>
+          <div style={{fontSize:10,color:C.muted,marginTop:12,letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:700}}>Operations Platform</div>
         </div>
-        <div style={{marginBottom:14}}>
-          <label style={{...s.label,color:"#6b7280"}}>Email</label>
+        <div style={{marginBottom:16}}>
+          <label style={{...s.label}}>Email</label>
           <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}} placeholder="you@charmed.com"
-            style={{...s.input,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:C.white}} onFocus={e=>e.target.style.borderColor="#7c3aed"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.1)"}/>
+            style={{...s.input,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(167,139,250,0.25)"}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor="rgba(167,139,250,0.25)"}/>
         </div>
-        <div style={{marginBottom:14}}>
-          <label style={{...s.label,color:"#6b7280"}}>Password</label>
+        <div style={{marginBottom:16}}>
+          <label style={{...s.label}}>Password</label>
           <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} placeholder="••••••••"
             onKeyDown={e=>{if(e.key==="Enter"){const u=users.find(u=>u.email===email&&u.password===pw);if(u)onLogin(u);else setErr("Incorrect.");}}}
-            style={{...s.input,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:C.white}} onFocus={e=>e.target.style.borderColor="#7c3aed"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.1)"}/>
+            style={{...s.input,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(167,139,250,0.25)"}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor="rgba(167,139,250,0.25)"}/>
         </div>
-        {err&&<div style={{color:"#f87171",fontSize:12,marginBottom:12}}>{err}</div>}
+        {err&&<div style={{color:"#f87171",fontSize:13,marginBottom:12,fontWeight:500}}>{err}</div>}
         <button onClick={()=>{const u=users.find(u=>u.email===email&&u.password===pw);if(u)onLogin(u);else setErr("Incorrect email or password.");}}
-          style={{width:"100%",background:"linear-gradient(135deg,#7c3aed 0%,#c026d3 100%)",color:C.white,border:"none",borderRadius:12,padding:"13px 0",fontSize:14,fontWeight:700,cursor:"pointer",marginTop:4,boxShadow:"0 4px 24px rgba(124,58,237,0.45)",letterSpacing:"0.04em",fontFamily:"'DM Sans',sans-serif"}}>Sign In</button>
-        <div style={{marginTop:24,fontSize:11,color:"#374151",textAlign:"center",lineHeight:2.2}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@ · autumn@ · mia@charmed.com · pw: charmed123</div>
+          style={{width:"100%",background:"linear-gradient(135deg,#7c3aed 0%,#c026d3 100%)",color:C.white,border:"1px solid rgba(167,139,250,0.3)",borderRadius:12,padding:"14px 0",fontSize:15,fontWeight:700,cursor:"pointer",marginTop:4,boxShadow:"0 4px 28px rgba(124,58,237,0.45)",letterSpacing:"0.04em",fontFamily:"'DM Sans',sans-serif",transition:"all 0.2s"}}
+          onMouseEnter={e=>{e.currentTarget.style.opacity="0.9";e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 36px rgba(124,58,237,0.55)";}}
+          onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 4px 28px rgba(124,58,237,0.45)";}}>
+          Sign In
+        </button>
+        <div style={{marginTop:24,fontSize:11,color:C.muted,textAlign:"center",lineHeight:2.4}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@ · autumn@ · mia@charmed.com · pw: charmed123</div>
       </div>
     </div>
   );
@@ -2707,17 +2749,21 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 90%,rgba(124,58,237,0.18) 0%,transparent 50%),radial-gradient(ellipse at 80% 5%,rgba(192,38,211,0.12) 0%,transparent 45%),#07070e",fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
-      <div style={{background:"rgba(7,7,14,0.92)",backdropFilter:"blur(20px)",padding:"0 20px",height:64,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid rgba(124,58,237,0.25)"}}>
-        <div style={{display:"flex",alignItems:"center",paddingLeft:4}}>
-          <img src="/logo.png" alt="Charmed Collective" style={{height:36,width:"auto"}}/>
+      <div style={{background:"rgba(7,7,14,0.94)",backdropFilter:"blur(24px)",padding:"0 24px",height:66,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid rgba(167,139,250,0.22)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <StarMark size={18} color="white" style={{opacity:0.9,filter:"drop-shadow(0 0 6px rgba(167,139,250,0.7))"}}/>
+          <img src="/logo.png" alt="Charmed Collective" style={{height:34,width:"auto"}}/>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={()=>setShowSearch(true)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"5px 14px",color:"#94a3b8",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:6}}>
-            🔍 Search <kbd style={{fontSize:10,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:4,padding:"1px 5px"}}>⌘K</kbd>
+          <button onClick={()=>setShowSearch(true)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(167,139,250,0.22)",borderRadius:8,padding:"6px 14px",color:C.muted,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:6,fontFamily:"'DM Sans',sans-serif"}}>
+            🔍 <span>Search</span> <kbd style={{fontSize:10,background:"rgba(167,139,250,0.12)",border:"1px solid rgba(167,139,250,0.2)",borderRadius:4,padding:"1px 5px",color:C.muted}}>⌘K</kbd>
           </button>
           <Badge label={roleLabel[user.role]} color={roleColors[user.role]}/>
-          <span style={{fontSize:13,color:"#94a3b8"}}>{user.name}</span>
-          <button onClick={()=>setUser(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"5px 12px",color:"#94a3b8",cursor:"pointer",fontSize:12,fontWeight:600}}>Sign out</button>
+          <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",background:"rgba(255,255,255,0.05)",borderRadius:8,border:"1px solid rgba(167,139,250,0.15)"}}>
+            <div style={{width:7,height:7,borderRadius:99,background:"linear-gradient(135deg,#7c3aed,#c026d3)"}}/>
+            <span style={{fontSize:13,color:C.text,fontWeight:500}}>{user.name}</span>
+          </div>
+          <button onClick={()=>setUser(null)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(167,139,250,0.2)",borderRadius:8,padding:"6px 14px",color:C.muted,cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"'DM Sans',sans-serif"}}>Sign out</button>
         </div>
       </div>
       <div style={{maxWidth:980,margin:"0 auto",padding:"28px 20px"}}>
