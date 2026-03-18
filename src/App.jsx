@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 const C = {
-  dark:"#07070e", mid:"#0f0f1a", slate:"#1e1e30",
-  purple:"#7c3aed", purpleL:"#a78bfa", purpleXL:"#ede9fe",
-  green:"#16a34a", greenL:"#dcfce7",
-  red:"#dc2626", redL:"#fee2e2",
-  yellow:"#d97706", yellowL:"#fef3c7",
-  blue:"#2563eb", blueL:"#dbeafe",
-  pink:"#c026d3", pinkL:"#fae8ff",
-  orange:"#ea580c",
-  text:"#0f172a", muted:"#64748b", border:"#e2e8f0", bg:"#f8fafc", white:"#ffffff",
+  dark:"#07070e", mid:"#0f0f1a", slate:"#1a1730",
+  purple:"#7c3aed", purpleL:"#a78bfa", purpleXL:"#1e1235",
+  green:"#10b981", greenL:"#0a2a14",
+  red:"#ef4444", redL:"#2a0a0a",
+  yellow:"#f59e0b", yellowL:"#2a1a00",
+  blue:"#3b82f6", blueL:"#0c1a3a",
+  pink:"#c026d3", pinkL:"#2a0a2a",
+  orange:"#f97316",
+  text:"#ede8ff", muted:"#7c7a9c", border:"rgba(124,58,237,0.22)", bg:"#07070e", white:"#ffffff",
+  surface:"rgba(255,255,255,0.05)", surfaceHover:"rgba(255,255,255,0.08)",
 };
 const roleColors={leadership:C.purple,am:C.blue,chatlead:C.green,chatter:C.pink,"ops-assistant":C.orange,model:"#0ea5e9"};
 const roleLabel={leadership:"Leadership",am:"Account Manager",chatlead:"Chat Lead",chatter:"Chatter","ops-assistant":"Ops Assistant",model:"Model"};
@@ -115,8 +116,8 @@ const INIT_SNAP_REVENUE=[
 ];
 // ── DESIGN SYSTEM ────────────────────────────────────────────
 const s = {
-  card: {background:C.white,borderRadius:14,padding:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04)"},
-  input: {width:"100%",border:`1.5px solid ${C.border}`,borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box",background:C.white,transition:"border-color 0.15s",fontFamily:"inherit"},
+  card: {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:14,padding:20,backdropFilter:"blur(8px)"},
+  input: {width:"100%",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box",background:"rgba(255,255,255,0.06)",color:C.text,transition:"border-color 0.15s",fontFamily:"inherit"},
   label: {fontSize:11,fontWeight:700,color:C.muted,marginBottom:5,textTransform:"uppercase",letterSpacing:"0.05em",display:"block"},
   section: {fontSize:15,fontWeight:700,color:C.text,marginBottom:16,display:"flex",alignItems:"center",gap:8},
 };
@@ -125,7 +126,7 @@ const Badge=({label,color=C.purple,bg,dot})=>(
     {dot&&<span style={{width:5,height:5,borderRadius:99,background:color,display:"inline-block"}}/>}{label}
   </span>
 );
-const Card=({children,style={}})=>(<div style={{...s.card,...style}}>{children}</div>);
+const Card=({children,style={}})=>(<div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:14,padding:20,backdropFilter:"blur(8px)",...style}}>{children}</div>);
 const Btn=({children,onClick,variant="primary",size="md",color,style={}})=>{
   const colors={primary:{bg:color||C.purple,text:C.white,border:color||C.purple},secondary:{bg:"transparent",text:color||C.purple,border:color||C.border},ghost:{bg:"transparent",text:C.muted,border:"transparent"},danger:{bg:C.red,text:C.white,border:C.red}};
   const sizes={sm:{padding:"5px 12px",fontSize:12,borderRadius:8},md:{padding:"8px 18px",fontSize:13,borderRadius:10},lg:{padding:"11px 24px",fontSize:14,borderRadius:11}};
@@ -168,7 +169,7 @@ const MultiSelect=({label,options,selected,onChange})=>(
     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
       {options.map(o=>{const on=selected.includes(o);return(
         <button key={o} onClick={()=>onChange(on?selected.filter(x=>x!==o):[...selected,o])}
-          style={{padding:"5px 12px",borderRadius:99,border:`1.5px solid ${on?C.purple:C.border}`,background:on?C.purpleXL:C.white,color:on?C.purple:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
+          style={{padding:"5px 12px",borderRadius:99,border:`1.5px solid ${on?C.purple:"rgba(255,255,255,0.15)"}`,background:on?C.purpleXL:"rgba(255,255,255,0.06)",color:on?C.purpleL:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
           {on?"✓ ":""}{o}
         </button>
       );})}
@@ -177,7 +178,7 @@ const MultiSelect=({label,options,selected,onChange})=>(
 );
 const TaskCell=({val,onChange})=>{
   const states=[null,true,false];
-  const cfg={null:{l:"–",bg:"#f1f5f9",c:C.muted},true:{l:"✓",bg:C.greenL,c:C.green},false:{l:"✗",bg:C.redL,c:C.red}};
+  const cfg={null:{l:"–",bg:"rgba(255,255,255,0.08)",c:C.muted},true:{l:"✓",bg:C.greenL,c:C.green},false:{l:"✗",bg:C.redL,c:C.red}};
   const st=cfg[val];
   return(<button onClick={()=>{const i=states.indexOf(val);onChange(states[(i+1)%3]);}}
     style={{width:34,height:34,borderRadius:8,border:"none",background:st.bg,color:st.c,fontWeight:700,fontSize:14,cursor:"pointer",transition:"all 0.15s"}}>{st.l}</button>);
@@ -186,19 +187,19 @@ const SectionHeader=({icon,title,action})=>(
   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
     <div style={{display:"flex",alignItems:"center",gap:8}}>
       {icon&&<span style={{fontSize:18}}>{icon}</span>}
-      <span style={{fontSize:16,fontWeight:700,color:C.text}}>{title}</span>
+      <span style={{fontSize:17,fontWeight:700,color:C.text,fontFamily:"'Playfair Display',Georgia,serif"}}>{title}</span>
     </div>
     {action}
   </div>
 );
 function Tabs({tabs,active,onChange}){
   return(
-    <div style={{display:"flex",background:"#f1f5f9",borderRadius:10,padding:3,gap:2,flexWrap:"wrap",marginBottom:20}}>
+    <div style={{display:"flex",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:10,padding:3,gap:2,flexWrap:"wrap",marginBottom:20}}>
       {tabs.map(([k,l])=>{
         const isActive=active===k;
         return(
           <button key={k} onClick={()=>onChange(k)}
-            style={{padding:"6px 14px",borderRadius:8,border:"none",background:isActive?C.white:"transparent",color:isActive?C.text:C.muted,fontWeight:isActive?700:500,fontSize:12,cursor:"pointer",boxShadow:isActive?"0 1px 3px rgba(0,0,0,0.08)":"none",transition:"all 0.15s",whiteSpace:"nowrap"}}>
+            style={{padding:"6px 14px",borderRadius:8,border:"none",background:isActive?"linear-gradient(135deg,rgba(124,58,237,0.5),rgba(192,38,211,0.5))":"transparent",color:isActive?C.white:C.muted,fontWeight:isActive?700:500,fontSize:12,cursor:"pointer",boxShadow:isActive?"0 2px 8px rgba(124,58,237,0.3)":"none",transition:"all 0.15s",whiteSpace:"nowrap",fontFamily:"'DM Sans',sans-serif"}}>
             {l}
           </button>
         );
@@ -222,11 +223,11 @@ function Toggle({on,onToggle}){
   );
 }
 const Modal=({title,onClose,children,width=480})=>(
-  <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div style={{width,maxWidth:"100%",background:C.white,borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,0.25)",maxHeight:"85vh",overflow:"auto"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 24px",borderBottom:`1px solid ${C.border}`}}>
-        <div style={{fontWeight:700,fontSize:15}}>{title}</div>
-        <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:C.muted,lineHeight:1}}>×</button>
+  <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(4px)"}}>
+    <div style={{width,maxWidth:"100%",background:"rgba(15,10,30,0.96)",border:"1px solid rgba(124,58,237,0.35)",borderRadius:20,boxShadow:"0 32px 80px rgba(0,0,0,0.7),0 0 0 1px rgba(124,58,237,0.15)",maxHeight:"85vh",overflow:"auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 24px",borderBottom:`1px solid rgba(124,58,237,0.2)`}}>
+        <div style={{fontWeight:700,fontSize:15,fontFamily:"'Playfair Display',Georgia,serif",color:C.text}}>{title}</div>
+        <button onClick={onClose} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,cursor:"pointer",color:C.muted,lineHeight:1}}>×</button>
       </div>
       <div style={{padding:24}}>{children}</div>
     </div>
@@ -257,7 +258,7 @@ function AlertsBar({alerts}){
         <span style={{color:col,fontSize:11,fontWeight:600}}>{open?"▲ Hide":"▼ Show"}</span>
       </button>
       {open&&alerts.map((a,i)=>(
-        <div key={i} style={{padding:"9px 16px",background:C.white,borderTop:`1px solid ${C.border}`,display:"flex",gap:10,fontSize:13,alignItems:"center"}}>
+        <div key={i} style={{padding:"9px 16px",background:"rgba(255,255,255,0.03)",borderTop:`1px solid rgba(124,58,237,0.15)`,display:"flex",gap:10,fontSize:13,alignItems:"center",color:C.text}}>
           <span>{a.type==="error"?"🔴":a.type==="flag"?"🚩":"🟡"}</span><span>{a.msg}</span>
         </div>
       ))}
@@ -277,23 +278,23 @@ function GlobalSearch({models,users,fans,sales,onClose}){
     return out.slice(0,10);
   },[q,models,users,fans,sales]);
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:80}} onClick={onClose}>
-      <div style={{width:540,background:C.white,borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,0.3)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
-        <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:`1px solid ${C.border}`}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:300,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:80,backdropFilter:"blur(4px)"}} onClick={onClose}>
+      <div style={{width:540,background:"rgba(15,10,30,0.97)",border:"1px solid rgba(124,58,237,0.35)",borderRadius:20,boxShadow:"0 32px 80px rgba(0,0,0,0.7)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:`1px solid rgba(124,58,237,0.2)`}}>
           <span style={{color:C.muted}}>🔍</span>
           <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search models, users, fans, sales…"
             style={{flex:1,border:"none",outline:"none",fontSize:14,background:"transparent",color:C.text}}/>
-          <kbd style={{fontSize:11,background:"#f1f5f9",border:`1px solid ${C.border}`,borderRadius:5,padding:"2px 6px",color:C.muted}}>esc</kbd>
+          <kbd style={{fontSize:11,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:5,padding:"2px 6px",color:C.muted}}>esc</kbd>
         </div>
         {q.length<2
           ?<div style={{padding:24,textAlign:"center",color:C.muted,fontSize:13}}>Type to search models, users, fans & sales</div>
           :!results.length
             ?<div style={{padding:24,textAlign:"center",color:C.muted,fontSize:13}}>No results for "{q}"</div>
             :results.map((r,i)=>(
-              <div key={i} style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}
-                onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div key={i} style={{padding:"12px 18px",borderBottom:`1px solid rgba(124,58,237,0.15)`,display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(124,58,237,0.1)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <Badge label={r.type} color={r.color}/>
-                <div><div style={{fontWeight:600,fontSize:13}}>{r.label}</div><div style={{fontSize:11,color:C.muted,marginTop:1}}>{r.sub}</div></div>
+                <div><div style={{fontWeight:600,fontSize:13,color:C.text}}>{r.label}</div><div style={{fontSize:11,color:C.muted,marginTop:1}}>{r.sub}</div></div>
               </div>
             ))
         }
@@ -305,7 +306,7 @@ function GlobalSearch({models,users,fans,sales,onClose}){
 function SlingWidget({slingApiKey,setSlingApiKey}){
   const [show,setShow]=useState(false);const [val,setVal]=useState(slingApiKey||"");
   return(
-    <Card style={{marginBottom:20,background:slingApiKey?"#f0fdf4":"#fffbeb",border:`1px solid ${slingApiKey?C.green:C.yellow}30`,padding:16}}>
+    <Card style={{marginBottom:20,background:slingApiKey?"rgba(16,185,129,0.08)":"rgba(245,158,11,0.08)",border:`1px solid ${slingApiKey?C.green:C.yellow}40`,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:36,height:36,borderRadius:10,background:slingApiKey?C.greenL:C.yellowL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📅</div>
@@ -347,7 +348,7 @@ function QAReview({user,qaLogs,setQaLogs,users,models}){
       <div style={{display:"flex",gap:6}}>
         {[["Yes",true],["No",false],["N/A",null]].map(([l,v])=>(
           <button key={l} onClick={()=>setForm(p=>({...p,[field]:v}))}
-            style={{padding:"4px 12px",borderRadius:99,border:`1.5px solid ${form[field]===v?C.purple:C.border}`,background:form[field]===v?C.purpleXL:C.white,color:form[field]===v?C.purple:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+            style={{padding:"4px 12px",borderRadius:99,border:`1.5px solid ${form[field]===v?C.purple:C.border}`,background:form[field]===v?C.purpleXL:"rgba(255,255,255,0.06)",color:form[field]===v?C.purpleL:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>
             {l}
           </button>
         ))}
@@ -474,7 +475,7 @@ function TTKEditor({user,ttks,setTtks,myModels}){
         {tab==="rules"&&<TA label="Hard No's" value={form.hardNos||""} onChange={v=>setForm(p=>({...p,hardNos:v}))} placeholder="e.g. Politics, real name, location" rows={4}/>}
         {tab==="scripts"&&<div>
           {(form.scripts||[]).map((sc,i)=>(
-            <div key={sc.id} style={{background:C.bg,borderRadius:10,padding:14,marginBottom:10}}>
+            <div key={sc.id} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:10,padding:14,marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                 <span style={{fontSize:12,fontWeight:700,color:C.muted}}>SCRIPT {i+1}</span>
                 <button onClick={()=>setForm(p=>({...p,scripts:p.scripts.filter(x=>x.id!==sc.id)}))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:12,fontWeight:600}}>Remove</button>
@@ -531,7 +532,7 @@ function MassMessageTracker({user,massMessages,setMassMessages,myModels,isLeader
               </div>
               <span style={{fontSize:11,color:C.muted}}>{m.sentBy} · {m.sentAt} · {m.date}</span>
             </div>
-            <p style={{fontSize:13,background:C.bg,borderRadius:8,padding:"9px 12px",fontStyle:"italic",color:C.muted,margin:0}}>"{m.message}"</p>
+            <p style={{fontSize:13,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.12)",borderRadius:8,padding:"9px 12px",fontStyle:"italic",color:C.muted,margin:0}}>"{m.message}"</p>
             {m.notes&&<p style={{fontSize:12,color:C.muted,margin:"6px 0 0"}}>{m.notes}</p>}
           </Card>
         ))}
@@ -810,9 +811,9 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
       {viewMode==="calendar"&&(
         <div>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
-            <button onClick={prevMonth} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>‹</button>
+            <button onClick={prevMonth} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(124,58,237,0.25)",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700,color:C.text}}>‹</button>
             <span style={{fontWeight:700,fontSize:16,flex:1,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
-            <button onClick={nextMonth} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>›</button>
+            <button onClick={nextMonth} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(124,58,237,0.25)",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700,color:C.text}}>›</button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
             {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
@@ -1042,7 +1043,7 @@ function TodoPanel({user,todos,setTodos,myModels}){
         <div style={{marginBottom:16}}>
           <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Open · {open.length}</div>
           {open.map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.white,borderRadius:10,marginBottom:6,boxShadow:"0 1px 3px rgba(0,0,0,0.05)",borderLeft:`3px solid ${pc[t.priority]}`}}>
+            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.04)",border:`1px solid rgba(124,58,237,0.15)`,borderRadius:10,marginBottom:6,borderLeft:`3px solid ${pc[t.priority]}`}}>
               <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer",width:15,height:15}}/>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:600}}>{t.task}</div>
@@ -1061,7 +1062,7 @@ function TodoPanel({user,todos,setTodos,myModels}){
         <div>
           <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Done · {done.length}</div>
           {done.map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.bg,borderRadius:10,marginBottom:6,opacity:0.6}}>
+            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.03)",borderRadius:10,marginBottom:6,opacity:0.6}}>
               <input type="checkbox" defaultChecked onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:false}:x))} style={{cursor:"pointer"}}/>
               <span style={{flex:1,textDecoration:"line-through",fontSize:13,color:C.muted}}>{t.task}</span>
               <button onClick={()=>setTodos(p=>p.filter(x=>x.id!==t.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
@@ -1168,7 +1169,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
             {myBrandDeals.slice(0,4).map(d=>(
-              <div key={d.id} style={{background:C.bg,borderRadius:10,padding:"10px 12px",borderLeft:`3px solid ${d.paid?C.green:C.orange}`}}>
+              <div key={d.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px",borderLeft:`3px solid ${d.paid?C.green:C.orange}`}}>
                 <div style={{fontWeight:700,fontSize:13}}>{d.brand}</div>
                 <div style={{fontSize:11,color:C.muted,marginTop:2}}>{d.model} · {fmtMoney(d.payment)}</div>
                 <div style={{fontSize:11,color:d.deadline&&d.deadline<new Date().toISOString().slice(0,10)?C.red:C.muted,marginTop:2}}>{d.deadline?`Due ${d.deadline}`:""}</div>
@@ -1188,7 +1189,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
               </select>
             </div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              <button onClick={()=>setShowGcal(!showGcal)} style={{background:gcalSaved?"#dcfce7":"rgba(255,255,255,0.07)",border:`1px solid ${gcalSaved?C.green:C.border}`,borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:600,color:gcalSaved?C.green:C.muted}}>
+              <button onClick={()=>setShowGcal(!showGcal)} style={{background:gcalSaved?"rgba(16,185,129,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${gcalSaved?C.green:"rgba(255,255,255,0.15)"}`,borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:600,color:gcalSaved?C.green:C.muted}}>
                 {gcalSaved?"📅 GCal Connected":"🔗 Connect Google Calendar"}
               </button>
               <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>‹</button>
@@ -1197,7 +1198,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
             </div>
           </div>
           {showGcal&&(
-            <div style={{marginBottom:12,padding:"10px 12px",background:C.bg,borderRadius:10}}>
+            <div style={{marginBottom:12,padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.12)",borderRadius:10}}>
               <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Enter your Google Calendar ID. Live sync available when backend is connected.</div>
               <div style={{display:"flex",gap:8}}>
                 <input value={gcalId} onChange={e=>setGcalId(e.target.value)} placeholder="your-email@gmail.com or calendar ID" style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor=C.border}/>
@@ -1314,7 +1315,7 @@ function SocialMetrics({user,socialMetrics,setSocialMetrics,models,isLeadership,
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:8}}>
               {[["Followers",latest.followers],["Views",latest.views],["Likes",latest.likes],["Comments",latest.comments],["Shares",latest.shares]].filter(([,v])=>v!==undefined&&v!=="").map(([l,v])=>(
-                <div key={l} style={{background:C.bg,borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                <div key={l} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
                   <div style={{fontSize:14,fontWeight:800,color:PLAT_COL[platform]}}>{Number(v)>999?`${(Number(v)/1000).toFixed(1)}k`:v}</div>
                   <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",fontWeight:600,letterSpacing:"0.04em"}}>{l}</div>
                 </div>
@@ -1503,7 +1504,7 @@ function SnapRevenue({user,snapRevenue,setSnapRevenue,models,isLeadership,myMode
       </div>
       {visible.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No Snapchat revenue logged yet</div>}
       {visible.map(r=>(
-        <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:C.white,borderRadius:10,marginBottom:6,boxShadow:"0 1px 3px rgba(0,0,0,0.05)",borderLeft:"3px solid #f59e0b"}}>
+        <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,marginBottom:6,borderLeft:"3px solid #f59e0b"}}>
           <div style={{flex:1}}>
             <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700,fontSize:13}}>{r.model}</span><Badge label="Snapchat" color="#f59e0b"/><span style={{fontSize:11,color:C.muted}}>{r.date}</span></div>
             {r.notes&&<div style={{fontSize:12,color:C.muted,marginTop:2}}>{r.notes}</div>}
@@ -1549,7 +1550,7 @@ function StripeInvoices({isLeadership,models,myModels}){
   return(
     <div>
       <SectionHeader icon="💳" title="Stripe Invoices"/>
-      <Card style={{marginBottom:16,background:savedKey?"#f0fdf4":"#fffbeb",border:`1px solid ${savedKey?C.green:C.yellow}30`}}>
+      <Card style={{marginBottom:16,background:savedKey?"rgba(16,185,129,0.08)":"rgba(245,158,11,0.08)",border:`1px solid ${savedKey?C.green:C.yellow}40`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:36,height:36,borderRadius:10,background:savedKey?"#dcfce7":"#fef3c7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>💳</div>
@@ -1567,11 +1568,11 @@ function StripeInvoices({isLeadership,models,myModels}){
               <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="sk_live_… or sk_test_…" style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor=C.border}/>
               <Btn size="sm" onClick={fetchInvoices} style={{whiteSpace:"nowrap"}}>{loading?"Loading…":"Fetch Invoices"}</Btn>
             </div>
-            {err&&<div style={{fontSize:12,color:C.orange,marginTop:8,background:"#fff7ed",borderRadius:8,padding:"8px 12px"}}>{err}</div>}
+            {err&&<div style={{fontSize:12,color:C.orange,marginTop:8,background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.25)",borderRadius:8,padding:"8px 12px"}}>{err}</div>}
           </div>
         )}
       </Card>
-      {!savedKey&&<div style={{fontSize:12,color:C.muted,marginBottom:12,background:C.bg,borderRadius:8,padding:"8px 12px"}}>📋 Showing sample data. Connect Stripe to see live invoices.</div>}
+      {!savedKey&&<div style={{fontSize:12,color:C.muted,marginBottom:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:8,padding:"8px 12px"}}>📋 Showing sample data. Connect Stripe to see live invoices.</div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
         <StatCard label="Paid" value={fmtStripeAmt(totalPaid,"usd")} color={C.green}/>
         <StatCard label="Outstanding" value={fmtStripeAmt(totalOpen,"usd")} color={totalOpen>0?C.orange:C.muted}/>
@@ -1616,14 +1617,14 @@ function PlatformConnections({models,isLeadership,myModels}){
   return(
     <div>
       <SectionHeader icon="🔗" title="Platform API Connections"/>
-      <Card style={{marginBottom:16,background:"#eff6ff",border:`1px solid ${C.blue}25`}}>
+      <Card style={{marginBottom:16,background:"rgba(59,130,246,0.08)",border:`1px solid rgba(59,130,246,0.25)`}}>
         <div style={{fontSize:13,color:C.blue,fontWeight:600,marginBottom:4}}>🔒 API-Ready — Connection UI</div>
         <div style={{fontSize:12,color:C.muted}}>Store API tokens per model here. When backend proxy support is added, these tokens will be used to auto-pull follower counts, view metrics, and revenue data into the Social Metrics tracker.</div>
       </Card>
       {vm.length>1&&(
         <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
           {vm.map(m=>{const c=connections[m]||{};const cnt=Object.values(c).filter(v=>v).length;return(
-            <button key={m} onClick={()=>setSelModel(m)} style={{padding:"6px 14px",borderRadius:99,border:`1.5px solid ${selModel===m?C.purple:C.border}`,background:selModel===m?C.purpleXL:C.white,color:selModel===m?C.purple:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            <button key={m} onClick={()=>setSelModel(m)} style={{padding:"6px 14px",borderRadius:99,border:`1.5px solid ${selModel===m?C.purple:"rgba(255,255,255,0.15)"}`,background:selModel===m?C.purpleXL:"rgba(255,255,255,0.06)",color:selModel===m?C.purpleL:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
               {m} {cnt>0&&<Badge label={`${cnt}/3`} color={cnt===3?C.green:C.blue}/>}
             </button>
           );})}
@@ -1692,7 +1693,7 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
   };
   return(
     <div>
-      <div style={{fontSize:22,fontWeight:800,marginBottom:2}}>Hey {modelName} 👋</div>
+      <div style={{fontSize:24,fontWeight:800,marginBottom:2,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {modelName} ✦</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
       <Tabs tabs={[["home","Home"],["calendar","📅 Calendar"],["brand","Brand Deals"],["invoices","💳 Invoices"],["ttk","My Profile"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
       {tab==="home"&&(
@@ -1734,7 +1735,7 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
       {tab==="calendar"&&(
         <div>
           <SectionHeader icon="📅" title="My Calendar"/>
-          <Card style={{marginBottom:16,background:gcalSaved?"#f0fdf4":"#eff6ff",border:`1px solid ${gcalSaved?C.green:C.blue}25`}}>
+          <Card style={{marginBottom:16,background:gcalSaved?"rgba(16,185,129,0.08)":"rgba(59,130,246,0.08)",border:`1px solid ${gcalSaved?C.green:C.blue}40`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:20}}>🗓️</span>
@@ -1752,9 +1753,9 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
             {gcalSaved&&<div style={{fontSize:11,color:C.muted,marginTop:8}}>Saved ID: {gcalSaved} · Live sync will be available when backend is connected.</div>}
           </Card>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-            <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>‹</button>
+            <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(124,58,237,0.25)",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700,color:C.text}}>‹</button>
             <span style={{fontWeight:700,fontSize:16,flex:1,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
-            <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>›</button>
+            <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(124,58,237,0.25)",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700,color:C.text}}>›</button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
             {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:C.muted,padding:"4px 0"}}>{d}</div>)}
@@ -1764,8 +1765,8 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
               const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===new Date().toISOString().slice(0,10);
               const evts=d?getEventsForDay(d):[];
               return(
-                <div key={i} style={{minHeight:72,background:d?C.white:"transparent",borderRadius:8,padding:d?"4px 6px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?C.border:"transparent"}`}}>
-                  {d&&<div style={{fontSize:11,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:2}}>{d}</div>}
+                <div key={i} style={{minHeight:72,background:d?"rgba(255,255,255,0.04)":"transparent",borderRadius:8,padding:d?"4px 6px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"rgba(124,58,237,0.15)":"transparent"}`}}>
+                  {d&&<div style={{fontSize:11,fontWeight:isToday?800:500,color:isToday?C.purpleL:C.text,marginBottom:2}}>{d}</div>}
                   {evts.slice(0,3).map((e,ei)=><div key={ei} style={{fontSize:10,background:e.color+"18",color:e.color,borderRadius:4,padding:"1px 4px",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>{e.label}</div>)}
                 </div>
               );
@@ -1821,11 +1822,11 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
                 <Input label="Interests" value={ttkForm.interests||""} onChange={v=>setTtkForm(p=>({...p,interests:v}))} placeholder="Hiking, photography…" style={{gridColumn:"1/-1"}}/>
                 <Input label="Fun Facts" value={ttkForm.personalFacts||""} onChange={v=>setTtkForm(p=>({...p,personalFacts:v}))} placeholder="Has a dog named Biscuit…" style={{gridColumn:"1/-1"}}/>
               </div>
-              <div style={{marginTop:4,padding:"12px",background:C.redL,borderRadius:10,marginBottom:12}}>
+              <div style={{marginTop:4,padding:"12px",background:C.redL,border:`1px solid rgba(239,68,68,0.3)`,borderRadius:10,marginBottom:12}}>
                 <div style={{fontSize:11,fontWeight:700,color:C.red,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>🚫 Hard Nos (read-only — set by leadership)</div>
                 <div style={{fontSize:13,color:C.red,fontWeight:600}}>{ttkForm.hardNos||"None set"}</div>
               </div>
-              <div style={{padding:"12px",background:C.bg,borderRadius:10,marginBottom:12}}>
+              <div style={{padding:"12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:10,marginBottom:12}}>
                 <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Voice Style (set by team)</div>
                 <div style={{fontSize:13}}>{ttkForm.voice||"—"}</div>
               </div>
@@ -2080,7 +2081,7 @@ function AdminPanel({users,setUsers,models,setModels,platforms,setPlatforms,mode
               <div style={{fontSize:12,color:C.muted,marginBottom:12}}>{sub}</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
                 {list.map(p=>(
-                  <div key={p} style={{display:"flex",alignItems:"center",gap:5,background:C.bg,border:`1px solid ${C.border}`,borderRadius:99,padding:"4px 12px"}}>
+                  <div key={p} style={{display:"flex",alignItems:"center",gap:5,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:99,padding:"4px 12px"}}>
                     <span style={{fontSize:13,fontWeight:600}}>{p}</span>
                     {defaults.includes(p)?<span style={{fontSize:10,color:C.muted}}>default</span>:<button onClick={()=>set(list.filter(x=>x!==p))} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:14,lineHeight:1}}>×</button>}
                   </div>
@@ -2115,12 +2116,12 @@ function DailySummary({tasks,sales,handoffs,shifts,fans,qaLogs,models}){
         <StatCard label="Flagged Fans" value={flagged.length} color={flagged.length>0?C.red:C.green}/>
       </div>
       {gaps.length>0&&<Card style={{marginBottom:16,background:C.redL,border:`1px solid ${C.red}25`}}><div style={{fontWeight:700,color:C.red,marginBottom:4}}>🚨 Uncovered Shifts</div><div style={{fontSize:13,color:C.red}}>{gaps.join(" · ")}</div></Card>}
-      <Card style={{background:C.dark}}>
+      <Card style={{background:"rgba(124,58,237,0.08)",border:"1px solid rgba(124,58,237,0.3)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <span style={{fontWeight:700,color:C.white,fontSize:13}}>Discord Summary</span>
-          <Btn variant="secondary" size="sm" color={copied?C.green:"#94a3b8"} style={{borderColor:copied?C.green:"#475569"}} onClick={()=>{navigator.clipboard?.writeText(discord);setCopied(true);setTimeout(()=>setCopied(false),2000);}}>{copied?"Copied ✓":"Copy"}</Btn>
+          <span style={{fontWeight:700,color:C.purpleL,fontSize:13}}>✦ Discord Summary</span>
+          <Btn variant="secondary" size="sm" color={copied?C.green:C.purpleL} style={{borderColor:copied?C.green:"rgba(167,139,250,0.4)"}} onClick={()=>{navigator.clipboard?.writeText(discord);setCopied(true);setTimeout(()=>setCopied(false),2000);}}>{copied?"Copied ✓":"Copy"}</Btn>
         </div>
-        <pre style={{margin:0,color:"#94a3b8",fontSize:12,whiteSpace:"pre-wrap",fontFamily:"monospace",lineHeight:1.8}}>{discord}</pre>
+        <pre style={{margin:0,color:C.muted,fontSize:12,whiteSpace:"pre-wrap",fontFamily:"monospace",lineHeight:1.8}}>{discord}</pre>
       </Card>
     </div>
   );
@@ -2137,7 +2138,7 @@ function ChatterPerformance({sales,qaLogs,users}){
         <Card key={c.name} style={{marginBottom:10,borderLeft:`3px solid ${i===0?"#f59e0b":i===1?"#94a3b8":C.border}`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <span style={{width:30,height:30,borderRadius:99,background:i===0?"#fef3c7":C.bg,color:i===0?C.yellow:C.muted,fontWeight:800,fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>#{i+1}</span>
+              <span style={{width:30,height:30,borderRadius:99,background:i===0?"rgba(245,158,11,0.15)":"rgba(255,255,255,0.06)",color:i===0?C.yellow:C.muted,fontWeight:800,fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>#{i+1}</span>
               <div><div style={{fontWeight:700}}>{c.name}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{roleLabel[c.role]} · {c.count} sales</div></div>
             </div>
             <div style={{display:"flex",gap:16,alignItems:"center"}}>
@@ -2203,7 +2204,7 @@ function CustomsTracker({user,customs,setCustoms,models}){
               <div style={{display:"flex",gap:8,marginTop:2}}>
                 {[["Yes",true],["No",false]].map(([l,v])=>(
                   <button key={l} onClick={()=>setForm(p=>({...p,paid:v}))}
-                    style={{flex:1,padding:"8px 0",borderRadius:10,border:`1.5px solid ${form.paid===v?C.purple:C.border}`,background:form.paid===v?C.purpleXL:C.white,color:form.paid===v?C.purple:C.muted,fontWeight:600,fontSize:13,cursor:"pointer"}}>
+                    style={{flex:1,padding:"8px 0",borderRadius:10,border:`1.5px solid ${form.paid===v?C.purple:C.border}`,background:form.paid===v?C.purpleXL:"rgba(255,255,255,0.06)",color:form.paid===v?C.purpleL:C.muted,fontWeight:600,fontSize:13,cursor:"pointer"}}>
                     {l}
                   </button>
                 ))}
@@ -2235,7 +2236,7 @@ function CustomsTracker({user,customs,setCustoms,models}){
                 {CUSTOM_STATUSES.map(st=><option key={st}>{st}</option>)}
               </select>
               <button onClick={()=>updateField(c.id,"paid",!c.paid)}
-                style={{padding:"5px 14px",borderRadius:8,border:`1.5px solid ${c.paid?C.green:C.border}`,background:c.paid?C.greenL:C.white,color:c.paid?C.green:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                style={{padding:"5px 14px",borderRadius:8,border:`1.5px solid ${c.paid?C.green:"rgba(255,255,255,0.15)"}`,background:c.paid?C.greenL:"rgba(255,255,255,0.06)",color:c.paid?C.green:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>
                 {c.paid?"✓ Paid":"Mark Paid"}
               </button>
               <button onClick={()=>setCustoms(p=>p.filter(x=>x.id!==c.id))}
@@ -2270,7 +2271,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const SECTIONS=[["home","🏠 Home"],["todos","📋 To-Dos"],["paywall","🔐 Paywall"],["social","📱 Social"],["brand","🤝 Brand"]];
   return(
     <div>
-      <div style={{marginBottom:4}}><span style={{fontSize:22,fontWeight:800}}>Leadership</span></div>
+      <div style={{marginBottom:4}}><span style={{fontSize:24,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Leadership ✦</span></div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()} · {models.filter(m=>!m.archived).length} active accounts</div>
       <AlertsBar alerts={alerts}/>
       <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
@@ -2306,9 +2307,9 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
           <Card style={{padding:0,overflow:"hidden",marginBottom:20}}>
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                <thead><tr style={{background:C.dark,color:"#94a3b8"}}>{["AM","Model","BOS","EOS","Content","Notion","Promos","Notes"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:["AM","Model","Notes"].includes(h)?"left":"center",fontWeight:600,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"rgba(124,58,237,0.2)",color:"#c4b5fd"}}>{["AM","Model","BOS","EOS","Content","Notion","Promos","Notes"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:["AM","Model","Notes"].includes(h)?"left":"center",fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
                 <tbody>{tasks.map((t,ri)=>{const inc=["bos","eos","content","notion","promos"].some(k=>t[k]===false),all=["bos","eos","content","notion","promos"].every(k=>t[k]===true);return(
-                  <tr key={t.id} style={{background:inc?C.redL:all?C.greenL:ri%2===0?C.white:C.bg,borderBottom:`1px solid ${C.border}`}}>
+                  <tr key={t.id} style={{background:inc?C.redL:all?C.greenL:ri%2===0?"rgba(255,255,255,0.03)":"transparent",borderBottom:`1px solid rgba(124,58,237,0.12)`}}>
                     <td style={{padding:"8px 14px",fontWeight:600}}>{t.am}</td>
                     <td style={{padding:"8px 14px",color:C.muted}}>{t.model}</td>
                     {["bos","eos","content","notion","promos"].map(k=><td key={k} style={{padding:"8px 14px",textAlign:"center"}}><TaskCell val={t[k]} onChange={v=>setTasks(p=>p.map(r=>r.id===t.id?{...r,[k]:v}:r))}/></td>)}
@@ -2366,7 +2367,7 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
   };
   return(
     <div>
-      <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Ops Dashboard</div>
+      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Ops Dashboard ✦</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()}</div>
       <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
         {SECTIONS.map(([k,l])=>(
@@ -2412,7 +2413,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
   };
   return(
     <div>
-      <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Hey {user.name} 👋</div>
+      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {user.name} ✦</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:16}}>{today()}</div>
       <div style={{display:"flex",gap:3,background:C.dark,borderRadius:12,padding:4,marginBottom:20}}>
         {SECTIONS.map(([k,l])=>(
@@ -2445,7 +2446,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
           );})}
           <div style={{marginTop:20,fontSize:14,fontWeight:700,marginBottom:12}}>Open To-Dos</div>
           {todos.filter(t=>t.owner===user.name&&!t.done).slice(0,3).map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.white,borderRadius:10,marginBottom:6,boxShadow:"0 1px 3px rgba(0,0,0,0.05)",borderLeft:`3px solid ${{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}`}}>
+            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.04)",border:`1px solid rgba(124,58,237,0.15)`,borderRadius:10,marginBottom:6,borderLeft:`3px solid ${{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}`}}>
               <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer"}}/>
               <div style={{flex:1,fontSize:13,fontWeight:600}}>{t.task}</div>
               {t.model&&<Badge label={t.model} color={C.blue}/>}
@@ -2517,7 +2518,7 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
   const scoreCol=sc=>sc>=80?C.green:sc>=60?C.yellow:C.red;
   return(
     <div>
-      <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Hey {user.name} 👋</div>
+      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {user.name} ✦</div>
       {todayShift?<div style={{fontSize:13,color:C.green,marginBottom:4,fontWeight:600}}>✓ On shift: {todayShift.shift} · {myModels.join(", ")}</div>:<div style={{fontSize:13,color:C.muted,marginBottom:4}}>No shift scheduled today</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
         <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.pink}/>
@@ -2537,7 +2538,7 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
               <span style={{fontWeight:700,fontSize:14}}>{m.name}</span>
               <Badge label={m.flirtLevel} color={C.purple}/>
             </div>
-            {ttkData&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13}}>
+            {ttkData&&<div style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:8,padding:"10px 12px",fontSize:13}}>
               <div><b>Voice:</b> {ttkData.voice}</div>
               <div style={{marginTop:4}}><b>Call fans:</b> {ttkData.endearments}</div>
               <div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttkData.hardNos}</div>
@@ -2575,7 +2576,7 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
   const removeScript=(id)=>setRefForm(p=>({...p,scripts:p.scripts.filter(sc=>sc.id!==id)}));
   return(
     <div>
-      <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Hey {user.name} 👋</div>
+      <div style={{fontSize:24,fontWeight:800,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#a78bfa,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Hey {user.name} ✦</div>
       {todayShift?<div style={{fontSize:13,color:C.green,marginBottom:4,fontWeight:600}}>✓ On shift: {todayShift.shift} · {myModels.join(", ")}</div>:<div style={{fontSize:13,color:C.muted,marginBottom:4}}>No shift scheduled today</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
         <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.green}/>
@@ -2599,7 +2600,7 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
                 {isEditing&&<><button onClick={saveRef} style={{background:C.green,color:C.white,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Save</button><button onClick={()=>setRefEdit(null)} style={{background:C.dark,color:C.muted,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button></>}
               </div>
             </div>
-            {ttkData&&!isEditing&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13}}>
+            {ttkData&&!isEditing&&<div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.12)",borderRadius:8,padding:"10px 12px",fontSize:13}}>
               <div><b>Voice:</b> {ttkData.voice}</div>
               <div style={{marginTop:4}}><b>Call fans:</b> {ttkData.endearments}</div>
               <div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttkData.hardNos}</div>
@@ -2609,7 +2610,7 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
                 {ttkData.scripts.map(sc=><div key={sc.id} style={{marginBottom:6}}><div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div><div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>"{sc.response}"</div></div>)}
               </div>}
             </div>}
-            {isEditing&&<div style={{background:C.bg,borderRadius:8,padding:"10px 12px",fontSize:13,display:"flex",flexDirection:"column",gap:8}}>
+            {isEditing&&<div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.12)",borderRadius:8,padding:"10px 12px",fontSize:13,display:"flex",flexDirection:"column",gap:8}}>
               <div><label style={{...s.label,fontSize:11}}>Voice / Persona</label><textarea value={refForm.voice} onChange={e=>setRefForm(p=>({...p,voice:e.target.value}))} rows={2} style={{...s.input,resize:"vertical",fontSize:12}}/></div>
               <div><label style={{...s.label,fontSize:11}}>Call fans (endearments)</label><input value={refForm.endearments} onChange={e=>setRefForm(p=>({...p,endearments:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
               <div><label style={{...s.label,fontSize:11}}>Offline times</label><input value={refForm.offlineTimes} onChange={e=>setRefForm(p=>({...p,offlineTimes:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
@@ -2704,9 +2705,9 @@ export default function App(){
   if(!user)return <LoginView onLogin={setUser} users={users}/>;
   const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue};
   return(
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 90%,rgba(124,58,237,0.18) 0%,transparent 50%),radial-gradient(ellipse at 80% 5%,rgba(192,38,211,0.12) 0%,transparent 45%),#07070e",fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
-      <div style={{background:"linear-gradient(180deg,#0a0a14 0%,#07070e 100%)",padding:"0 20px",height:64,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid rgba(124,58,237,0.22)"}}>
+      <div style={{background:"rgba(7,7,14,0.92)",backdropFilter:"blur(20px)",padding:"0 20px",height:64,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid rgba(124,58,237,0.25)"}}>
         <div style={{display:"flex",alignItems:"center",paddingLeft:4}}>
           <img src="/logo.png" alt="Charmed Collective" style={{height:36,width:"auto"}}/>
         </div>
