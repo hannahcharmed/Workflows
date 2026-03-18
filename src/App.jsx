@@ -2925,6 +2925,8 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {(tab==="deals"||!["deals","invoices"].includes(tab))&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="invoices"&&<StripeInvoices isLeadership={true} models={models}/>}
       </div>}
+      {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
+      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
     </div>
   );
 }
