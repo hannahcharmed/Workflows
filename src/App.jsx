@@ -60,8 +60,8 @@ const INIT_FANS=[
   {id:3,model:"Mia",username:"whale_miami",type:"Whale",spend:"$8,100",notes:"Suspected reseller — monitor",flag:true},
 ];
 const INIT_SALES=[
-  {id:1,chatter:"Chatter1",model:"Autumn",type:"PPV",amount:120,fanUsername:"bigspender99",note:"Tier 2 beach set",date:today(),shift:"11-7"},
-  {id:2,chatter:"Chatter2",model:"Mia",type:"PPV",amount:200,fanUsername:"whale_miami",note:"Custom video upsell",date:today(),shift:"7-3"},
+  {id:1,chatter:"Chatter1",model:"Autumn",type:"PPV",amount:120,fanUsername:"bigspender99",note:"Tier 2 beach set",date:new Date().toISOString().slice(0,10),shift:"11-7"},
+  {id:2,chatter:"Chatter2",model:"Mia",type:"PPV",amount:200,fanUsername:"whale_miami",note:"Custom video upsell",date:new Date().toISOString().slice(0,10),shift:"7-3"},
 ];
 const INIT_CAMPAIGNS=[
   {id:1,model:"Autumn",name:"Valentine's Flash Sale",type:"Flash Sale",status:"Live",startDate:"2024-02-10",endDate:"2024-02-14",revenue:1240,notes:""},
@@ -77,8 +77,8 @@ const INIT_PROMOS=[
   {id:2,model:"Jordan",platform:"TikTok",date:"2024-01-09",loggedBy:"Jonathan",notes:"Teaser video"},
 ];
 const INIT_TODOS=[
-  {id:1,scope:"model",model:"Autumn",owner:"Tate",task:"Schedule Valentine mass message",priority:"High",done:false,date:today()},
-  {id:2,scope:"personal",model:null,owner:"Tate",task:"Review Mia chat QA",priority:"Medium",done:false,date:today()},
+  {id:1,scope:"model",model:"Autumn",owner:"Tate",task:"Schedule Valentine mass message",priority:"High",status:"In Progress",date:today(),dueDate:"",notes:""},
+  {id:2,scope:"personal",model:null,owner:"Tate",task:"Review Mia chat QA",priority:"Medium",status:"Pending",date:today(),dueDate:"",notes:""},
 ];
 const INIT_SHIFTS=[
   {id:1,chatter:"Chatter1",shift:"11-7",date:today(),models:["Autumn","Jordan"],source:"manual"},
@@ -143,15 +143,15 @@ const INIT_MODEL_EVENTS=[
 ];
 const INIT_MG=[
   {id:1,model:"Autumn",mgAmount:3000,period:"2026-03",deliverables:[
-    {id:1,label:"1x TikTok Video",done:true,notes:"Posted 3/10"},
-    {id:2,label:"4x IG Stories",done:true,notes:""},
-    {id:3,label:"1x IG Reel",done:false,notes:""},
-    {id:4,label:"2x Snapchat Stories",done:false,notes:""},
+    {id:1,label:"1x TikTok Video",done:true,notes:"Posted 3/10",fileUrl:null},
+    {id:2,label:"4x IG Stories",done:true,notes:"",fileUrl:null},
+    {id:3,label:"1x IG Reel",done:false,notes:"",fileUrl:null},
+    {id:4,label:"2x Snapchat Stories",done:false,notes:"",fileUrl:null},
   ]},
   {id:2,model:"Mia",mgAmount:5000,period:"2026-03",deliverables:[
-    {id:1,label:"2x TikTok Videos",done:true,notes:"Both posted"},
-    {id:2,label:"4x IG Stories",done:true,notes:""},
-    {id:3,label:"1x IG Reel",done:false,notes:"Scheduled for 3/28"},
+    {id:1,label:"2x TikTok Videos",done:true,notes:"Both posted",fileUrl:null},
+    {id:2,label:"4x IG Stories",done:true,notes:"",fileUrl:null},
+    {id:3,label:"1x IG Reel",done:false,notes:"Scheduled for 3/28",fileUrl:null},
   ]},
 ];
 // ── DESIGN SYSTEM ────────────────────────────────────────────
@@ -768,7 +768,7 @@ function SalesTracker({user,sales,setSales,isLeadership,isAM,myModels,users}){
             <Sel label="Shift" value={form.shift} onChange={v=>setForm(p=>({...p,shift:v}))} options={SHIFTS}/>
             <Input label="Note" value={form.note} onChange={v=>setForm(p=>({...p,note:v}))} placeholder="Beach upsell"/>
           </div>
-          <Btn onClick={()=>{if(!form.amount||!form.fanUsername)return;setSales(p=>[...p,{...form,id:Date.now(),chatter:user.name,date:today(),amount:Number(form.amount)}]);setForm(p=>({...p,amount:"",fanUsername:"",note:""}));}}>Log Sale</Btn>
+          <Btn onClick={()=>{if(!form.amount||!form.fanUsername)return;setSales(p=>[...p,{...form,id:Date.now(),chatter:user.name,date:new Date().toISOString().slice(0,10),amount:Number(form.amount)}]);setForm(p=>({...p,amount:"",fanUsername:"",note:""}));}}>Log Sale</Btn>
         </Card>
       )}
     </div>
@@ -985,30 +985,35 @@ function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeaders
 }
 // ── TODOS ────────────────────────────────────────────────────
 function TodoPanel({user,todos,setTodos,myModels}){
-  const [form,setForm]=useState({scope:"personal",model:myModels[0]||"",task:"",priority:"Medium",dueDate:""});
+  const STATUS_LIST=["Pending","In Progress","Stuck","Complete"];
+  const STATUS_COL={Pending:C.muted,["In Progress"]:C.blue,Stuck:C.red,Complete:C.green};
+  const [form,setForm]=useState({scope:"personal",model:myModels[0]||"",task:"",priority:"Medium",dueDate:"",notes:""});
   const [filterScope,setFilterScope]=useState("All");
+  const [filterStatus,setFilterStatus]=useState("All");
   const [sortBy,setSortBy]=useState("priority");
   const [viewMode,setViewMode]=useState("list");
+  const [editTodo,setEditTodo]=useState(null);
   const now=new Date();
   const [calYear,setCalYear]=useState(now.getFullYear());
   const [calMonth,setCalMonth]=useState(now.getMonth());
   const myTodos=todos.filter(t=>t.owner===user.name);
   const pc={High:C.red,Medium:C.yellow,Low:C.green};
   const pOrder={High:0,Medium:1,Low:2};
+  const sOrder={Pending:0,"In Progress":1,Stuck:2,Complete:3};
   const scopeOptions=["All","personal",...myModels];
   const filtered=myTodos.filter(t=>{
-    if(filterScope==="All")return true;
-    if(filterScope==="personal")return t.scope==="personal";
-    return t.scope==="model"&&t.model===filterScope;
+    const scopeOk=filterScope==="All"||(filterScope==="personal"&&t.scope==="personal")||(t.scope==="model"&&t.model===filterScope);
+    const statusOk=filterStatus==="All"||t.status===filterStatus;
+    return scopeOk&&statusOk;
   });
   const sortFn=(a,b)=>{
     if(sortBy==="priority")return pOrder[a.priority]-pOrder[b.priority];
+    if(sortBy==="status")return sOrder[a.status||"Pending"]-sOrder[b.status||"Pending"];
     if(sortBy==="dueDate"){if(!a.dueDate&&!b.dueDate)return 0;if(!a.dueDate)return 1;if(!b.dueDate)return -1;return a.dueDate.localeCompare(b.dueDate);}
     return 0;
   };
-  const open=filtered.filter(t=>!t.done).sort(sortFn);
-  const done=filtered.filter(t=>t.done);
-  // Calendar helpers
+  const active=filtered.filter(t=>(t.status||"Pending")!=="Complete").sort(sortFn);
+  const completed=filtered.filter(t=>t.status==="Complete");
   const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
   const calDays=()=>{
     const first=new Date(calYear,calMonth,1);
@@ -1021,31 +1026,56 @@ function TodoPanel({user,todos,setTodos,myModels}){
   };
   const pad=n=>String(n).padStart(2,"0");
   const dsFor=d=>`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
-  const todosOnDay=d=>myTodos.filter(t=>!t.done&&t.dueDate===dsFor(d));
-  const todayDs=today();
+  const todosOnDay=d=>myTodos.filter(t=>(t.status||"Pending")!=="Complete"&&t.dueDate===dsFor(d));
+  const todayIso=new Date().toISOString().slice(0,10);
+  const updateTodo=(id,patch)=>setTodos(p=>p.map(x=>x.id===id?{...x,...patch}:x));
   return(
     <div>
       <SectionHeader icon="✅" title="To-Dos"/>
+      {editTodo&&(
+        <Modal title="Task Details" onClose={()=>setEditTodo(null)}>
+          <Input label="Task" value={editTodo.task} onChange={v=>setEditTodo(p=>({...p,task:v}))} placeholder="Task description"/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Status" value={editTodo.status||"Pending"} onChange={v=>setEditTodo(p=>({...p,status:v}))} options={STATUS_LIST}/>
+            <Sel label="Priority" value={editTodo.priority} onChange={v=>setEditTodo(p=>({...p,priority:v}))} options={["High","Medium","Low"]}/>
+            <Sel label="Scope" value={editTodo.scope} onChange={v=>setEditTodo(p=>({...p,scope:v}))} options={["personal","model"]}/>
+            {editTodo.scope==="model"&&<Sel label="Model" value={editTodo.model||""} onChange={v=>setEditTodo(p=>({...p,model:v}))} options={myModels}/>}
+            <Input label="Due Date" value={editTodo.dueDate||""} onChange={v=>setEditTodo(p=>({...p,dueDate:v}))} type="date"/>
+          </div>
+          <TA label="Notes" value={editTodo.notes||""} onChange={v=>setEditTodo(p=>({...p,notes:v}))} placeholder="Additional context…" rows={3}/>
+          <div style={{display:"flex",gap:8,justifyContent:"space-between",marginTop:4}}>
+            <Btn variant="secondary" size="sm" onClick={()=>{setTodos(p=>p.filter(x=>x.id!==editTodo.id));setEditTodo(null);}}>Delete</Btn>
+            <div style={{display:"flex",gap:8}}>
+              <Btn variant="secondary" size="sm" onClick={()=>setEditTodo(null)}>Cancel</Btn>
+              <Btn size="sm" onClick={()=>{updateTodo(editTodo.id,editTodo);setEditTodo(null);}}>Save</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
       <Card style={{marginBottom:16}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Sel label="Scope" value={form.scope} onChange={v=>setForm(p=>({...p,scope:v}))} options={["personal","model"]}/>
           {form.scope==="model"&&<Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={myModels}/>}
           <Sel label="Priority" value={form.priority} onChange={v=>setForm(p=>({...p,priority:v}))} options={["High","Medium","Low"]}/>
-          <Input label="Due Date" value={form.dueDate} onChange={v=>setForm(p=>({...p,dueDate:v}))} placeholder="" type="date"/>
+          <Input label="Due Date" value={form.dueDate} onChange={v=>setForm(p=>({...p,dueDate:v}))} type="date"/>
         </div>
         <Input label="Task" value={form.task} onChange={v=>setForm(p=>({...p,task:v}))} placeholder="e.g. Schedule mass message"/>
-        <Btn size="sm" onClick={()=>{if(!form.task)return;setTodos(p=>[...p,{...form,id:Date.now(),owner:user.name,done:false,date:today()}]);setForm(p=>({...p,task:"",dueDate:""}));}}>Add Task</Btn>
+        <Btn size="sm" onClick={()=>{if(!form.task)return;setTodos(p=>[...p,{...form,id:Date.now(),owner:user.name,status:"Pending",date:today(),notes:""}]);setForm(p=>({...p,task:"",dueDate:""}));}}>Add Task</Btn>
       </Card>
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         <select value={filterScope} onChange={e=>setFilterScope(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
           {scopeOptions.map(o=><option key={o}>{o}</option>)}
         </select>
+        <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
+          <option>All</option>{STATUS_LIST.map(st=><option key={st}>{st}</option>)}
+        </select>
         <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
           <option value="priority">Sort: Priority</option>
+          <option value="status">Sort: Status</option>
           <option value="dueDate">Sort: Due Date</option>
         </select>
         <div style={{marginLeft:"auto",display:"flex",gap:4,background:C.dark,borderRadius:8,padding:3}}>
-          {[["list","📋 List"],["calendar","📅 Calendar"]].map(([k,l])=>(
+          {[["list","List"],["calendar","Calendar"]].map(([k,l])=>(
             <button key={k} onClick={()=>setViewMode(k)} style={{background:viewMode===k?"linear-gradient(135deg,#7c3aed,#c026d3)":"transparent",color:C.white,border:"none",borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>
           ))}
         </div>
@@ -1065,14 +1095,14 @@ function TodoPanel({user,todos,setTodos,myModels}){
               if(!d)return<div key={`e${i}`}/>;
               const ds=dsFor(d);
               const dayTodos=todosOnDay(d);
-              const isToday=ds===todayDs;
+              const isToday=ds===todayIso;
               return(
-                <div key={d} style={{minHeight:60,background:isToday?"rgba(124,58,237,0.15)":C.dark,borderRadius:6,padding:3,border:isToday?`1px solid ${C.purple}`:"1px solid transparent"}}>
+                <div key={d} style={{minHeight:60,background:isToday?"rgba(124,58,237,0.15)":C.dark,borderRadius:6,padding:3,border:isToday?`1px solid ${C.purple}`:"1px solid rgba(124,58,237,0.08)"}}>
                   <div style={{fontSize:10,fontWeight:isToday?700:400,color:isToday?C.purple:C.muted,marginBottom:2,textAlign:"right"}}>{d}</div>
                   {dayTodos.map(t=>(
-                    <div key={t.id} onClick={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))}
-                      title={`${t.task} — click to complete`}
-                      style={{background:pc[t.priority],color:C.white,borderRadius:3,padding:"1px 4px",fontSize:9,fontWeight:600,marginBottom:1,cursor:"pointer",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <div key={t.id} onClick={()=>setEditTodo({...t})}
+                      title={`${t.task} — click to open`}
+                      style={{background:STATUS_COL[t.status||"Pending"],color:C.white,borderRadius:3,padding:"1px 4px",fontSize:9,fontWeight:600,marginBottom:1,cursor:"pointer",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {t.task}
                     </div>
                   ))}
@@ -1080,47 +1110,50 @@ function TodoPanel({user,todos,setTodos,myModels}){
               );
             })}
           </div>
-          <div style={{display:"flex",gap:12,marginTop:10,fontSize:10,color:C.muted}}>
-            {[["High",C.red],["Medium",C.yellow],["Low",C.green]].map(([l,c])=>(
-              <span key={l} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:c,display:"inline-block"}}></span>{l}</span>
+          <div style={{display:"flex",gap:12,marginTop:10,fontSize:10,color:C.muted,flexWrap:"wrap"}}>
+            {STATUS_LIST.filter(st=>st!=="Complete").map(st=>(
+              <span key={st} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:STATUS_COL[st],display:"inline-block"}}></span>{st}</span>
             ))}
-            <span style={{color:C.muted,marginLeft:4}}>· Click task to complete</span>
+            <span style={{color:C.muted,marginLeft:4}}>· Click to open task</span>
           </div>
         </Card>
       )}
       {viewMode==="list"&&<>
-      {open.length>0&&(
+      {active.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Open · {open.length}</div>
-          {open.map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.04)",border:`1px solid rgba(124,58,237,0.15)`,borderRadius:10,marginBottom:6,borderLeft:`3px solid ${pc[t.priority]}`}}>
-              <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer",width:15,height:15}}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600}}>{t.task}</div>
-                <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
-                  <Badge label={t.priority} color={pc[t.priority]}/>
-                  {t.scope==="model"&&t.model&&<Badge label={t.model} color={C.blue}/>}
-                  {t.dueDate&&<span style={{fontSize:11,color:t.dueDate<today()?C.red:C.muted}}>Due {t.dueDate}</span>}
+          <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Active · {active.length}</div>
+          {active.map(t=>{
+            const st=t.status||"Pending";
+            return(
+              <div key={t.id} onClick={()=>setEditTodo({...t})} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.04)",border:`1px solid rgba(124,58,237,0.15)`,borderRadius:10,marginBottom:6,borderLeft:`3px solid ${pc[t.priority]}`,cursor:"pointer",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.07)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.04)"}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{t.task}</div>
+                  <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+                    <span style={{fontSize:10,fontWeight:700,color:STATUS_COL[st],background:STATUS_COL[st]+"22",padding:"2px 7px",borderRadius:99,border:`1px solid ${STATUS_COL[st]}44`}}>{st}</span>
+                    <Badge label={t.priority} color={pc[t.priority]}/>
+                    {t.scope==="model"&&t.model&&<Badge label={t.model} color={C.blue}/>}
+                    {t.dueDate&&<span style={{fontSize:11,color:t.dueDate<todayIso?C.red:C.muted}}>Due {t.dueDate}</span>}
+                  </div>
                 </div>
+                <span style={{fontSize:10,color:C.muted,flexShrink:0}}>Edit →</span>
               </div>
-              <button onClick={()=>setTodos(p=>p.filter(x=>x.id!==t.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
-      {done.length>0&&(
+      {completed.length>0&&(
         <div>
-          <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Done · {done.length}</div>
-          {done.map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.03)",borderRadius:10,marginBottom:6,opacity:0.6}}>
-              <input type="checkbox" defaultChecked onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:false}:x))} style={{cursor:"pointer"}}/>
+          <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>Complete · {completed.length}</div>
+          {completed.map(t=>(
+            <div key={t.id} onClick={()=>setEditTodo({...t})} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.02)",borderRadius:10,marginBottom:6,opacity:0.55,cursor:"pointer"}}>
+              <span style={{width:16,height:16,borderRadius:4,background:C.green,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:C.white,fontSize:10,fontWeight:800}}>✓</span></span>
               <span style={{flex:1,textDecoration:"line-through",fontSize:13,color:C.muted}}>{t.task}</span>
-              <button onClick={()=>setTodos(p=>p.filter(x=>x.id!==t.id))} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
+              <span style={{fontSize:10,color:C.muted}}>Edit →</span>
             </div>
           ))}
         </div>
       )}
-      {!open.length&&!done.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No to-dos yet</div>}
+      {!active.length&&!completed.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No to-dos yet</div>}
       </>}
     </div>
   );
@@ -1130,7 +1163,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
   const myModels=role==="am"?models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name):models.filter(m=>!m.archived).map(m=>m.name);
   const mySales=sales.filter(s=>role==="am"?myModels.includes(s.model):true);
   const todayRev=mySales.reduce((a,s)=>a+Number(s.amount),0);
-  const myTodos=todos.filter(t=>t.owner===user.name&&!t.done);
+  const myTodos=todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete");
   const overdue=myTodos.filter(t=>t.dueDate&&t.dueDate<new Date().toISOString().slice(0,10));
   const myBrandDeals=brandDeals.filter(d=>(role==="am"?myModels.includes(d.model):true)&&d.status!=="Complete");
   const activeCampaigns=campaigns.filter(c=>(role==="am"?myModels.includes(c.model):true)&&["Live","Scheduled"].includes(c.status));
@@ -1170,35 +1203,37 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
       <div style={{fontSize:24,fontWeight:800,marginBottom:2}}>Welcome back, {user.name} 👋</div>
       <div style={{fontSize:13,color:C.muted,marginBottom:24}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:24}}>
-        <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.green} icon="💰"/>
-        <StatCard label="Open To-Dos" value={myTodos.length} color={overdue.length>0?C.red:C.blue} icon="✅" sub={overdue.length>0?`${overdue.length} overdue`:""}/>
-        <StatCard label="Active Campaigns" value={activeCampaigns.length} color={C.purple} icon="📅"/>
-        {(role==="leadership"||role==="am")&&<StatCard label="Brand Deals" value={myBrandDeals.length} color={C.orange} icon="🤝"/>}
-        {role==="leadership"&&<StatCard label="Avg QA Score" value={avgQA!==null?`${avgQA}%`:"—"} color={avgQA!==null?scoreCol(avgQA):C.muted} icon="🎯" sub={violations>0?`${violations} violations`:""}/>}
-        {(role==="leadership"||role==="am")&&<StatCard label="Snap Revenue" value={todaySnap>0?fmtMoney(todaySnap):"—"} color="#f59e0b" icon="👻" sub="today"/>}
-        {role==="leadership"&&<StatCard label="Total Followers" value={totalFollowers>999?`${(totalFollowers/1000).toFixed(1)}k`:totalFollowers} color="#0ea5e9" icon="📱"/>}
+        <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.green}/>
+        <StatCard label="Open To-Dos" value={myTodos.length} color={overdue.length>0?C.red:C.blue} sub={overdue.length>0?`${overdue.length} overdue`:""}/>
+        <StatCard label="Active Campaigns" value={activeCampaigns.length} color={C.purple}/>
+        {(role==="leadership"||role==="am")&&<StatCard label="Brand Deals" value={myBrandDeals.length} color={C.orange}/>}
+        {role==="leadership"&&<StatCard label="Avg QA Score" value={avgQA!==null?`${avgQA}%`:"—"} color={avgQA!==null?scoreCol(avgQA):C.muted} sub={violations>0?`${violations} violations`:""}/>}
+        {(role==="leadership"||role==="am")&&<StatCard label="Snap Revenue" value={todaySnap>0?fmtMoney(todaySnap):"—"} color="#f59e0b" sub="today"/>}
+        {role==="leadership"&&<StatCard label="Total Followers" value={totalFollowers>999?`${(totalFollowers/1000).toFixed(1)}k`:totalFollowers} color="#0ea5e9"/>}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
         <Card>
           <div style={{fontWeight:700,fontSize:13,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>📋 Open To-Dos</span>
+            <span>Open To-Dos</span>
             <Btn size="sm" variant="secondary" onClick={()=>onAction("todos")}>View all</Btn>
           </div>
           {myTodos.length===0&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
-          {myTodos.slice(0,4).map(t=>(
+          {myTodos.slice(0,4).map(t=>{const st=t.status||"Pending";const sc={Pending:C.muted,["In Progress"]:C.blue,Stuck:C.red,Complete:C.green}[st];return(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-              <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer"}}/>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:600}}>{t.task}</div>
-                {t.dueDate&&<div style={{fontSize:11,color:t.dueDate<new Date().toISOString().slice(0,10)?C.red:C.muted}}>Due {t.dueDate}</div>}
+                <div style={{display:"flex",gap:5,marginTop:3,alignItems:"center"}}>
+                  <span style={{fontSize:10,fontWeight:700,color:sc,background:sc+"22",padding:"1px 6px",borderRadius:99}}>{st}</span>
+                  {t.dueDate&&<span style={{fontSize:11,color:t.dueDate<new Date().toISOString().slice(0,10)?C.red:C.muted}}>Due {t.dueDate}</span>}
+                </div>
               </div>
               <Badge label={t.priority} color={{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}/>
             </div>
-          ))}
+          );})}
         </Card>
         <Card>
           <div style={{fontWeight:700,fontSize:13,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>📅 Active Campaigns</span>
+            <span>Active Campaigns</span>
             <Btn size="sm" variant="secondary" onClick={()=>onAction("campaigns")}>View all</Btn>
           </div>
           {activeCampaigns.length===0&&<div style={{color:C.muted,fontSize:13}}>No active campaigns</div>}
@@ -1215,7 +1250,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
       {(role==="leadership"||role==="am")&&myBrandDeals.length>0&&(
         <Card style={{marginBottom:16}}>
           <div style={{fontWeight:700,fontSize:13,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>🤝 Brand Deals In Progress</span>
+            <span>Brand Deals In Progress</span>
             <Btn size="sm" variant="secondary" onClick={()=>onAction("brand")}>View all</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
@@ -1234,7 +1269,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
         <Card style={{marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontWeight:700,fontSize:13}}>🗓️ Calendar</span>
+              <span style={{fontWeight:700,fontSize:13}}>Calendar</span>
               <select value={calFilter} onChange={e=>setCalFilter(e.target.value)} style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"4px 10px"}}>
                 <option>All</option>{myModels.map(m=><option key={m}>{m}</option>)}
               </select>
@@ -1281,7 +1316,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
         </Card>
       )}
       <Card>
-        <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>⚡ Quick Actions</div>
+        <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>Quick Actions</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <Btn size="sm" onClick={()=>onAction("todos")}>+ New To-Do</Btn>
           <Btn size="sm" variant="secondary" onClick={()=>onAction("campaigns")}>+ Campaign</Btn>
@@ -1298,7 +1333,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
 function SocialMetrics({user,socialMetrics,setSocialMetrics,models,isLeadership,myModels}){
   const PLATFORMS=["TikTok","Instagram","Snapchat","Streaming"];
   const PLAT_ICON={TikTok:"🎵",Instagram:"📸",Snapchat:"👻",Streaming:"🎥"};
-  const PLAT_COL={TikTok:"#000000",Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple};
+  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple};
   const [platform,setPlatform]=useState("TikTok");
   const [fm,setFm]=useState("All");
   const [showAdd,setShowAdd]=useState(false);
@@ -1383,7 +1418,7 @@ function SocialMetrics({user,socialMetrics,setSocialMetrics,models,isLeadership,
 function GrowthCampaigns({user,growthCampaigns,setGrowthCampaigns,models,isLeadership,myModels}){
   const TYPES=["Sound Promo","Trend Tracking","Viral Content","Collab","Paid Promo","Other"];
   const PLATFORMS=["TikTok","Instagram","Snapchat","Streaming"];
-  const PLAT_COL={TikTok:"#000000",Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple};
+  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple};
   const STATUS_COL={Active:C.green,Planned:C.blue,Paused:C.yellow,Complete:C.muted};
   const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
   const [fp,setFp]=useState("All");const [fs,setFs]=useState("All");
@@ -1712,6 +1747,7 @@ function PlatformConnections({models,isLeadership,myModels}){
 function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,socialMetrics,growthCampaigns,modelEvents,setModelEvents,mg,setMg}){
   const [tab,setTab]=useState("home");
   const modelName=user.name;
+  const hasMg=mg.some(m=>m.model===modelName);
   const model=models.find(m=>m.name===modelName);
   const ttk=ttks.find(t=>t.model===modelName);
   const [ttkForm,setTtkForm]=useState(ttk||{voice:"",endearments:"",hardNos:"",offlineTimes:""});
@@ -1754,7 +1790,7 @@ function ModelPortal({user,models,ttks,setTtks,campaigns,brandDeals,content,soci
         <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Hey {modelName}</span>
       </div>
       <div style={{fontSize:13,color:C.muted,marginBottom:20,paddingLeft:2}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-      <Tabs tabs={[["home","Home"],["calendar","Calendar"],["mg","Deliverables"],["brand","Brand Deals"],["invoices","Invoices"],["ttk","My Profile"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["home","Home"],["calendar","Calendar"],...(hasMg?[["mg","Deliverables"]]:[]),["brand","Brand Deals"],["invoices","Invoices"],["ttk","My Profile"],["content","Content"],["growth","Growth"]]} active={tab} onChange={setTab}/>
       {tab==="home"&&(
         <div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12,marginBottom:20}}>
@@ -2352,123 +2388,118 @@ function CustomsTracker({user,customs,setCustoms,models}){
   );
 }
 // ── SOCIAL ANALYTICS (ENHANCED) ──────────────────────────────
-function SocialAnalytics({socialMetrics,contentMetrics,setContentMetrics,models,isLeadership,myModels}){
+function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setContentMetrics,models,isLeadership,myModels}){
   const PLATFORMS=["TikTok","Instagram","Snapchat"];
-  const PLAT_ICON={TikTok:"🎵",Instagram:"📸",Snapchat:"👻"};
+  const PLAT_ICON={TikTok:"TT",Instagram:"IG",Snapchat:"SC"};
   const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b"};
-  const [platform,setPlatform]=useState("TikTok");
-  const [subTab,setSubTab]=useState("overview");
-  const [fm,setFm]=useState("All");
-  const [showAdd,setShowAdd]=useState(false);
   const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
-  const blankPost={model:vm[0]||"",platform,type:"Video",date:new Date().toISOString().slice(0,10),caption:"",views:"",likes:"",comments:"",shares:"",saves:""};
-  const [postForm,setPostForm]=useState(blankPost);
+  const [selModel,setSelModel]=useState(vm[0]||"");
+  const [platform,setPlatform]=useState("TikTok");
+  const [subTab,setSubTab]=useState("metrics");
+  const [showAdd,setShowAdd]=useState(false);
+  const [showLogMetric,setShowLogMetric]=useState(false);
   const pc=PLAT_COL[platform];
+  const blankPost={model:selModel,platform,type:"Video",date:new Date().toISOString().slice(0,10),caption:"",views:"",likes:"",comments:"",shares:"",saves:""};
+  const [postForm,setPostForm]=useState(blankPost);
+  const blankMetric={model:selModel,platform,date:new Date().toISOString().slice(0,10),followers:"",views:"",likes:"",comments:"",shares:"",notes:""};
+  const [metricForm,setMetricForm]=useState(blankMetric);
   const calcChange=(curr,prev,field)=>{if(!prev||!Number(prev[field]))return null;const diff=Number(curr[field])-Number(prev[field]);const pct=Math.round(diff/Number(prev[field])*100);return{diff,pct,up:pct>=0};};
   const fmtChange=(ch)=>{if(!ch)return null;return`${ch.up?"+":""}${ch.pct}%`;};
   const chgCol=(ch)=>ch?(ch.up?C.green:C.red):C.muted;
-  // Get latest and prev-month entries per model
-  const modelStats=vm.map(modelName=>{
-    const entries=socialMetrics.filter(e=>e.model===modelName&&e.platform===platform).sort((a,b)=>b.date.localeCompare(a.date));
-    const latest=entries[0];
-    const prevMonth=entries.find(e=>e.date<(latest?.date||"")&&e.date.slice(0,7)<(latest?.date||"").slice(0,7));
-    const yoy=entries.find(e=>e.date.slice(0,4)<(latest?.date||"").slice(0,4));
-    const followWOW=latest&&prevMonth?calcChange(latest,prevMonth,"followers"):null;
-    const followMOM=latest&&prevMonth?calcChange(latest,prevMonth,"followers"):null;
-    const viewMOM=latest&&prevMonth?calcChange(latest,prevMonth,"views"):null;
-    const engMOM=latest&&prevMonth?calcChange(latest,prevMonth,"likes"):null;
-    return{modelName,latest,prevMonth,yoy,followWOW,followMOM,viewMOM,engMOM};
-  }).filter(s=>s.latest);
-  const totals=modelStats.reduce((a,s)=>{a.followers+=Number(s.latest?.followers||0);a.views+=Number(s.latest?.views||0);a.likes+=Number(s.latest?.likes||0);return a;},{followers:0,views:0,likes:0});
-  const prevTotals=modelStats.reduce((a,s)=>{a.followers+=Number(s.prevMonth?.followers||0);a.views+=Number(s.prevMonth?.views||0);a.likes+=Number(s.prevMonth?.likes||0);return a;},{followers:0,views:0,likes:0});
-  const totalFollowCh=prevTotals.followers?calcChange({followers:totals.followers},{followers:prevTotals.followers},"followers"):null;
-  const totalViewCh=prevTotals.views?calcChange({views:totals.views},{views:prevTotals.views},"views"):null;
-  // Individual content
-  const myContent=contentMetrics.filter(c=>c.platform===platform&&(fm==="All"||c.model===fm)&&vm.includes(c.model)).sort((a,b)=>b.date.localeCompare(a.date));
-  const ChgPill=({ch})=>ch?(<span style={{fontSize:10,fontWeight:700,color:chgCol(ch),background:chgCol(ch)+"18",padding:"2px 6px",borderRadius:99,marginLeft:4}}>{fmtChange(ch)}</span>):null;
+  // Per-model, per-platform entries
+  const modelEntries=socialMetrics.filter(e=>e.model===selModel&&e.platform===platform).sort((a,b)=>b.date.localeCompare(a.date));
+  const latest=modelEntries[0];
+  const prevMonth=modelEntries.find(e=>e.date<(latest?.date||"")&&e.date.slice(0,7)<(latest?.date||"").slice(0,7));
+  const followCh=latest&&prevMonth?calcChange(latest,prevMonth,"followers"):null;
+  const viewCh=latest&&prevMonth?calcChange(latest,prevMonth,"views"):null;
+  const likesCh=latest&&prevMonth?calcChange(latest,prevMonth,"likes"):null;
+  const commentsCh=latest&&prevMonth?calcChange(latest,prevMonth,"comments"):null;
+  // Content feed for this model + platform
+  const modelContent=contentMetrics.filter(c=>c.model===selModel&&c.platform===platform).sort((a,b)=>b.date.localeCompare(a.date));
+  const ChgPill=({ch})=>{if(!ch)return null;const up=ch.up;return(<span style={{display:"inline-flex",alignItems:"center",gap:2,fontSize:10,fontWeight:700,color:up?C.green:C.red,background:(up?C.green:C.red)+"18",padding:"2px 6px",borderRadius:99,marginLeft:6}}>{up?"↑":"↓"}{Math.abs(ch.pct)}%</span>);};
+  const MetricTile=({label,value,ch,fmt=(v)=>v>999?`${(v/1000).toFixed(1)}k`:v})=>(
+    <div style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${pc}28`,borderRadius:12,padding:"14px 16px"}}>
+      <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>{label}</div>
+      <div style={{fontSize:26,fontWeight:800,color:pc,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{value!=null?fmt(value):"—"}</div>
+      {ch&&<div style={{marginTop:4,display:"flex",alignItems:"center",fontSize:11,color:chgCol(ch)}}>{ch.up?"↑":"↓"} {Math.abs(ch.pct)}% vs last month</div>}
+    </div>
+  );
   return(
     <div>
       <SectionHeader icon="📱" title="Social Analytics"/>
+      {/* Model selector */}
+      <div style={{display:"flex",gap:8,marginBottom:20,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{fontSize:12,color:C.muted,fontWeight:600}}>Account:</div>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          {vm.map(m=>(
+            <button key={m} onClick={()=>setSelModel(m)} style={{padding:"6px 14px",borderRadius:99,border:selModel===m?`1px solid ${C.purple}`:"1px solid rgba(255,255,255,0.12)",background:selModel===m?"rgba(124,58,237,0.25)":"rgba(255,255,255,0.05)",color:selModel===m?C.white:C.muted,fontSize:12,fontWeight:selModel===m?700:500,cursor:"pointer",transition:"all 0.15s"}}>{m}</button>
+          ))}
+        </div>
+      </div>
+      {/* Platform tabs */}
       <div style={{display:"flex",gap:4,marginBottom:20,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4}}>
         {PLATFORMS.map(p=>(
-          <button key={p} onClick={()=>{setPlatform(p);setSubTab("overview");}} style={{flex:1,padding:"9px 4px",borderRadius:9,border:platform===p?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:platform===p?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:platform===p?C.white:C.muted,fontWeight:platform===p?700:500,fontSize:13,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <span>{PLAT_ICON[p]}</span>{p}
+          <button key={p} onClick={()=>{setPlatform(p);setSubTab("metrics");}} style={{flex:1,padding:"9px 4px",borderRadius:9,border:platform===p?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:platform===p?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:platform===p?C.white:C.muted,fontWeight:platform===p?700:500,fontSize:13,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <span style={{fontWeight:800,fontSize:11,letterSpacing:"0.05em"}}>{PLAT_ICON[p]}</span>{p}
           </button>
         ))}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-        <Card style={{padding:"16px 14px",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:-6,right:-6,opacity:0.05}}><StarMark size={40} color={pc}/></div>
-          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Total Followers</div>
-          <div style={{fontSize:24,fontWeight:800,color:pc,letterSpacing:"-0.02em",fontFamily:"'DM Sans',sans-serif"}}>{totals.followers>999?`${(totals.followers/1000).toFixed(1)}k`:totals.followers||"—"}</div>
-          <ChgPill ch={totalFollowCh}/>
-          <div style={{fontSize:10,color:C.muted,marginTop:4}}>vs last month</div>
-        </Card>
-        <Card style={{padding:"16px 14px",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:-6,right:-6,opacity:0.05}}><StarMark size={40} color={pc}/></div>
-          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{platform==="Instagram"?"Total Likes":"Total Views"}</div>
-          <div style={{fontSize:24,fontWeight:800,color:pc,letterSpacing:"-0.02em",fontFamily:"'DM Sans',sans-serif"}}>{platform==="Instagram"?(totals.likes>999?`${(totals.likes/1000).toFixed(1)}k`:totals.likes||"—"):(totals.views>999?`${(totals.views/1000).toFixed(1)}k`:totals.views||"—")}</div>
-          <ChgPill ch={platform==="Instagram"?null:totalViewCh}/>
-          <div style={{fontSize:10,color:C.muted,marginTop:4}}>vs last month</div>
-        </Card>
-        <Card style={{padding:"16px 14px",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:-6,right:-6,opacity:0.05}}><StarMark size={40} color={pc}/></div>
-          <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Accounts Tracked</div>
-          <div style={{fontSize:24,fontWeight:800,color:pc,letterSpacing:"-0.02em",fontFamily:"'DM Sans',sans-serif"}}>{modelStats.length}</div>
-          <div style={{fontSize:10,color:C.muted,marginTop:10}}>active models</div>
-        </Card>
-      </div>
+      {/* Sub-tabs */}
       <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4,marginBottom:20}}>
-        {[["overview","Overview"],["content","Content Feed"],["log","Log Metrics"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setSubTab(k)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:subTab===k?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:subTab===k?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:subTab===k?C.white:C.muted,fontWeight:subTab===k?700:500,fontSize:12,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif"}}>
-            {l}
-          </button>
+        {[["metrics","Account Metrics"],["content","Content Feed"],["log","Log Metrics"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSubTab(k)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:subTab===k?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:subTab===k?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:subTab===k?C.white:C.muted,fontWeight:subTab===k?700:500,fontSize:12,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
         ))}
       </div>
-      {subTab==="overview"&&(
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {modelStats.map(s=>(
-            <Card key={s.modelName} style={{borderLeft:`3px solid ${pc}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-                <div style={{fontWeight:700,fontSize:15,fontFamily:"'Playfair Display',Georgia,serif"}}>{s.modelName}</div>
-                <div style={{fontSize:11,color:C.muted}}>{s.latest?.date}</div>
+      {subTab==="metrics"&&(
+        <div>
+          {!latest&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"40px 0"}}>No {platform} metrics logged for {selModel} yet. Use "Log Metrics" to add data.</div>}
+          {latest&&(
+            <>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+                <div style={{fontSize:12,color:C.muted}}>Latest data: <span style={{color:C.text,fontWeight:600}}>{latest.date}</span></div>
+                {prevMonth&&<div style={{fontSize:12,color:C.muted}}>vs: <span style={{fontWeight:600}}>{prevMonth.date}</span></div>}
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10}}>
-                {[
-                  {label:"Followers",val:s.latest?.followers,ch:s.followMOM,fmt:(v)=>v>999?`${(v/1000).toFixed(1)}k`:v},
-                  ...(platform!=="Instagram"?[{label:"Views",val:s.latest?.views,ch:s.viewMOM,fmt:(v)=>v>999?`${(v/1000).toFixed(1)}k`:v}]:[]),
-                  {label:"Likes",val:s.latest?.likes,ch:s.engMOM,fmt:(v)=>v>999?`${(v/1000).toFixed(1)}k`:v},
-                  {label:"Comments",val:s.latest?.comments,ch:null,fmt:(v)=>v},
-                  ...(platform!=="Instagram"?[{label:"Shares",val:s.latest?.shares,ch:null,fmt:(v)=>v}]:[]),
-                ].map(({label,val,ch,fmt})=>(
-                  <div key={label} style={{background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
-                    <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{label}</div>
-                    <div style={{fontSize:18,fontWeight:800,color:pc,fontFamily:"'DM Sans',sans-serif"}}>{val!=null?fmt(val):"—"}</div>
-                    {ch&&<div style={{fontSize:10,color:chgCol(ch),fontWeight:700,marginTop:2}}>{fmtChange(ch)} MOM</div>}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:24}}>
+                <MetricTile label="Followers" value={Number(latest.followers||0)} ch={followCh}/>
+                {platform!=="Instagram"&&<MetricTile label="Views" value={Number(latest.views||0)} ch={viewCh}/>}
+                <MetricTile label="Likes" value={Number(latest.likes||0)} ch={likesCh}/>
+                <MetricTile label="Comments" value={Number(latest.comments||0)} ch={commentsCh}/>
+                {platform!=="Instagram"&&<MetricTile label="Shares" value={Number(latest.shares||0)}/>}
+              </div>
+              {modelEntries.length>1&&(
+                <Card>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:12,fontFamily:"'Playfair Display',Georgia,serif"}}>History</div>
+                  <div style={{overflowX:"auto"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                      <thead><tr style={{background:"rgba(124,58,237,0.15)",color:C.muted}}><th style={{padding:"8px 12px",textAlign:"left",fontWeight:700}}>Date</th><th style={{padding:"8px 12px",textAlign:"right"}}>Followers</th>{platform!=="Instagram"&&<th style={{padding:"8px 12px",textAlign:"right"}}>Views</th>}<th style={{padding:"8px 12px",textAlign:"right"}}>Likes</th><th style={{padding:"8px 12px",textAlign:"right"}}>Comments</th></tr></thead>
+                      <tbody>{modelEntries.map((e,i)=>(
+                        <tr key={e.id||i} style={{borderBottom:`1px solid ${C.border}`,background:i%2===0?"rgba(255,255,255,0.03)":"transparent"}}>
+                          <td style={{padding:"7px 12px",color:C.muted}}>{e.date}</td>
+                          <td style={{padding:"7px 12px",textAlign:"right",fontWeight:600,color:pc}}>{Number(e.followers||0).toLocaleString()}</td>
+                          {platform!=="Instagram"&&<td style={{padding:"7px 12px",textAlign:"right",color:C.text}}>{Number(e.views||0).toLocaleString()}</td>}
+                          <td style={{padding:"7px 12px",textAlign:"right",color:C.text}}>{Number(e.likes||0).toLocaleString()}</td>
+                          <td style={{padding:"7px 12px",textAlign:"right",color:C.muted}}>{Number(e.comments||0).toLocaleString()}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
                   </div>
-                ))}
-              </div>
-              {s.latest?.notes&&<div style={{fontSize:12,color:C.muted,marginTop:10,fontStyle:"italic"}}>{s.latest.notes}</div>}
-            </Card>
-          ))}
-          {!modelStats.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No {platform} metrics logged yet</div>}
+                </Card>
+              )}
+            </>
+          )}
         </div>
       )}
       {subTab==="content"&&(
         <div>
-          <div style={{display:"flex",gap:8,marginBottom:16}}>
-            <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>
-              <option>All</option>{vm.map(m=><option key={m}>{m}</option>)}
-            </select>
-            <Btn size="sm" onClick={()=>{setPostForm({...blankPost,platform});setShowAdd(true);}}>+ Log Post</Btn>
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
+            <Btn size="sm" onClick={()=>{setPostForm({...blankPost,model:selModel,platform});setShowAdd(true);}}>+ Log Post</Btn>
           </div>
           {showAdd&&(
-            <Modal title={`Log ${platform} Post`} onClose={()=>setShowAdd(false)}>
+            <Modal title={`Log ${platform} Post — ${selModel}`} onClose={()=>setShowAdd(false)}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <Sel label="Model" value={postForm.model} onChange={v=>setPostForm(p=>({...p,model:v}))} options={vm}/>
                 <Sel label="Type" value={postForm.type} onChange={v=>setPostForm(p=>({...p,type:v}))} options={platform==="TikTok"?["Video","Live"]:platform==="Instagram"?["Reel","Photo","Story","Carousel"]:["Story","Spotlight"]}/>
                 <Input label="Date" value={postForm.date} onChange={v=>setPostForm(p=>({...p,date:v}))} type="date"/>
-                <Input label="Caption/Title" value={postForm.caption} onChange={v=>setPostForm(p=>({...p,caption:v}))} placeholder="Caption preview…"/>
+                <div style={{gridColumn:"1/-1"}}><Input label="Caption / Title" value={postForm.caption} onChange={v=>setPostForm(p=>({...p,caption:v}))} placeholder="Caption preview…"/></div>
                 {platform!=="Instagram"&&<Input label="Views" value={postForm.views} onChange={v=>setPostForm(p=>({...p,views:v}))} placeholder="45000" type="number"/>}
                 <Input label="Likes" value={postForm.likes} onChange={v=>setPostForm(p=>({...p,likes:v}))} placeholder="3200" type="number"/>
                 <Input label="Comments" value={postForm.comments} onChange={v=>setPostForm(p=>({...p,comments:v}))} placeholder="180" type="number"/>
@@ -2476,12 +2507,12 @@ function SocialAnalytics({socialMetrics,contentMetrics,setContentMetrics,models,
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}>
                 <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
-                <Btn size="sm" onClick={()=>{if(!postForm.caption)return;const tot=Number(postForm.likes||0)+Number(postForm.comments||0)+Number(postForm.shares||0)+Number(postForm.saves||0);const base=Number(postForm.views||0)||Number(postForm.likes||0)*5||1;const er=Math.round(tot/base*100*10)/10;setContentMetrics(p=>[{...postForm,id:Date.now(),views:Number(postForm.views||0),likes:Number(postForm.likes||0),comments:Number(postForm.comments||0),shares:Number(postForm.shares||0),saves:Number(postForm.saves||0),engRate:er},...p]);setShowAdd(false);}}>Save Post</Btn>
+                <Btn size="sm" onClick={()=>{if(!postForm.caption)return;const tot=Number(postForm.likes||0)+Number(postForm.comments||0)+Number(postForm.shares||0)+Number(postForm.saves||0);const base=Number(postForm.views||0)||Number(postForm.likes||0)*5||1;const er=Math.round(tot/base*100*10)/10;setContentMetrics(p=>[{...postForm,id:Date.now(),model:selModel,views:Number(postForm.views||0),likes:Number(postForm.likes||0),comments:Number(postForm.comments||0),shares:Number(postForm.shares||0),saves:Number(postForm.saves||0),engRate:er},...p]);setShowAdd(false);}}>Save Post</Btn>
               </div>
             </Modal>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {myContent.map(c=>{
+            {modelContent.map(c=>{
               const engTot=c.likes+c.comments+c.shares+c.saves;
               const engBase=c.views||c.likes*5||1;
               const er=c.engRate||(Math.round(engTot/engBase*100*10)/10);
@@ -2490,18 +2521,15 @@ function SocialAnalytics({socialMetrics,contentMetrics,setContentMetrics,models,
                 <Card key={c.id} style={{borderLeft:`3px solid ${pc}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:10}}>
                     <div>
-                      <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>{c.caption}</div>
-                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                        <Badge label={c.model} color={C.blue}/>
+                      <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>{c.caption}</div>
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
                         <Badge label={c.type} color={pc}/>
                         <span style={{fontSize:11,color:C.muted}}>{c.date}</span>
                       </div>
                     </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:11,fontWeight:700,color:erCol,background:erCol+"18",padding:"3px 8px",borderRadius:99}}>{er}% eng rate</div>
-                    </div>
+                    <div style={{fontSize:11,fontWeight:700,color:erCol,background:erCol+"18",padding:"3px 10px",borderRadius:99}}>{er}% eng</div>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(70px,1fr))",gap:8}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(65px,1fr))",gap:8}}>
                     {platform!=="Instagram"&&<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.views>999?`${(c.views/1000).toFixed(1)}k`:c.views}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Views</div></div>}
                     <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.likes>999?`${(c.likes/1000).toFixed(1)}k`:c.likes}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Likes</div></div>
                     <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.comments}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Comments</div></div>
@@ -2510,12 +2538,34 @@ function SocialAnalytics({socialMetrics,contentMetrics,setContentMetrics,models,
                 </Card>
               );
             })}
-            {!myContent.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No {platform} content logged yet. Click "+ Log Post" to add.</div>}
+            {!modelContent.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No {platform} content logged for {selModel} yet.</div>}
           </div>
         </div>
       )}
       {subTab==="log"&&(
-        <SocialMetrics user={{name:"log"}} socialMetrics={socialMetrics} setSocialMetrics={()=>{}} models={models} isLeadership={isLeadership} myModels={vm}/>
+        <div>
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
+            <Btn size="sm" onClick={()=>{setMetricForm({...blankMetric,model:selModel,platform});setShowLogMetric(true);}}>+ Log Metrics</Btn>
+          </div>
+          {showLogMetric&&(
+            <Modal title={`Log ${platform} Metrics — ${selModel}`} onClose={()=>setShowLogMetric(false)}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <Input label="Date" value={metricForm.date} onChange={v=>setMetricForm(p=>({...p,date:v}))} type="date"/>
+                <Input label="Followers" value={metricForm.followers} onChange={v=>setMetricForm(p=>({...p,followers:v}))} placeholder="45000" type="number"/>
+                {platform!=="Instagram"&&<Input label="Views" value={metricForm.views} onChange={v=>setMetricForm(p=>({...p,views:v}))} placeholder="120000" type="number"/>}
+                <Input label="Likes" value={metricForm.likes} onChange={v=>setMetricForm(p=>({...p,likes:v}))} placeholder="8400" type="number"/>
+                <Input label="Comments" value={metricForm.comments} onChange={v=>setMetricForm(p=>({...p,comments:v}))} placeholder="340" type="number"/>
+                {platform!=="Instagram"&&<Input label="Shares" value={metricForm.shares} onChange={v=>setMetricForm(p=>({...p,shares:v}))} placeholder="1200" type="number"/>}
+              </div>
+              <Input label="Notes" value={metricForm.notes} onChange={v=>setMetricForm(p=>({...p,notes:v}))} placeholder="Any context…"/>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                <Btn variant="secondary" size="sm" onClick={()=>setShowLogMetric(false)}>Cancel</Btn>
+                <Btn size="sm" onClick={()=>{if(!metricForm.followers)return;setSocialMetrics(p=>[{...metricForm,id:Date.now(),model:selModel,platform},...p]);setShowLogMetric(false);}}>Save</Btn>
+              </div>
+            </Modal>
+          )}
+          <SocialMetrics user={{name:"log"}} socialMetrics={socialMetrics.filter(e=>e.model===selModel)} setSocialMetrics={()=>{}} models={models} isLeadership={isLeadership} myModels={[selModel]}/>
+        </div>
       )}
     </div>
   );
@@ -2530,16 +2580,42 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
   const [newDel,setNewDel]=useState("");
   const myMg=isLeadership||isAM?mg:mg.filter(m=>m.model===user.name);
   const selMg=myMg.find(m=>(isLeadership||isAM?m.model===selModel:m.model===user.name)&&m.period===period);
-  const toggleDel=(mgId,delId)=>setMg(p=>p.map(m=>m.id===mgId?{...m,deliverables:m.deliverables.map(d=>d.id===delId?{...d,done:!d.done}:d)}:m));
   const pct=selMg?Math.round(selMg.deliverables.filter(d=>d.done).length/Math.max(selMg.deliverables.length,1)*100):0;
   const pctCol=pct===100?C.green:pct>=50?C.yellow:C.red;
-  const addMg=()=>{if(!mgForm.model||!mgForm.mgAmount)return;setMg(p=>[...p,{...mgForm,id:Date.now(),mgAmount:Number(mgForm.mgAmount),deliverables:mgForm.deliverables.map((d,i)=>({id:i+1,label:d,done:false,notes:""}))}]);setShowAdd(false);setMgForm({model:vm[0]||"",mgAmount:"",period:new Date().toISOString().slice(0,7),deliverables:[]});setNewDel("");};
+  const addMg=()=>{if(!mgForm.model||!mgForm.mgAmount)return;setMg(p=>[...p,{...mgForm,id:Date.now(),mgAmount:Number(mgForm.mgAmount),deliverables:mgForm.deliverables.map((d,i)=>({id:i+1,label:d,done:false,notes:"",fileUrl:null}))}]);setShowAdd(false);setMgForm({model:vm[0]||"",mgAmount:"",period:new Date().toISOString().slice(0,7),deliverables:[]});setNewDel("");};
+  const uploadFile=(mgId,delId,file)=>{if(!file)return;const reader=new FileReader();reader.onload=e=>setMg(p=>p.map(m=>m.id===mgId?{...m,deliverables:m.deliverables.map(d=>d.id===delId?{...d,fileUrl:e.target.result,done:true}:d)}:m));reader.readAsDataURL(file);};
+  const toggleDel=(mgId,delId)=>setMg(p=>p.map(m=>m.id===mgId?{...m,deliverables:m.deliverables.map(d=>d.id===delId?{...d,done:!d.done}:d)}:m));
+  const DeliverableRow=({d,mgId,canUpload})=>(
+    <div key={d.id} style={{padding:"12px 0",borderBottom:`1px solid ${C.border}`}}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+        <div style={{width:22,height:22,borderRadius:6,background:d.done?C.green:"rgba(255,255,255,0.08)",border:`1.5px solid ${d.done?C.green:"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+          {d.done&&<span style={{color:C.white,fontSize:12,fontWeight:700}}>✓</span>}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:600,color:d.done?C.muted:C.text,textDecoration:d.done?"line-through":"none"}}>{d.label}</div>
+          {d.notes&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{d.notes}</div>}
+          {d.fileUrl&&(
+            <div style={{marginTop:8}}>
+              <img src={d.fileUrl} alt="screenshot" style={{maxWidth:"100%",maxHeight:120,borderRadius:8,border:`1px solid ${C.border}`,display:"block",objectFit:"cover"}}/>
+              <div style={{fontSize:10,color:C.green,marginTop:4,fontWeight:600}}>Screenshot uploaded</div>
+            </div>
+          )}
+          {canUpload&&!d.fileUrl&&(
+            <label style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:8,cursor:"pointer",fontSize:11,fontWeight:600,color:C.purple,background:"rgba(124,58,237,0.12)",border:"1px solid rgba(124,58,237,0.3)",borderRadius:7,padding:"4px 10px"}}>
+              Upload Screenshot
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>uploadFile(mgId,d.id,e.target.files[0])}/>
+            </label>
+          )}
+        </div>
+        <Badge label={d.done?"Done":"Pending"} color={d.done?C.green:C.yellow}/>
+      </div>
+    </div>
+  );
   return(
     <div>
       <SectionHeader icon="📋" title="MG Deliverables" action={(isLeadership||isAM)&&<Btn size="sm" onClick={()=>setShowAdd(true)}>+ New MG</Btn>}/>
       <Card style={{marginBottom:16,background:"rgba(124,58,237,0.06)",border:"1px solid rgba(124,58,237,0.25)"}}>
-        <div style={{fontSize:12,color:C.muted,marginBottom:2}}>Track monthly paywall deliverables against a model's Minimum Guarantee (MG).</div>
-        <div style={{fontSize:12,color:C.muted}}>Models check off completed deliverables. AM & Leadership have full visibility.</div>
+        <div style={{fontSize:12,color:C.muted}}>Track monthly paywall deliverables against a model's Minimum Guarantee (MG). Models upload screenshots as proof. AM & Leadership have full visibility.</div>
       </Card>
       {showAdd&&(
         <Modal title="Set Up MG Deliverables" onClose={()=>setShowAdd(false)} width={520}>
@@ -2578,8 +2654,8 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
           <input type="month" value={period} onChange={e=>setPeriod(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}/>
         </div>
       )}
-      {(isLeadership||isAM)&&!selMg&&myMg.length>0&&(
-        <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"24px 0"}}>No MG found for {selModel} in {period}</div>
+      {(isLeadership||isAM)&&!selMg&&(
+        <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"24px 0"}}>{myMg.length===0?"No MG deliverables set up yet. Click \"+ New MG\" to get started.":`No MG found for ${selModel} in ${period}`}</div>
       )}
       {(isLeadership||isAM)&&selMg&&(
         <Card>
@@ -2595,18 +2671,7 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
               <Badge label={`${pct}%`} color={pctCol}/>
             </div>
           </div>
-          {selMg.deliverables.map(d=>(
-            <div key={d.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
-              <div style={{width:22,height:22,borderRadius:6,background:d.done?C.green:"rgba(255,255,255,0.08)",border:`1.5px solid ${d.done?C.green:"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {d.done&&<span style={{color:C.white,fontSize:13,fontWeight:700}}>✓</span>}
-              </div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:d.done?C.muted:C.text,textDecoration:d.done?"line-through":"none"}}>{d.label}</div>
-                {d.notes&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{d.notes}</div>}
-              </div>
-              <Badge label={d.done?"Done":"Pending"} color={d.done?C.green:C.yellow}/>
-            </div>
-          ))}
+          {selMg.deliverables.map(d=><DeliverableRow key={d.id} d={d} mgId={selMg.id} canUpload={false}/>)}
         </Card>
       )}
       {!isLeadership&&!isAM&&(
@@ -2628,24 +2693,13 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
                     <Badge label={`${p}%`} color={pc}/>
                   </div>
                 </div>
-                {m.deliverables.map(d=>(
-                  <div key={d.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <button onClick={()=>toggleDel(m.id,d.id)} style={{width:24,height:24,borderRadius:7,background:d.done?C.green:"rgba(255,255,255,0.06)",border:`1.5px solid ${d.done?C.green:"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.2s"}}>
-                      {d.done&&<span style={{color:C.white,fontSize:13,fontWeight:700}}>✓</span>}
-                    </button>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:600,color:d.done?C.muted:C.text,textDecoration:d.done?"line-through":"none"}}>{d.label}</div>
-                    </div>
-                    <Badge label={d.done?"Done":"Pending"} color={d.done?C.green:C.yellow}/>
-                  </div>
-                ))}
+                {m.deliverables.map(d=><DeliverableRow key={d.id} d={d} mgId={m.id} canUpload={true}/>)}
               </Card>
             );
           })}
           {!myMg.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No MG deliverables set up for you yet. Your AM or Leadership team will configure these.</div>}
         </div>
       )}
-      {(isLeadership||isAM)&&!myMg.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No MG deliverables set up yet. Click "+ New MG" to get started.</div>}
     </div>
   );
 }
@@ -2860,7 +2914,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
       {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
       {section==="social"&&<div>
         <Tabs tabs={[["analytics","Analytics"],["metrics","Log Metrics"],["growth","Growth"],["snap","Snapchat Rev"],["connect","API Connections"]]} active={["analytics","metrics","growth","snap","connect"].includes(tab)?tab:"analytics"} onChange={setTab}/>
-        {(tab==="analytics"||(!["analytics","metrics","growth","snap","connect"].includes(tab)))&&<SocialAnalytics socialMetrics={socialMetrics} contentMetrics={contentMetrics} setContentMetrics={setContentMetrics} models={models} isLeadership={true} myModels={allModels}/>}
+        {(tab==="analytics"||(!["analytics","metrics","growth","snap","connect"].includes(tab)))&&<SocialAnalytics socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} contentMetrics={contentMetrics} setContentMetrics={setContentMetrics} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="metrics"&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={true} myModels={allModels}/>}
         {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={true} myModels={allModels}/>}
@@ -2973,15 +3027,15 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
             </Card>
           );})}
           <div style={{marginTop:20,fontSize:14,fontWeight:700,marginBottom:12}}>Open To-Dos</div>
-          {todos.filter(t=>t.owner===user.name&&!t.done).slice(0,3).map(t=>(
+          {todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete").slice(0,3).map(t=>{const st=t.status||"Pending";const sc={Pending:C.muted,["In Progress"]:C.blue,Stuck:C.red,Complete:C.green}[st];return(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(255,255,255,0.04)",border:`1px solid rgba(124,58,237,0.15)`,borderRadius:10,marginBottom:6,borderLeft:`3px solid ${{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}`}}>
-              <input type="checkbox" onChange={()=>setTodos(p=>p.map(x=>x.id===t.id?{...x,done:true}:x))} style={{cursor:"pointer"}}/>
+              <span style={{fontSize:10,fontWeight:700,color:sc,background:sc+"22",padding:"2px 7px",borderRadius:99,flexShrink:0}}>{st}</span>
               <div style={{flex:1,fontSize:13,fontWeight:600}}>{t.task}</div>
               {t.model&&<Badge label={t.model} color={C.blue}/>}
               <Badge label={t.priority} color={{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}/>
             </div>
-          ))}
-          {!todos.filter(t=>t.owner===user.name&&!t.done).length&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
+          );})}
+          {!todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete").length&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
         </div>}
         {tab==="ttk"&&<TTKEditor user={user} ttks={ttks} setTtks={setTtks} myModels={myModels}/>}
         {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} isLeadership={false} isAM={true}/>}
@@ -3023,7 +3077,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
       {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
       {section==="social"&&<div>
         <Tabs tabs={[["analytics","Analytics"],["metrics","Log Metrics"],["growth","Growth"],["snap","Snapchat Rev"],["connect","API Connections"]]} active={["analytics","metrics","growth","snap","connect"].includes(tab)?tab:"analytics"} onChange={setTab}/>
-        {(tab==="analytics"||(!["analytics","metrics","growth","snap","connect"].includes(tab)))&&<SocialAnalytics socialMetrics={socialMetrics} contentMetrics={contentMetrics} setContentMetrics={setContentMetrics} models={models} isLeadership={false} myModels={myModels}/>}
+        {(tab==="analytics"||(!["analytics","metrics","growth","snap","connect"].includes(tab)))&&<SocialAnalytics socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} contentMetrics={contentMetrics} setContentMetrics={setContentMetrics} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="metrics"&&<SocialMetrics user={user} socialMetrics={socialMetrics} setSocialMetrics={setSocialMetrics} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="growth"&&<GrowthCampaigns user={user} growthCampaigns={growthCampaigns} setGrowthCampaigns={setGrowthCampaigns} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="snap"&&<SnapRevenue user={user} snapRevenue={snapRevenue} setSnapRevenue={setSnapRevenue} models={models} isLeadership={false} myModels={myModels}/>}
@@ -3057,7 +3111,7 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
         <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.pink}/>
         <StatCard label="Sales" value={mySales.length} color={C.purple}/>
         <StatCard label="QA Score" value={avgQA!==null?`${avgQA}%`:"—"} color={avgQA!==null?scoreCol(avgQA):C.muted}/>
-        <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&!t.done).length} color={C.blue}/>
+        <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete").length} color={C.blue}/>
       </div>
       <Tabs tabs={[["sales","Sales"],["customs","Customs"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
@@ -3117,7 +3171,7 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
         <StatCard label="Revenue Today" value={fmtMoney(todayRev)} color={C.green}/>
         <StatCard label="QA Reviews" value={qaLogs.filter(q=>q.reviewer===user.name).length} color={C.purple}/>
-        <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&!t.done).length} color={C.blue}/>
+        <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete").length} color={C.blue}/>
       </div>
       <Tabs tabs={[["sales","Sales"],["customs","Customs"],["qa","QA Reviews"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
