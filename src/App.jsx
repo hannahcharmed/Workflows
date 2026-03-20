@@ -24,6 +24,53 @@ const OUTREACH_GROUPS=["Subs","Whales","Online Fans","VIPs","Recent Spenders L7"
 function today(){return new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
 function fmtMoney(n){return"$"+Number(n).toLocaleString();}
 function generateTag(t,th,ti,o){return`${t||"PS"}-${(th||"Untitled").replace(/\s+/g,"")}-${ti||"$"}-${o||1}`;}
+// ── ANALYTICS HELPERS ─────────────────────────────────────────
+// Contract: format a raw metric number to human-readable string
+function fmtMetricVal(n){const num=Number(n||0);return num>=1000?`${(num/1000).toFixed(1)}k`:String(num);}
+// Contract: compute engagement rate from raw counts
+function calcEngRate(likes,comments,shares,saves,views){
+  const eng=Number(likes||0)+Number(comments||0)+Number(shares||0)+Number(saves||0);
+  const base=Number(views||0)||Number(likes||0)*5||1;
+  return Math.round(eng/base*100*10)/10;
+}
+// Contract: compute pct change between two metric entries on a given field
+// Returns {pct, up, diff} or null if no valid baseline
+function calcPctChange(curr,prev,field){
+  const c=Number(curr?.[field]||0);const p=Number(prev?.[field]||0);
+  if(!p)return null;
+  const pct=Math.round((c-p)/p*100);
+  return{pct,up:pct>=0,diff:c-p};
+}
+// Contract: derive date boundary strings for WOW / MOM / YOY periods
+function getPeriodDates(period){
+  const now=new Date();
+  const todayStr=now.toISOString().slice(0,10);
+  const thisMonthStr=todayStr.slice(0,7);
+  const lastMonthStr=new Date(now.getFullYear(),now.getMonth()-1,1).toISOString().slice(0,7);
+  const lastYearMonthStr=new Date(now.getFullYear()-1,now.getMonth(),1).toISOString().slice(0,7);
+  const thisWeekStart=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+  const lastWeekStart=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
+  return{thisMonthStr,lastMonthStr,lastYearMonthStr,thisWeekStart,lastWeekStart};
+}
+// Contract: returns latest metric entry keyed by "model|platform"
+function getLatestMetricsByKey(metrics){
+  const latest={};
+  metrics.forEach(m=>{const k=`${m.model}|${m.platform}`;if(!latest[k]||m.date>latest[k].date)latest[k]=m;});
+  return latest;
+}
+// Contract: returns most-recent previous-month entry per key, given the latest map
+function getPrevMetricsByKey(metrics,latestMap){
+  const prev={};
+  metrics.filter(e=>{const lat=latestMap[`${e.model}|${e.platform}`];return lat&&e.date<lat.date&&e.date.slice(0,7)<lat.date.slice(0,7);})
+    .forEach(m=>{const k=`${m.model}|${m.platform}`;if(!prev[k]||m.date>prev[k].date)prev[k]=m;});
+  return prev;
+}
+// Contract: renders a ↑/↓ percentage-change badge; pct is a signed integer; returns null when pct is null/undefined
+const ChgBadge=({pct})=>{
+  if(pct===null||pct===undefined)return null;
+  const up=pct>=0;
+  return(<span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:11,fontWeight:700,color:up?C.green:C.red,background:(up?C.green:C.red)+"18",padding:"2px 8px",borderRadius:99,marginLeft:6}}>{up?"↑":"↓"} {Math.abs(pct)}%</span>);
+};
 const INIT_USERS=[
   {id:1,name:"Hannah",role:"leadership",email:"hannah@charmed.com",password:"charmed123"},
   {id:2,name:"Tate",role:"am",email:"tate@charmed.com",password:"charmed123"},
@@ -1171,8 +1218,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
   const violations=qaLogs.filter(q=>q.hardNoViolation).length;
   const scoreCol=sc=>sc>=80?C.green:sc>=60?C.yellow:C.red;
   const todaySnap=snapRevenue.filter(r=>r.date===new Date().toISOString().slice(0,10)).reduce((a,r)=>a+Number(r.revenue),0);
-  const latestMetrics={};
-  socialMetrics.forEach(m=>{const k=`${m.model}|${m.platform}`;if(!latestMetrics[k]||m.date>latestMetrics[k].date)latestMetrics[k]=m;});
+  const latestMetrics=getLatestMetricsByKey(socialMetrics);
   const totalFollowers=Object.values(latestMetrics).reduce((a,m)=>a+Number(m.followers||0),0);
   // Calendar state
   const now=new Date();
@@ -2403,25 +2449,21 @@ function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setConte
   const [postForm,setPostForm]=useState(blankPost);
   const blankMetric={model:selModel,platform,date:new Date().toISOString().slice(0,10),followers:"",views:"",likes:"",comments:"",shares:"",notes:""};
   const [metricForm,setMetricForm]=useState(blankMetric);
-  const calcChange=(curr,prev,field)=>{if(!prev||!Number(prev[field]))return null;const diff=Number(curr[field])-Number(prev[field]);const pct=Math.round(diff/Number(prev[field])*100);return{diff,pct,up:pct>=0};};
-  const fmtChange=(ch)=>{if(!ch)return null;return`${ch.up?"+":""}${ch.pct}%`;};
-  const chgCol=(ch)=>ch?(ch.up?C.green:C.red):C.muted;
   // Per-model, per-platform entries
   const modelEntries=socialMetrics.filter(e=>e.model===selModel&&e.platform===platform).sort((a,b)=>b.date.localeCompare(a.date));
   const latest=modelEntries[0];
   const prevMonth=modelEntries.find(e=>e.date<(latest?.date||"")&&e.date.slice(0,7)<(latest?.date||"").slice(0,7));
-  const followCh=latest&&prevMonth?calcChange(latest,prevMonth,"followers"):null;
-  const viewCh=latest&&prevMonth?calcChange(latest,prevMonth,"views"):null;
-  const likesCh=latest&&prevMonth?calcChange(latest,prevMonth,"likes"):null;
-  const commentsCh=latest&&prevMonth?calcChange(latest,prevMonth,"comments"):null;
+  const followCh=latest&&prevMonth?calcPctChange(latest,prevMonth,"followers"):null;
+  const viewCh=latest&&prevMonth?calcPctChange(latest,prevMonth,"views"):null;
+  const likesCh=latest&&prevMonth?calcPctChange(latest,prevMonth,"likes"):null;
+  const commentsCh=latest&&prevMonth?calcPctChange(latest,prevMonth,"comments"):null;
   // Content feed for this model + platform
   const modelContent=contentMetrics.filter(c=>c.model===selModel&&c.platform===platform).sort((a,b)=>b.date.localeCompare(a.date));
-  const ChgPill=({ch})=>{if(!ch)return null;const up=ch.up;return(<span style={{display:"inline-flex",alignItems:"center",gap:2,fontSize:10,fontWeight:700,color:up?C.green:C.red,background:(up?C.green:C.red)+"18",padding:"2px 6px",borderRadius:99,marginLeft:6}}>{up?"↑":"↓"}{Math.abs(ch.pct)}%</span>);};
-  const MetricTile=({label,value,ch,fmt=(v)=>v>999?`${(v/1000).toFixed(1)}k`:v})=>(
+  const MetricTile=({label,value,ch})=>(
     <div style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${pc}28`,borderRadius:12,padding:"14px 16px"}}>
       <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>{label}</div>
-      <div style={{fontSize:26,fontWeight:800,color:pc,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{value!=null?fmt(value):"—"}</div>
-      {ch&&<div style={{marginTop:4,display:"flex",alignItems:"center",fontSize:11,color:chgCol(ch)}}>{ch.up?"↑":"↓"} {Math.abs(ch.pct)}% vs last month</div>}
+      <div style={{fontSize:26,fontWeight:800,color:pc,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{value!=null?fmtMetricVal(value):"—"}</div>
+      {ch&&<div style={{marginTop:4,display:"flex",alignItems:"center",fontSize:11}}><ChgBadge pct={ch.pct}/><span style={{color:C.muted,marginLeft:4,fontSize:10}}>vs last month</span></div>}
     </div>
   );
   return(
@@ -2507,15 +2549,13 @@ function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setConte
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:4}}>
                 <Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn>
-                <Btn size="sm" onClick={()=>{if(!postForm.caption)return;const tot=Number(postForm.likes||0)+Number(postForm.comments||0)+Number(postForm.shares||0)+Number(postForm.saves||0);const base=Number(postForm.views||0)||Number(postForm.likes||0)*5||1;const er=Math.round(tot/base*100*10)/10;setContentMetrics(p=>[{...postForm,id:Date.now(),model:selModel,views:Number(postForm.views||0),likes:Number(postForm.likes||0),comments:Number(postForm.comments||0),shares:Number(postForm.shares||0),saves:Number(postForm.saves||0),engRate:er},...p]);setShowAdd(false);}}>Save Post</Btn>
+                <Btn size="sm" onClick={()=>{if(!postForm.caption)return;const er=calcEngRate(postForm.likes,postForm.comments,postForm.shares,postForm.saves,postForm.views);setContentMetrics(p=>[{...postForm,id:Date.now(),model:selModel,views:Number(postForm.views||0),likes:Number(postForm.likes||0),comments:Number(postForm.comments||0),shares:Number(postForm.shares||0),saves:Number(postForm.saves||0),engRate:er},...p]);setShowAdd(false);}}>Save Post</Btn>
               </div>
             </Modal>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {modelContent.map(c=>{
-              const engTot=c.likes+c.comments+c.shares+c.saves;
-              const engBase=c.views||c.likes*5||1;
-              const er=c.engRate||(Math.round(engTot/engBase*100*10)/10);
+              const er=c.engRate||calcEngRate(c.likes,c.comments,c.shares,c.saves,c.views);
               const erCol=er>=10?C.green:er>=5?C.yellow:C.muted;
               return(
                 <Card key={c.id} style={{borderLeft:`3px solid ${pc}`}}>
@@ -2530,10 +2570,10 @@ function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setConte
                     <div style={{fontSize:11,fontWeight:700,color:erCol,background:erCol+"18",padding:"3px 10px",borderRadius:99}}>{er}% eng</div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(65px,1fr))",gap:8}}>
-                    {platform!=="Instagram"&&<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.views>999?`${(c.views/1000).toFixed(1)}k`:c.views}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Views</div></div>}
-                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.likes>999?`${(c.likes/1000).toFixed(1)}k`:c.likes}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Likes</div></div>
-                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.comments}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Comments</div></div>
-                    {platform!=="Instagram"?<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.shares}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Shares</div></div>:<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{c.saves}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Saves</div></div>}
+                    {platform!=="Instagram"&&<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{fmtMetricVal(c.views)}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Views</div></div>}
+                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{fmtMetricVal(c.likes)}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Likes</div></div>
+                    <div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{fmtMetricVal(c.comments)}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Comments</div></div>
+                    {platform!=="Instagram"?<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{fmtMetricVal(c.shares)}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Shares</div></div>:<div style={{textAlign:"center",background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"8px 4px"}}><div style={{fontSize:13,fontWeight:700,color:pc}}>{fmtMetricVal(c.saves)}</div><div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>Saves</div></div>}
                   </div>
                 </Card>
               );
@@ -2706,14 +2746,8 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
 // ── ANALYTICS OVERVIEW ────────────────────────────────────────
 function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,snapRevenue,brandDeals}){
   const [period,setPeriod]=useState("MOM");
-  const now=new Date();
-  const todayStr=now.toISOString().slice(0,10);
-  const thisMonthStr=todayStr.slice(0,7);
-  const lastMonthStr=new Date(now.getFullYear(),now.getMonth()-1,1).toISOString().slice(0,7);
-  const lastYearMonthStr=new Date(now.getFullYear()-1,now.getMonth(),1).toISOString().slice(0,7);
-  const thisWeekStart=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
-  const lastWeekStart=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
-  const thisSales=period==="WOW"?sales.filter(s=>s.date>=thisWeekStart):period==="MOM"?sales.filter(s=>s.date&&s.date.slice(0,7)===thisMonthStr):sales.filter(s=>s.date&&s.date.slice(0,7)===thisMonthStr);
+  const {thisMonthStr,lastMonthStr,lastYearMonthStr,thisWeekStart,lastWeekStart}=getPeriodDates(period);
+  const thisSales=period==="WOW"?sales.filter(s=>s.date>=thisWeekStart):sales.filter(s=>s.date&&s.date.slice(0,7)===thisMonthStr);
   const prevSales=period==="WOW"?sales.filter(s=>s.date>=lastWeekStart&&s.date<thisWeekStart):period==="MOM"?sales.filter(s=>s.date&&s.date.slice(0,7)===lastMonthStr):sales.filter(s=>s.date&&s.date.slice(0,7)===lastYearMonthStr);
   const thisRev=thisSales.reduce((a,s)=>a+Number(s.amount),0);
   const prevRev=prevSales.reduce((a,s)=>a+Number(s.amount),0);
@@ -2731,12 +2765,9 @@ function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,sn
   const totalBrandVal=brandDeals.reduce((a,d)=>a+Number(d.payment||0),0);
   const paidBrandVal=brandDeals.filter(d=>d.paid).reduce((a,d)=>a+Number(d.payment||0),0);
   const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b"};
-  const latestMetrics={};
-  socialMetrics.forEach(m=>{const k=`${m.model}|${m.platform}`;if(!latestMetrics[k]||m.date>latestMetrics[k].date)latestMetrics[k]=m;});
-  const prevMetrics={};
-  socialMetrics.filter(e=>{const latest=latestMetrics[`${e.model}|${e.platform}`];return latest&&e.date<latest.date&&e.date.slice(0,7)<latest.date.slice(0,7);}).forEach(m=>{const k=`${m.model}|${m.platform}`;if(!prevMetrics[k]||m.date>prevMetrics[k].date)prevMetrics[k]=m;});
+  const latestMetrics=getLatestMetricsByKey(socialMetrics);
+  const prevMetrics=getPrevMetricsByKey(socialMetrics,latestMetrics);
   const platSummary=["TikTok","Instagram","Snapchat"].map(plat=>{const ents=Object.entries(latestMetrics).filter(([k])=>k.includes(`|${plat}`)).map(([,v])=>v);const pEnts=Object.entries(prevMetrics).filter(([k])=>k.includes(`|${plat}`)).map(([,v])=>v);const totF=ents.reduce((a,e)=>a+Number(e.followers||0),0);const prevF=pEnts.reduce((a,e)=>a+Number(e.followers||0),0);const chg=prevF?Math.round((totF-prevF)/prevF*100):null;return{plat,totF,chg,count:ents.length};});
-  const PctChip=({chg,unit=""})=>{if(chg===null||chg===undefined)return null;const up=chg>=0;return(<span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:11,fontWeight:700,color:up?C.green:C.red,background:(up?C.green:C.red)+"18",padding:"2px 8px",borderRadius:99,marginLeft:6}}>{up?"↑":"↓"} {Math.abs(chg)}{unit}%</span>);};
   return(
     <div>
       <SectionHeader icon="📊" title="Analytics Overview"/>
@@ -2752,14 +2783,14 @@ function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,sn
           <div style={{position:"absolute",top:-8,right:-8,opacity:0.05}}><StarMark size={44} color={C.green}/></div>
           <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Revenue <span style={{color:C.muted,fontWeight:400}}>({period})</span></div>
           <div style={{fontSize:26,fontWeight:800,color:C.green,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{fmtMoney(thisRev)}</div>
-          <PctChip chg={revChg}/>
+          <ChgBadge pct={revChg}/>
           <div style={{fontSize:11,color:C.muted,marginTop:6}}>prev: {fmtMoney(prevRev)}</div>
         </Card>
         <Card style={{padding:"18px 16px",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:-8,right:-8,opacity:0.05}}><StarMark size={44} color="#f59e0b"/></div>
           <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Snap Revenue <span style={{color:C.muted,fontWeight:400}}>({period})</span></div>
           <div style={{fontSize:26,fontWeight:800,color:"#f59e0b",fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{fmtMoney(thisSnap)}</div>
-          <PctChip chg={snapChg}/>
+          <ChgBadge pct={snapChg}/>
           <div style={{fontSize:11,color:C.muted,marginTop:6}}>prev: {fmtMoney(prevSnap)}</div>
         </Card>
         <Card style={{padding:"18px 16px",position:"relative",overflow:"hidden"}}>
@@ -2787,7 +2818,7 @@ function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,sn
               </div>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontWeight:700,fontSize:13,color:PLAT_COL[p.plat]}}>{p.totF>999?`${(p.totF/1000).toFixed(1)}k`:p.totF}</span>
-                <PctChip chg={p.chg}/>
+                <ChgBadge pct={p.chg}/>
               </div>
             </div>
           ))}
