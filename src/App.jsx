@@ -22,6 +22,7 @@ const ALL_ROLES=["leadership","am","chatlead","chatter","ops-assistant","model"]
 const TTK_SECTIONS=["identity","voice","interests","physical","personal","rules","scripts"];
 const OUTREACH_GROUPS=["Subs","Whales","Online Fans","VIPs","Recent Spenders L7","Recent Spenders MTD","Followers"];
 function today(){return new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
+function sendDiscord(webhookUrl,message){if(!webhookUrl||!webhookUrl.startsWith("https://discord.com/api/webhooks/"))return;fetch(webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:message,username:"Charmed Ops"})}).catch(()=>{});}
 function fmtMoney(n){return"$"+Number(n).toLocaleString();}
 function generateTag(t,th,ti,o){return`${t||"PS"}-${(th||"Untitled").replace(/\s+/g,"")}-${ti||"$"}-${o||1}`;}
 const INIT_USERS=[
@@ -902,7 +903,7 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
   );
 }
 // ── CONTENT LOG ──────────────────────────────────────────────
-function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeadership,platforms}){
+function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeadership,platforms,discordWebhook}){
   const blank={model:myModels[0]||"",type:"PS",theme:"",priceTier:"$$",upsellOrder:"1",assetCount:"",tag:"",notes:""};
   const [cForm,setCForm]=useState(blank);const [pForm,setPForm]=useState({model:myModels[0]||"",platform:(platforms||DEFAULT_PLATFORMS)[0],notes:""});
   const [sv,setSv]=useState("content");const [fm,setFm]=useState("All");
@@ -920,9 +921,8 @@ function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeaders
         </select>
       </div>
       {sv==="content"&&<>
-        {!isLeadership&&(
-          <Card style={{marginBottom:16}}>
-            <div style={{fontWeight:700,marginBottom:14,fontSize:13}}>Log Upload</div>
+        <Card style={{marginBottom:16}}>
+          <div style={{fontWeight:700,marginBottom:14,fontSize:13}}>Log Upload</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <Sel label="Model" value={cForm.model} onChange={v=>setCForm(p=>({...p,model:v}))} options={myModels}/>
               <Sel label="Type" value={cForm.type} onChange={v=>setCForm(p=>({...p,type:v}))} options={CONTENT_TYPES}/>
@@ -938,9 +938,8 @@ function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeaders
                 <button onClick={()=>navigator.clipboard?.writeText(cForm.tag)} style={{background:"#334155",border:"none",borderRadius:8,padding:"8px 12px",color:"#94a3b8",cursor:"pointer",fontSize:12}}>Copy</button>
               </div>
             </div>
-            <Btn size="sm" onClick={()=>{if(!cForm.theme||!cForm.assetCount)return;setContent(p=>[{...cForm,id:Date.now(),date:today(),loggedBy:user.name,assetCount:Number(cForm.assetCount),upsellOrder:Number(cForm.upsellOrder)},...p]);setCForm(blank);}}>Log Upload</Btn>
-          </Card>
-        )}
+            <Btn size="sm" onClick={()=>{if(!cForm.theme||!cForm.assetCount)return;const entry={...cForm,id:Date.now(),date:today(),loggedBy:user.name,assetCount:Number(cForm.assetCount),upsellOrder:Number(cForm.upsellOrder)};setContent(p=>[entry,...p]);sendDiscord(discordWebhook,`📦 **Content Logged**\nModel: **${entry.model}** · Tag: \`${entry.tag}\`\nType: ${entry.type} · ${entry.assetCount} assets · by ${entry.loggedBy}`);setCForm(blank);}}>Log Upload</Btn>
+        </Card>
         <Card style={{padding:0,overflow:"hidden"}}>
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
@@ -959,16 +958,14 @@ function ContentLog({user,content,setContent,promos,setPromos,myModels,isLeaders
         </Card>
       </>}
       {sv==="promos"&&<>
-        {!isLeadership&&(
-          <Card style={{marginBottom:16}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <Sel label="Model" value={pForm.model} onChange={v=>setPForm(p=>({...p,model:v}))} options={myModels}/>
-              <Sel label="Platform" value={pForm.platform} onChange={v=>setPForm(p=>({...p,platform:v}))} options={platforms||DEFAULT_PLATFORMS}/>
-              <Input label="Notes" value={pForm.notes} onChange={v=>setPForm(p=>({...p,notes:v}))} placeholder="Story + swipe up" style={{gridColumn:"1/-1"}}/>
-            </div>
-            <Btn size="sm" onClick={()=>{setPromos(p=>[{...pForm,id:Date.now(),date:today(),loggedBy:user.name},...p]);setPForm(f=>({...f,notes:""}))}}>Log Promo</Btn>
-          </Card>
-        )}
+        <Card style={{marginBottom:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Sel label="Model" value={pForm.model} onChange={v=>setPForm(p=>({...p,model:v}))} options={myModels}/>
+            <Sel label="Platform" value={pForm.platform} onChange={v=>setPForm(p=>({...p,platform:v}))} options={platforms||DEFAULT_PLATFORMS}/>
+            <Input label="Notes" value={pForm.notes} onChange={v=>setPForm(p=>({...p,notes:v}))} placeholder="Story + swipe up" style={{gridColumn:"1/-1"}}/>
+          </div>
+          <Btn size="sm" onClick={()=>{const entry={...pForm,id:Date.now(),date:today(),loggedBy:user.name};setPromos(p=>[entry,...p]);sendDiscord(discordWebhook,`📣 **Promo Logged**\nModel: **${entry.model}** · Platform: ${entry.platform}\nNotes: ${entry.notes||"—"} · by ${entry.loggedBy}`);setPForm(f=>({...f,notes:""}))}}>Log Promo</Btn>
+        </Card>
         <Card style={{padding:0,overflow:"hidden"}}>
           {!fp.length?<div style={{padding:24,color:C.muted,fontSize:13,textAlign:"center"}}>No promos</div>:fp.map((p,i)=>(
             <div key={p.id} style={{padding:"12px 20px",background:i%2===0?"rgba(255,255,255,0.04)":C.bg,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
@@ -2152,14 +2149,15 @@ function TeamManagement({users,setUsers,models}){
   );
 }
 // ── ADMIN ────────────────────────────────────────────────────
-function AdminPanel({users,setUsers,models,setModels,platforms,setPlatforms,modelPlatforms,setModelPlatforms}){
+function AdminPanel({users,setUsers,models,setModels,platforms,setPlatforms,modelPlatforms,setModelPlatforms,discordWebhook,setDiscordWebhook}){
   const [tab,setTab]=useState("users");const [editId,setEditId]=useState(null);const blank={name:"",role:"chatter",email:"",password:"charmed123"};const [form,setForm]=useState(blank);const [showAdd,setShowAdd]=useState(false);const [newPlat,setNewPlat]=useState("");const [newMPlat,setNewMPlat]=useState("");
+  const [webhookInput,setWebhookInput]=useState(discordWebhook||"");const [webhookSaved,setWebhookSaved]=useState(false);
   const saveUser=()=>{if(!form.name||!form.email)return;if(editId){setUsers(p=>p.map(u=>u.id===editId?{...u,...form}:u));setEditId(null);}else setUsers(p=>[...p,{...form,id:Date.now()}]);setForm(blank);setShowAdd(false);};
   const addPlat=(list,set,val,setVal)=>{const v=val.trim();if(!v||list.includes(v))return;set(p=>[...p,v]);setVal("");};
   return(
     <div>
       <SectionHeader icon="⚙️" title="Admin Panel"/>
-      <Tabs tabs={[["users","Users"],["roles","Roles"],["platforms","Platforms"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["users","Users"],["roles","Roles"],["platforms","Platforms"],["notifications","Notifications"]]} active={tab} onChange={setTab}/>
       {showAdd&&(
         <Modal title={editId?"Edit User":"New User"} onClose={()=>{setShowAdd(false);setEditId(null);}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -2229,6 +2227,32 @@ function AdminPanel({users,setUsers,models,setModels,platforms,setPlatforms,mode
               </div>
             </Card>
           ))}
+        </div>
+      )}
+      {tab==="notifications"&&(
+        <div>
+          <Card style={{marginBottom:16,background:"rgba(88,28,220,0.08)",border:"1px solid rgba(124,58,237,0.25)"}}>
+            <div style={{fontWeight:700,fontSize:14,marginBottom:4,fontFamily:"'Playfair Display',Georgia,serif"}}>Discord Notifications</div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Paste your Discord channel webhook URL below. Charmed Ops will automatically post a message whenever a new content upload or promo is logged by any user.</div>
+            <label style={s.label}>Webhook URL</label>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <input value={webhookInput} onChange={e=>setWebhookInput(e.target.value)} placeholder="https://discord.com/api/webhooks/..." style={{...s.input,flex:1,fontFamily:"monospace",fontSize:12}} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor=C.border}/>
+              <Btn size="sm" onClick={()=>{setDiscordWebhook(webhookInput.trim());setWebhookSaved(true);setTimeout(()=>setWebhookSaved(false),2500);}}>{webhookSaved?"Saved ✓":"Save"}</Btn>
+              {discordWebhook&&<Btn variant="secondary" size="sm" onClick={()=>{setDiscordWebhook("");setWebhookInput("");}}>Clear</Btn>}
+            </div>
+            {discordWebhook&&<div style={{fontSize:11,color:C.green,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:99,background:C.green,display:"inline-block"}}/>Active — notifications enabled</div>}
+            {!discordWebhook&&<div style={{fontSize:11,color:C.muted}}>No webhook configured — notifications are off</div>}
+          </Card>
+          <Card style={{background:"rgba(255,255,255,0.03)"}}>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>What gets notified</div>
+            {[["Content Upload","When any user logs a new content upload (model, tag, type, asset count)"],["Promo Logged","When any user logs a new promo (model, platform, notes)"]].map(([t,d])=>(
+              <div key={t} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                <span style={{width:6,height:6,borderRadius:99,background:discordWebhook?C.green:C.muted,display:"inline-block",marginTop:5,flexShrink:0}}/>
+                <div><div style={{fontWeight:600,fontSize:13}}>{t}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{d}</div></div>
+              </div>
+            ))}
+            <div style={{marginTop:12,fontSize:11,color:C.muted}}>To get a webhook URL: Discord server → channel settings → Integrations → Webhooks → New Webhook → Copy URL.</div>
+          </Card>
         </div>
       )}
     </div>
@@ -2822,7 +2846,7 @@ function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,sn
   );
 }
 // ── DASHBOARDS ───────────────────────────────────────────────
-function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg}){
+function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook}){
   const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
@@ -2902,7 +2926,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
         {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={true} isAM={false} myModels={allModels} users={users}/>}
         {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={true} isAM={false} myModels={allModels} models={models}/>}
-        {tab==="content"&&<ContentLog user={user} content={content} setContent={()=>{}} promos={promos} setPromos={()=>{}} myModels={allModels} isLeadership={true} platforms={platforms}/>}
+        {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={allModels} isLeadership={true} platforms={platforms} discordWebhook={discordWebhook}/>}
         {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
         {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={allModels} isLeadership={true} isAM={false}/>}
         {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
@@ -2926,7 +2950,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="invoices"&&<StripeInvoices isLeadership={true} models={models}/>}
       </div>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
-      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
+      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
 }
@@ -2973,11 +2997,11 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
       </div>}
       {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={allModels}/>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
-      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms}/>}
+      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
 }
-function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg}){
+function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook}){
   const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const myModels=models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name);
@@ -3041,7 +3065,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
         </div>}
         {tab==="ttk"&&<TTKEditor user={user} ttks={ttks} setTtks={setTtks} myModels={myModels}/>}
         {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} isLeadership={false} isAM={true}/>}
-        {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={myModels} isLeadership={false} platforms={platforms}/>}
+        {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={myModels} isLeadership={false} platforms={platforms} discordWebhook={discordWebhook}/>}
         {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
         {tab==="fans"&&<div>
           <SectionHeader icon="🌟" title="Fans" action={null}/>
@@ -3296,13 +3320,14 @@ export default function App(){
   const [contentMetrics,setContentMetrics]=useState(INIT_CONTENT_METRICS);
   const [modelEvents,setModelEvents]=useState(INIT_MODEL_EVENTS);
   const [mg,setMg]=useState(INIT_MG);
+  const [discordWebhook,setDiscordWebhook]=useState("");
   const [showSearch,setShowSearch]=useState(false);
   useEffect(()=>{
     const down=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setShowSearch(p=>!p);}if(e.key==="Escape")setShowSearch(false);};
     window.addEventListener("keydown",down);return()=>window.removeEventListener("keydown",down);
   },[]);
   if(!user)return <LoginView onLogin={setUser} users={users}/>;
-  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg};
+  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook};
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 90%,rgba(124,58,237,0.18) 0%,transparent 50%),radial-gradient(ellipse at 80% 5%,rgba(192,38,211,0.12) 0%,transparent 45%),#07070e",fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
