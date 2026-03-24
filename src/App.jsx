@@ -2890,6 +2890,35 @@ function AISchedulerPanel({models,ttks,content,campaigns,massMessages,myModels})
   const [result,setResult]=useState(null);
   const [error,setError]=useState("");
   const [outputTab,setOutputTab]=useState("wall");
+  const [mainTab,setMainTab]=useState("generate");
+  const [editMode,setEditMode]=useState(false);
+  const [editedResult,setEditedResult]=useState(null);
+  const [expandedSaved,setExpandedSaved]=useState(null);
+
+  // ── localStorage helpers ──────────────────────────────────
+  const loadSaved=(model)=>{try{return JSON.parse(localStorage.getItem(`charmed_schedules_${model}`))||[];}catch{return[];}};
+  const persistSaved=(model,list)=>{localStorage.setItem(`charmed_schedules_${model}`,JSON.stringify(list.slice(0,12)));};
+  const [savedSchedules,setSavedSchedules]=useState(()=>loadSaved(modelList[0]||""));
+
+  const saveSchedule=(model,week,schedResult)=>{
+    const existing=loadSaved(model);
+    const idx=existing.findIndex(s=>s.weekStart===week);
+    const entry={weekStart:week,savedAt:new Date().toISOString(),result:schedResult};
+    if(idx>=0)existing[idx]=entry;else existing.unshift(entry);
+    persistSaved(model,existing);
+    setSavedSchedules(existing.slice(0,12));
+  };
+  const deleteSchedule=(week)=>{
+    const updated=savedSchedules.filter(s=>s.weekStart!==week);
+    persistSaved(selectedModel,updated);
+    setSavedSchedules(updated);
+    if(expandedSaved===week)setExpandedSaved(null);
+  };
+
+  useEffect(()=>{
+    setSavedSchedules(loadSaved(selectedModel));
+    setResult(null);setEditedResult(null);setEditMode(false);setExpandedSaved(null);
+  },[selectedModel]);
 
   const saveApiKey=(key)=>{setApiKey(key);localStorage.setItem("charmed_claude_api_key",key);};
 
@@ -2910,11 +2939,26 @@ function AISchedulerPanel({models,ttks,content,campaigns,massMessages,myModels})
   const recentMass=massMessages.filter(m=>m.model===selectedModel).slice(0,5);
   const activeCampaigns=campaigns.filter(c=>c.model===selectedModel&&["Live","Scheduled"].includes(c.status));
 
+  // ── Build history context from past saved schedules ───────
+  const buildHistoryContext=()=>{
+    const saved=loadSaved(selectedModel);
+    if(!saved.length)return"";
+    const recent=saved.slice(0,3);
+    return`\n## Past Schedule History (last ${recent.length} saved week${recent.length>1?"s":""})\nUse this to identify what's working and improve recommendations:\n`+
+      recent.map(s=>{
+        const r=s.result;
+        const bestTimes=(r.massMessages||[]).map(m=>m.time).filter(Boolean).join(", ");
+        const topContent=(r.wallPosts||[]).map(p=>`${p.contentType} ${p.priceTier}`).slice(0,3).join(", ");
+        return`Week of ${s.weekStart}: ${r.summary||"No summary"}. Top content: ${topContent||"N/A"}. Send times used: ${bestTimes||"N/A"}.`;
+      }).join("\n");
+  };
+
   const buildPrompt=()=>{
     const ttkInfo=ttk?`Voice/Tone: ${ttk.voice}\nPersonality: ${ttk.personality}\nInterests: ${ttk.interests}\nFlirt Level: ${ttk.flirtLevel}\nHard No's: ${ttk.hardNos}\nEndearments: ${ttk.endearments}\nAge: ${ttk.age}, Location: ${ttk.location}\nOffline Times: ${ttk.offlineTimes}`:"No TTK data available.";
     const contentHistory=recentContent.map(c=>`${c.date}: ${c.type} — "${c.theme}" (${c.priceTier})`).join("\n")||"None logged";
     const massHistory=recentMass.map(m=>`${m.date}: "${m.message}" → Target: ${m.target} | Revenue: $${m.revenue}`).join("\n")||"None logged";
     const campInfo=activeCampaigns.map(c=>`${c.name} (${c.type}) — ends ${c.endDate}`).join("\n")||"None active";
+    const historyCtx=buildHistoryContext();
     return `You are an expert Passes paywall content strategist for ${selectedModel}, a creator managed by Charmed Collective agency.
 
 Your primary goal is to MAXIMISE REVENUE for the week of ${weekStart}.
@@ -2941,7 +2985,7 @@ ${contentNotes||"None provided"}
 
 ## Past Performance Notes
 ${perfNotes||"None provided"}
-
+${historyCtx}
 ${screenshots.length>0?`## Analytics Screenshots\n${screenshots.length} screenshot(s) attached. Analyse the wall post and mass message metrics shown — use data on views, revenue, engagement, and send times to inform your recommendations.`:""}
 
 ---
@@ -3003,8 +3047,12 @@ Provide 5-7 wall posts and 3-5 mass messages. Space them strategically across th
       const respData=await res.json();
       const text=respData.content[0].text;
       const jsonMatch=text.match(/\{[\s\S]*\}/);
-      if(jsonMatch){setResult(JSON.parse(jsonMatch[0]));}
-      else{setError("Could not parse AI response. Try again.");}
+      if(jsonMatch){
+        const parsed=JSON.parse(jsonMatch[0]);
+        setResult(parsed);
+        setEditedResult(JSON.parse(JSON.stringify(parsed)));
+        saveSchedule(selectedModel,weekStart,parsed);
+      }else{setError("Could not parse AI response. Try again.");}
     }catch(e){setError(e.message);}
     finally{setLoading(false);}
   };
@@ -3013,6 +3061,90 @@ Provide 5-7 wall posts and 3-5 mass messages. Space them strategically across th
   const revColor={low:C.muted,medium:C.yellow,high:C.green};
   const ctColor={PS:C.purple,VID:C.blue,PPV:C.green,CLIP:C.orange,BTS:C.pink,LIVE:C.red};
 
+  const updateWallPost=(i,field,val)=>setEditedResult(p=>({...p,wallPosts:p.wallPosts.map((x,xi)=>xi===i?{...x,[field]:val}:x)}));
+  const updateMassMsg=(i,field,val)=>setEditedResult(p=>({...p,massMessages:p.massMessages.map((x,xi)=>xi===i?{...x,[field]:val}:x)}));
+
+  const renderScheduleCards=(res,editable=false)=>(
+    <div>
+      <Card style={{marginBottom:12,borderColor:"rgba(124,58,237,0.45)",background:"rgba(124,58,237,0.06)"}}>
+        <div style={{fontSize:12,fontWeight:700,color:C.purpleL,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Strategic Overview</div>
+        {editable
+          ?<textarea value={res.summary||""} onChange={e=>setEditedResult(p=>({...p,summary:e.target.value}))} rows={3} style={{...s.input,resize:"vertical"}}/>
+          :<div style={{fontSize:13,color:C.text,lineHeight:1.7}}>{res.summary}</div>}
+      </Card>
+      {res.revenueStrategy&&(
+        <Card style={{marginBottom:16,borderColor:"rgba(16,185,129,0.35)",background:"rgba(16,185,129,0.05)"}}>
+          <div style={{fontSize:12,fontWeight:700,color:C.green,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Revenue Strategy</div>
+          {editable
+            ?<textarea value={res.revenueStrategy||""} onChange={e=>setEditedResult(p=>({...p,revenueStrategy:e.target.value}))} rows={3} style={{...s.input,resize:"vertical"}}/>
+            :<div style={{fontSize:13,color:C.text,lineHeight:1.7}}>{res.revenueStrategy}</div>}
+        </Card>
+      )}
+      <Tabs tabs={[["wall",`Wall Posts (${(res.wallPosts||[]).length})`],["mass",`Mass Messages (${(res.massMessages||[]).length})`]]} active={outputTab} onChange={setOutputTab}/>
+      {outputTab==="wall"&&(
+        <div style={{marginTop:4}}>
+          {(res.wallPosts||[]).map((post,i)=>(
+            <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${dayColor[post.day]||C.purple}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                  <span style={{fontWeight:800,fontSize:15,color:dayColor[post.day]||C.text}}>{post.day}</span>
+                  <span style={{fontSize:12,color:C.muted}}>{post.date}</span>
+                  {editable
+                    ?<input value={post.time||""} onChange={e=>updateWallPost(i,"time",e.target.value)} style={{...s.input,width:110,padding:"3px 8px",fontSize:12}}/>
+                    :<Badge label={post.time} color={C.blue}/>}
+                  <Badge label={post.contentType} color={ctColor[post.contentType]||C.purple}/>
+                  <Badge label={post.priceTier} color={C.green}/>
+                  <Badge label={post.visibility} color={post.visibility==="Free"?C.muted:C.orange}/>
+                </div>
+                {editable
+                  ?<input value={post.theme||""} onChange={e=>updateWallPost(i,"theme",e.target.value)} style={{...s.input,width:150,padding:"3px 8px",fontSize:13,fontWeight:700}}/>
+                  :<span style={{fontSize:13,fontWeight:700,color:C.purpleL}}>{post.theme}</span>}
+              </div>
+              {editable
+                ?<textarea value={post.caption||""} onChange={e=>updateWallPost(i,"caption",e.target.value)} rows={2} style={{...s.input,resize:"vertical",fontStyle:"italic",marginBottom:6}}/>
+                :<div style={{fontSize:13,color:C.text,fontStyle:"italic",lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:post.notes?8:0}}>"{post.caption}"</div>}
+              {editable
+                ?<input value={post.notes||""} onChange={e=>updateWallPost(i,"notes",e.target.value)} placeholder="Strategic note…" style={{...s.input,fontSize:11,padding:"4px 8px"}}/>
+                :post.notes&&<div style={{fontSize:11,color:C.muted,marginTop:4}}>{post.notes}</div>}
+            </Card>
+          ))}
+        </div>
+      )}
+      {outputTab==="mass"&&(
+        <div style={{marginTop:4}}>
+          {(res.massMessages||[]).map((msg,i)=>(
+            <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${dayColor[msg.day]||C.green}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                  <span style={{fontWeight:800,fontSize:15,color:dayColor[msg.day]||C.text}}>{msg.day}</span>
+                  <span style={{fontSize:12,color:C.muted}}>{msg.date}</span>
+                  {editable
+                    ?<input value={msg.time||""} onChange={e=>updateMassMsg(i,"time",e.target.value)} style={{...s.input,width:110,padding:"3px 8px",fontSize:12}}/>
+                    :<Badge label={msg.time} color={C.blue}/>}
+                  <Badge label={msg.segment} color={C.purple}/>
+                  <Badge label={`PPV ${msg.ppvPrice}`} color={C.green}/>
+                </div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <span style={{fontSize:11,color:C.muted}}>Expected:</span>
+                  <Badge label={msg.expectedRevenue} color={revColor[msg.expectedRevenue]||C.muted}/>
+                </div>
+              </div>
+              {editable
+                ?<textarea value={msg.message||""} onChange={e=>updateMassMsg(i,"message",e.target.value)} rows={2} style={{...s.input,resize:"vertical",marginBottom:8}}/>
+                :<div style={{fontSize:13,color:C.text,lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:8}}>"{msg.message}"</div>}
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                {msg.contentTag&&<Badge label={`Content: ${msg.contentTag}`} color={C.blue}/>}
+                {editable
+                  ?<input value={msg.notes||""} onChange={e=>updateMassMsg(i,"notes",e.target.value)} placeholder="Segmentation rationale…" style={{...s.input,fontSize:11,padding:"4px 8px",width:"auto",flex:1}}/>
+                  :msg.notes&&<span style={{fontSize:11,color:C.muted}}>{msg.notes}</span>}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return(
     <div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
@@ -3020,7 +3152,10 @@ Provide 5-7 wall posts and 3-5 mass messages. Space them strategically across th
           <div style={{fontSize:22,fontWeight:800,background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.01em"}}>AI Scheduler</div>
           <div style={{fontSize:12,color:C.muted,marginTop:2}}>Revenue-optimised weekly schedule for Passes wall posts & mass messages</div>
         </div>
-        <Btn variant="secondary" size="sm" onClick={()=>setShowSettings(p=>!p)}>{showSettings?"Close Settings":"⚙ Settings"}</Btn>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {savedSchedules.length>0&&<Badge label={`${savedSchedules.length} saved`} color={C.green}/>}
+          <Btn variant="secondary" size="sm" onClick={()=>setShowSettings(p=>!p)}>{showSettings?"Close Settings":"⚙ Settings"}</Btn>
+        </div>
       </div>
 
       {showSettings&&(
@@ -3032,124 +3167,117 @@ Provide 5-7 wall posts and 3-5 mass messages. Space them strategically across th
         </Card>
       )}
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-        <Card>
-          <Sel label="Model" value={selectedModel} onChange={setSelectedModel} options={modelList}/>
-          <Input label="Week Starting" value={weekStart} onChange={setWeekStart} type="date"/>
-          {ttk&&(
-            <div style={{background:"rgba(124,58,237,0.08)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:10,padding:"10px 12px",marginTop:2}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>TTK Auto-loaded</div>
-              <div style={{fontSize:12,color:C.purpleL,lineHeight:1.9}}>
-                <div><b>Voice:</b> {ttk.voice}</div>
-                <div><b>Flirt level:</b> {ttk.flirtLevel} &nbsp;|&nbsp; <b>Endearments:</b> {ttk.endearments}</div>
-                <div><b>Hard No's:</b> {ttk.hardNos}</div>
-                <div><b>Offline:</b> {ttk.offlineTimes}</div>
-              </div>
-            </div>
-          )}
-        </Card>
-        <Card>
-          <div style={s.label}>Analytics Screenshots (optional)</div>
-          <div style={{border:"2px dashed rgba(167,139,250,0.3)",borderRadius:10,padding:"18px",textAlign:"center",cursor:"pointer",marginBottom:10}}
-            onClick={()=>document.getElementById("ai-ss-input").click()}>
-            <input id="ai-ss-input" type="file" accept="image/*" multiple style={{display:"none"}} onChange={handleScreenshots}/>
-            <div style={{fontSize:24,marginBottom:6}}>📸</div>
-            <div style={{fontSize:12,color:C.muted}}>Upload wall post & mass message analytics screenshots</div>
-            <div style={{fontSize:11,color:C.muted,marginTop:4}}>PNG, JPG · Multiple OK · AI will analyse metrics</div>
-          </div>
-          {screenshots.map((sc,i)=>(
-            <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:6,fontSize:12}}>
-              <span style={{color:C.purpleL}}>📷 {sc.name}</span>
-              <button onClick={()=>removeScreenshot(i)} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
-            </div>
-          ))}
-          {screenshots.length>0&&<div style={{fontSize:11,color:C.green,marginTop:4}}>✓ {screenshots.length} screenshot{screenshots.length>1?"s":""} ready to send</div>}
-        </Card>
-      </div>
+      <Tabs tabs={[["generate","Generate"],["saved",`Saved Schedules${savedSchedules.length?` (${savedSchedules.length})`:""}`]]} active={mainTab} onChange={setMainTab}/>
 
-      <Card style={{marginBottom:16}}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-          <TA label="Content Calendar Notes" value={contentNotes} onChange={setContentNotes} rows={4} placeholder="e.g. beach shoot assets ready, holiday theme this week, model has event Thursday..."/>
-          <TA label="Past Performance Notes" value={perfNotes} onChange={setPerfNotes} rows={4} placeholder="e.g. last week's PPV 3x avg revenue, Tuesday 7pm sends highest open rate, whales respond to personalised intros..."/>
-        </div>
-      </Card>
-
-      {error&&<div style={{background:C.redL,border:`1px solid ${C.red}44`,borderRadius:10,padding:"10px 14px",fontSize:13,color:C.red,marginBottom:16}}>{error}</div>}
-
-      <div style={{textAlign:"center",marginBottom:24}}>
-        <Btn onClick={generate} size="lg" style={{minWidth:240}} color={loading?C.muted:undefined}>
-          {loading?"Generating…":"✨ Generate Weekly Schedule"}
-        </Btn>
-        {loading&&<div style={{fontSize:12,color:C.muted,marginTop:10}}>Analysing context{screenshots.length>0?" + "+screenshots.length+" screenshot"+(screenshots.length>1?"s":""):""}… This may take 20–40 seconds.</div>}
-      </div>
-
-      {result&&(
+      {mainTab==="generate"&&(
         <div>
-          <Card style={{marginBottom:12,borderColor:"rgba(124,58,237,0.45)",background:"rgba(124,58,237,0.06)"}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.purpleL,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Strategic Overview</div>
-            <div style={{fontSize:13,color:C.text,lineHeight:1.7}}>{result.summary}</div>
-          </Card>
-          {result.revenueStrategy&&(
-            <Card style={{marginBottom:16,borderColor:"rgba(16,185,129,0.35)",background:"rgba(16,185,129,0.05)"}}>
-              <div style={{fontSize:12,fontWeight:700,color:C.green,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Revenue Strategy</div>
-              <div style={{fontSize:13,color:C.text,lineHeight:1.7}}>{result.revenueStrategy}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+            <Card>
+              <Sel label="Model" value={selectedModel} onChange={setSelectedModel} options={modelList}/>
+              <Input label="Week Starting" value={weekStart} onChange={setWeekStart} type="date"/>
+              {ttk&&(
+                <div style={{background:"rgba(124,58,237,0.08)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:10,padding:"10px 12px",marginTop:2}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>TTK Auto-loaded</div>
+                  <div style={{fontSize:12,color:C.purpleL,lineHeight:1.9}}>
+                    <div><b>Voice:</b> {ttk.voice}</div>
+                    <div><b>Flirt level:</b> {ttk.flirtLevel} &nbsp;|&nbsp; <b>Endearments:</b> {ttk.endearments}</div>
+                    <div><b>Hard No's:</b> {ttk.hardNos}</div>
+                    <div><b>Offline:</b> {ttk.offlineTimes}</div>
+                  </div>
+                </div>
+              )}
+              {savedSchedules.length>0&&(
+                <div style={{marginTop:10,padding:"8px 10px",background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.green,marginBottom:3}}>History Context Active</div>
+                  <div style={{fontSize:11,color:C.muted}}>Last {Math.min(savedSchedules.length,3)} week{savedSchedules.length>1?"s":""} of data will inform Claude's recommendations.</div>
+                </div>
+              )}
             </Card>
-          )}
-
-          <Tabs tabs={[["wall",`Wall Posts (${(result.wallPosts||[]).length})`],["mass",`Mass Messages (${(result.massMessages||[]).length})`]]} active={outputTab} onChange={setOutputTab}/>
-
-          {outputTab==="wall"&&(
-            <div style={{marginTop:4}}>
-              {(result.wallPosts||[]).map((post,i)=>(
-                <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${dayColor[post.day]||C.purple}`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
-                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                      <span style={{fontWeight:800,fontSize:15,color:dayColor[post.day]||C.text}}>{post.day}</span>
-                      <span style={{fontSize:12,color:C.muted}}>{post.date}</span>
-                      <Badge label={post.time} color={C.blue}/>
-                      <Badge label={post.contentType} color={ctColor[post.contentType]||C.purple}/>
-                      <Badge label={post.priceTier} color={C.green}/>
-                      <Badge label={post.visibility} color={post.visibility==="Free"?C.muted:C.orange}/>
-                    </div>
-                    <span style={{fontSize:13,fontWeight:700,color:C.purpleL}}>{post.theme}</span>
-                  </div>
-                  <div style={{fontSize:13,color:C.text,fontStyle:"italic",lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:post.notes?8:0}}>
-                    "{post.caption}"
-                  </div>
-                  {post.notes&&<div style={{fontSize:11,color:C.muted,marginTop:4}}>{post.notes}</div>}
-                </Card>
+            <Card>
+              <div style={s.label}>Analytics Screenshots (optional)</div>
+              <div style={{border:"2px dashed rgba(167,139,250,0.3)",borderRadius:10,padding:"18px",textAlign:"center",cursor:"pointer",marginBottom:10}}
+                onClick={()=>document.getElementById("ai-ss-input").click()}>
+                <input id="ai-ss-input" type="file" accept="image/*" multiple style={{display:"none"}} onChange={handleScreenshots}/>
+                <div style={{fontSize:24,marginBottom:6}}>📸</div>
+                <div style={{fontSize:12,color:C.muted}}>Upload wall post & mass message analytics screenshots</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:4}}>PNG, JPG · Multiple OK · AI will analyse & results saved to history</div>
+              </div>
+              {screenshots.map((sc,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:6,fontSize:12}}>
+                  <span style={{color:C.purpleL}}>📷 {sc.name}</span>
+                  <button onClick={()=>removeScreenshot(i)} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
+                </div>
               ))}
+              {screenshots.length>0&&<div style={{fontSize:11,color:C.green,marginTop:4}}>✓ {screenshots.length} screenshot{screenshots.length>1?"s":""} ready to send</div>}
+            </Card>
+          </div>
+
+          <Card style={{marginBottom:16}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <TA label="Content Calendar Notes" value={contentNotes} onChange={setContentNotes} rows={4} placeholder="e.g. beach shoot assets ready, holiday theme this week, model has event Thursday..."/>
+              <TA label="Past Performance Notes" value={perfNotes} onChange={setPerfNotes} rows={4} placeholder="e.g. last week's PPV 3x avg revenue, Tuesday 7pm sends highest open rate, whales respond to personalised intros..."/>
+            </div>
+          </Card>
+
+          {error&&<div style={{background:C.redL,border:`1px solid ${C.red}44`,borderRadius:10,padding:"10px 14px",fontSize:13,color:C.red,marginBottom:16}}>{error}</div>}
+
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <Btn onClick={generate} size="lg" style={{minWidth:240}} color={loading?C.muted:undefined}>
+              {loading?"Generating…":"✨ Generate Weekly Schedule"}
+            </Btn>
+            {loading&&<div style={{fontSize:12,color:C.muted,marginTop:10}}>Analysing context{screenshots.length>0?" + "+screenshots.length+" screenshot"+(screenshots.length>1?"s":""):""}… This may take 20–40 seconds.</div>}
+          </div>
+
+          {result&&(
+            <div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
+                <div style={{fontSize:13,color:C.green,fontWeight:600}}>✓ Auto-saved for {selectedModel} · week of {weekStart}</div>
+                <div style={{display:"flex",gap:8}}>
+                  {editMode
+                    ?<>
+                      <Btn size="sm" color={C.green} onClick={()=>{saveSchedule(selectedModel,weekStart,editedResult);setResult(editedResult);setEditMode(false);}}>Save Changes</Btn>
+                      <Btn size="sm" variant="secondary" onClick={()=>{setEditedResult(JSON.parse(JSON.stringify(result)));setEditMode(false);}}>Cancel</Btn>
+                    </>
+                    :<Btn size="sm" variant="secondary" onClick={()=>{setEditedResult(JSON.parse(JSON.stringify(result)));setEditMode(true);}}>✏ Edit Schedule</Btn>
+                  }
+                </div>
+              </div>
+              {renderScheduleCards(editMode?editedResult:result,editMode)}
             </div>
           )}
+        </div>
+      )}
 
-          {outputTab==="mass"&&(
-            <div style={{marginTop:4}}>
-              {(result.massMessages||[]).map((msg,i)=>(
-                <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${dayColor[msg.day]||C.green}`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
-                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                      <span style={{fontWeight:800,fontSize:15,color:dayColor[msg.day]||C.text}}>{msg.day}</span>
-                      <span style={{fontSize:12,color:C.muted}}>{msg.date}</span>
-                      <Badge label={msg.time} color={C.blue}/>
-                      <Badge label={msg.segment} color={C.purple}/>
-                      <Badge label={`PPV ${msg.ppvPrice}`} color={C.green}/>
+      {mainTab==="saved"&&(
+        <div>
+          <div style={{marginBottom:12}}>
+            <Sel label="Model" value={selectedModel} onChange={setSelectedModel} options={modelList}/>
+          </div>
+          {savedSchedules.length===0
+            ?<Card><div style={{textAlign:"center",color:C.muted,fontSize:14,padding:"24px 0"}}>No saved schedules for {selectedModel} yet. Generate one to get started.</div></Card>
+            :savedSchedules.map(saved=>(
+              <Card key={saved.weekStart} style={{marginBottom:12,borderColor:expandedSaved===saved.weekStart?"rgba(124,58,237,0.5)":C.border}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}} onClick={()=>setExpandedSaved(p=>p===saved.weekStart?null:saved.weekStart)}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:C.text}}>Week of {saved.weekStart}</div>
+                    <div style={{fontSize:11,color:C.muted,marginTop:2}}>
+                      {(saved.result.wallPosts||[]).length} wall posts · {(saved.result.massMessages||[]).length} mass messages · Saved {new Date(saved.savedAt).toLocaleDateString()}
                     </div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                      <span style={{fontSize:11,color:C.muted}}>Expected:</span>
-                      <Badge label={msg.expectedRevenue} color={revColor[msg.expectedRevenue]||C.muted}/>
-                    </div>
                   </div>
-                  <div style={{fontSize:13,color:C.text,lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:8}}>
-                    "{msg.message}"
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <button onClick={e=>{e.stopPropagation();deleteSchedule(saved.weekStart);}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"2px 6px"}}>×</button>
+                    <span style={{color:C.muted,fontSize:16}}>{expandedSaved===saved.weekStart?"▲":"▼"}</span>
                   </div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                    {msg.contentTag&&<Badge label={`Content: ${msg.contentTag}`} color={C.blue}/>}
-                    {msg.notes&&<span style={{fontSize:11,color:C.muted}}>{msg.notes}</span>}
+                </div>
+                {expandedSaved===saved.weekStart&&(
+                  <div style={{marginTop:16,borderTop:`1px solid ${C.border}`,paddingTop:16}}>
+                    <div style={{fontSize:12,color:C.muted,fontStyle:"italic",marginBottom:12}}>{saved.result.summary}</div>
+                    {renderScheduleCards(saved.result,false)}
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
+                )}
+              </Card>
+            ))
+          }
         </div>
       )}
     </div>
