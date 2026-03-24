@@ -826,6 +826,8 @@ function SalesTracker({user,sales,setSales,isLeadership,isAM,myModels,users}){
 function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,models,initView}){
   const [fm,setFm]=useState("All");const [fs,setFs]=useState("All");const [showAdd,setShowAdd]=useState(false);
   const [viewMode,setViewMode]=useState(initView||"list");
+  const [selectedDay,setSelectedDay]=useState(null);
+  const [editingId,setEditingId]=useState(null);
   const now=new Date();
   const [calYear,setCalYear]=useState(now.getFullYear());
   const [calMonth,setCalMonth]=useState(now.getMonth());
@@ -835,17 +837,37 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
   const filtered=campaigns.filter(c=>(fm==="All"||c.model===fm)&&(fs==="All"||c.status===fs));
   const low=vm.filter(m=>campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
   const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const pad=n=>String(n).padStart(2,"0");
+  const todayStr=new Date().toISOString().slice(0,10);
   const daysInMonth=(y,m)=>new Date(y,m+1,0).getDate();
   const firstDayOfMonth=(y,m)=>new Date(y,m,1).getDay();
-  const pad=n=>String(n).padStart(2,"0");
   const calDays=daysInMonth(calYear,calMonth);
   const calStart=firstDayOfMonth(calYear,calMonth);
   const calCells=[];
   for(let i=0;i<calStart;i++)calCells.push(null);
   for(let d=1;d<=calDays;d++)calCells.push(d);
-  const getCampaignsForDay=(d)=>{
-    const dateStr=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
-    return filtered.filter(c=>c.startDate&&c.endDate&&dateStr>=c.startDate&&dateStr<=c.endDate);
+  // Load AI scheduler data from localStorage (fresh on every render)
+  const schedulerWallPosts=[];const schedulerMassMsgs=[];
+  vm.forEach(m=>{
+    try{
+      const saved=JSON.parse(localStorage.getItem(`charmed_schedules_${m.name}`)||"[]");
+      saved.forEach(s=>{
+        (s.result?.wallPosts||[]).forEach(p=>{if(p.date)schedulerWallPosts.push({...p,model:m.name});});
+        (s.result?.massMessages||[]).forEach(msg=>{if(msg.date)schedulerMassMsgs.push({...msg,model:m.name});});
+      });
+    }catch{}
+  });
+  // "Needs today" stats
+  const filteredModels=fm==="All"?vm:vm.filter(m=>m.name===fm);
+  const needsWallToday=filteredModels.filter(m=>!schedulerWallPosts.some(p=>p.model===m.name&&p.date===todayStr)).map(m=>m.name);
+  const needsMassToday=filteredModels.filter(m=>!schedulerMassMsgs.some(msg=>msg.model===m.name&&msg.date===todayStr)).map(m=>m.name);
+  const getDayItems=(d)=>{
+    const ds=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const modelFilter=m=>fm==="All"||m===fm;
+    const camps=filtered.filter(c=>c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate);
+    const wps=schedulerWallPosts.filter(p=>p.date===ds&&modelFilter(p.model));
+    const mms=schedulerMassMsgs.filter(msg=>msg.date===ds&&modelFilter(msg.model));
+    return{ds,camps,wps,mms};
   };
   const prevMonth=()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);};
   const nextMonth=()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);};
@@ -863,12 +885,14 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
           {(isAM||isLeadership)&&<Btn size="sm" onClick={()=>setShowAdd(true)}>+ New Campaign</Btn>}
         </div>
       }/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-        <StatCard label="Live" value={campaigns.filter(c=>c.status==="Live").length} color={C.green}/>
-        <StatCard label="Revenue" value={fmtMoney(campaigns.filter(c=>["Complete","Live"].includes(c.status)).reduce((a,c)=>a+Number(c.revenue),0))} color={C.purple}/>
-        <StatCard label="Need Campaigns" value={low.length} color={low.length>0?C.red:C.green} sub={low.length>0?low.map(m=>m.name).join(", "):"All good ✓"}/>
+      {/* Stats: needs-focused */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <StatCard label="Live Campaigns" value={campaigns.filter(c=>c.status==="Live").length} color={C.green}/>
+        <StatCard label="Need Campaign" value={low.length} color={low.length>0?C.red:C.green} sub={low.length>0?low.map(m=>m.name).join(", "):"All good ✓"}/>
+        <StatCard label="Need Wall Post Today" value={needsWallToday.length} color={needsWallToday.length>0?C.orange:C.green} sub={needsWallToday.length>0?needsWallToday.join(", "):"Scheduled ✓"}/>
+        <StatCard label="Need Mass Msg Today" value={needsMassToday.length} color={needsMassToday.length>0?C.orange:C.green} sub={needsMassToday.length>0?needsMassToday.join(", "):"Scheduled ✓"}/>
       </div>
-      {low.length>0&&<div style={{background:C.redL,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.red,fontWeight:600}}>⚠ {low.map(m=>m.name).join(", ")} need more campaigns</div>}
+      {/* Filters */}
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
         <select value={fm} onChange={e=>setFm(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}><option>All</option>{vm.map(m=><option key={m.id}>{m.name}</option>)}</select>
         <select value={fs} onChange={e=>setFs(e.target.value)} style={{...s.input,width:"auto",marginBottom:0}}>{["All","Planning","Scheduled","Live","Complete"].map(st=><option key={st}>{st}</option>)}</select>
@@ -889,59 +913,145 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
           </div>
         </Modal>
       )}
+      {/* Day detail modal */}
+      {selectedDay&&(
+        <Modal title={`${selectedDay.ds}`} onClose={()=>setSelectedDay(null)}>
+          {selectedDay.camps.length===0&&selectedDay.wps.length===0&&selectedDay.mms.length===0&&(
+            <div style={{textAlign:"center",color:C.muted,padding:"20px 0",fontSize:13}}>Nothing scheduled for this day.</div>
+          )}
+          {selectedDay.camps.length>0&&(
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>📅 Campaigns</div>
+              {selectedDay.camps.map(c=>(
+                <div key={c.id} style={{padding:"10px 12px",background:"rgba(255,255,255,0.04)",borderRadius:10,marginBottom:8,borderLeft:`3px solid ${sc[c.status]}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap",marginBottom:6}}>
+                    <div><div style={{fontWeight:700,fontSize:13}}>{c.name}</div><div style={{fontSize:11,color:C.muted,marginTop:1}}>{c.model} · {c.type}</div></div>
+                    {(isAM||isLeadership)&&<select value={c.status} onChange={e=>setCampaigns(p=>p.map(x=>x.id===c.id?{...x,status:e.target.value}:x))} style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"4px 10px"}}>{["Planning","Scheduled","Live","Complete"].map(st=><option key={st}>{st}</option>)}</select>}
+                  </div>
+                  {(isAM||isLeadership)&&<input value={c.notes||""} onChange={e=>setCampaigns(p=>p.map(x=>x.id===c.id?{...x,notes:e.target.value}:x))} placeholder="Notes…" style={{...s.input,fontSize:12,padding:"5px 10px"}}/>}
+                </div>
+              ))}
+            </div>
+          )}
+          {selectedDay.wps.length>0&&(
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.purpleL,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>📝 Wall Posts</div>
+              {selectedDay.wps.map((p,i)=>(
+                <div key={i} style={{padding:"10px 12px",background:"rgba(124,58,237,0.06)",borderRadius:10,marginBottom:8,borderLeft:`3px solid ${C.purple}`}}>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
+                    <span style={{fontWeight:700,fontSize:13,color:C.purpleL}}>{p.model}</span>
+                    <Badge label={p.time} color={C.blue}/>
+                    <Badge label={p.contentType} color={C.purple}/>
+                    <Badge label={p.priceTier} color={C.green}/>
+                    {p.visibility&&<Badge label={p.visibility} color={p.visibility==="Free"?C.muted:C.orange}/>}
+                    <span style={{fontSize:12,fontWeight:600,color:C.text}}>{p.theme}</span>
+                  </div>
+                  <div style={{fontSize:12,color:C.text,fontStyle:"italic",lineHeight:1.55,padding:"6px 10px",background:"rgba(255,255,255,0.04)",borderRadius:6}}>"{p.caption}"</div>
+                  {p.notes&&<div style={{fontSize:11,color:C.muted,marginTop:4}}>{p.notes}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          {selectedDay.mms.length>0&&(
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>💬 Mass Messages</div>
+              {selectedDay.mms.map((msg,i)=>(
+                <div key={i} style={{padding:"10px 12px",background:"rgba(16,185,129,0.06)",borderRadius:10,marginBottom:8,borderLeft:`3px solid ${C.green}`}}>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
+                    <span style={{fontWeight:700,fontSize:13,color:C.green}}>{msg.model}</span>
+                    <Badge label={msg.time} color={C.blue}/>
+                    <Badge label={msg.segment} color={C.purple}/>
+                    <Badge label={`PPV ${msg.ppvPrice}`} color={C.green}/>
+                  </div>
+                  <div style={{fontSize:12,color:C.text,lineHeight:1.55,padding:"6px 10px",background:"rgba(255,255,255,0.04)",borderRadius:6}}>"{msg.message}"</div>
+                  {msg.notes&&<div style={{fontSize:11,color:C.muted,marginTop:4}}>{msg.notes}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
+      {/* List view */}
       {viewMode==="list"&&vm.map(m=>{const mc=filtered.filter(c=>c.model===m.name);if(!mc.length&&fm!=="All"&&fm!==m.name)return null;return(
         <div key={m.id} style={{marginBottom:20}}>
           <div style={{fontSize:11,fontWeight:700,color:C.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>{m.name}</div>
           {!mc.length?<div style={{color:C.muted,fontSize:13,padding:"8px 0"}}>No campaigns.</div>:mc.map(c=>(
             <Card key={c.id} style={{marginBottom:8,borderLeft:`3px solid ${sc[c.status]}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                <div><div style={{fontWeight:600}}>{c.name}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{c.type}{c.startDate?` · ${c.startDate} → ${c.endDate}`:""}</div></div>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  {c.revenue>0&&<span style={{fontWeight:700,color:C.green,fontSize:13}}>{fmtMoney(c.revenue)}</span>}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600}}>{c.name}</div>
+                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>{c.type}{c.startDate?` · ${c.startDate} → ${c.endDate}`:""}</div>
+                  {c.notes&&editingId!==c.id&&<div style={{fontSize:11,color:C.muted,marginTop:4}}>{c.notes}</div>}
+                </div>
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                   <Badge label={c.status} color={sc[c.status]}/>
-                  {(isAM||isLeadership)&&<select value={c.status} onChange={e=>setCampaigns(p=>p.map(x=>x.id===c.id?{...x,status:e.target.value}:x))} style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"4px 10px"}}>{["Planning","Scheduled","Live","Complete"].map(st=><option key={st}>{st}</option>)}</select>}
+                  {(isAM||isLeadership)&&(
+                    <>
+                      <select value={c.status} onChange={e=>setCampaigns(p=>p.map(x=>x.id===c.id?{...x,status:e.target.value}:x))} style={{...s.input,width:"auto",marginBottom:0,fontSize:12,padding:"4px 10px"}}>{["Planning","Scheduled","Live","Complete"].map(st=><option key={st}>{st}</option>)}</select>
+                      <button onClick={()=>setEditingId(editingId===c.id?null:c.id)} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"3px 10px",cursor:"pointer",color:editingId===c.id?C.green:C.muted,fontSize:11,fontWeight:600}}>{editingId===c.id?"Done":"Edit"}</button>
+                    </>
+                  )}
                 </div>
               </div>
+              {editingId===c.id&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:10}}>
+                  <input value={c.startDate||""} onChange={e=>setCampaigns(p=>p.map(x=>x.id===c.id?{...x,startDate:e.target.value}:x))} type="date" style={{...s.input,fontSize:12,padding:"5px 10px"}}/>
+                  <input value={c.endDate||""} onChange={e=>setCampaigns(p=>p.map(x=>x.id===c.id?{...x,endDate:e.target.value}:x))} type="date" style={{...s.input,fontSize:12,padding:"5px 10px"}}/>
+                  <input value={c.notes||""} onChange={e=>setCampaigns(p=>p.map(x=>x.id===c.id?{...x,notes:e.target.value}:x))} placeholder="Notes…" style={{...s.input,fontSize:12,padding:"5px 10px",gridColumn:"1/-1"}}/>
+                </div>
+              )}
             </Card>
           ))}
         </div>
       );})}
+      {/* Calendar view */}
       {viewMode==="calendar"&&(
         <div>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
-            <button onClick={prevMonth} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(124,58,237,0.25)",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700,color:C.text}}>‹</button>
-            <span style={{fontWeight:700,fontSize:16,flex:1,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
-            <button onClick={nextMonth} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(124,58,237,0.25)",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700,color:C.text}}>›</button>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+            <button onClick={prevMonth} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 10px",cursor:"pointer",fontWeight:700,color:C.text,fontSize:15}}>‹</button>
+            <span style={{fontWeight:700,fontSize:14,flex:1,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
+            <button onClick={nextMonth} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 10px",cursor:"pointer",fontWeight:700,color:C.text,fontSize:15}}>›</button>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
-            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
-              <div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:C.muted,padding:"4px 0"}}>{d}</div>
-            ))}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:4}}>
+            {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:C.muted,padding:"2px 0"}}>{d}</div>)}
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
             {calCells.map((d,i)=>{
-              const dayStr=d?`${calYear}-${pad(calMonth+1)}-${pad(d)}`:"";
-              const isToday=dayStr===today();
-              const dayCampaigns=d?getCampaignsForDay(d):[];
+              const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===todayStr;
+              const {camps,wps,mms}=d?getDayItems(d):{camps:[],wps:[],mms:[]};
+              const total=camps.length+wps.length+mms.length;
               return(
-                <div key={i} style={{minHeight:72,background:d?C.white:"transparent",borderRadius:8,padding:d?"4px 6px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?C.border:"transparent"}`,position:"relative"}}>
-                  {d&&<div style={{fontSize:11,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:2}}>{d}</div>}
-                  {dayCampaigns.slice(0,3).map(c=>(
-                    <div key={c.id} title={`${c.model}: ${c.name}`} style={{fontSize:10,background:sc[c.status],color:C.white,borderRadius:4,padding:"1px 4px",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                      {c.name}
+                <div key={i}
+                  onClick={()=>{if(d&&total>0)setSelectedDay(getDayItems(d));}}
+                  style={{minHeight:64,background:d?C.bg:"transparent",borderRadius:6,padding:d?"3px 4px":0,
+                    border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"rgba(124,58,237,0.15)":"transparent"}`,
+                    cursor:d&&total>0?"pointer":"default",transition:"background 0.15s"}}
+                  onMouseEnter={e=>{if(d&&total>0)e.currentTarget.style.background="rgba(124,58,237,0.1)";}}
+                  onMouseLeave={e=>{if(d)e.currentTarget.style.background=C.bg;}}>
+                  {d&&<div style={{fontSize:10,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:2}}>{d}</div>}
+                  {camps.slice(0,1).map(c=>(
+                    <div key={c.id} title={`${c.model}: ${c.name}`} style={{fontSize:9,background:sc[c.status]+"22",color:sc[c.status],borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>
+                      📅 {c.name}
                     </div>
                   ))}
-                  {dayCampaigns.length>3&&<div style={{fontSize:9,color:C.muted}}>+{dayCampaigns.length-3} more</div>}
+                  {wps.slice(0,1).map((p,pi)=>(
+                    <div key={pi} title={`${p.model}: ${p.theme}`} style={{fontSize:9,background:"rgba(124,58,237,0.18)",color:C.purpleL,borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>
+                      📝 {p.model}
+                    </div>
+                  ))}
+                  {mms.slice(0,1).map((msg,mi)=>(
+                    <div key={mi} title={`${msg.model}: ${msg.segment}`} style={{fontSize:9,background:"rgba(16,185,129,0.18)",color:C.green,borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>
+                      💬 {msg.model}
+                    </div>
+                  ))}
+                  {total>3&&<div style={{fontSize:8,color:C.muted}}>+{total-3}</div>}
                 </div>
               );
             })}
           </div>
-          <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
-            {Object.entries(sc).map(([st,col])=>(
-              <div key={st} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.muted}}>
-                <div style={{width:10,height:10,borderRadius:2,background:col}}/>
-                {st}
-              </div>
+          <div style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap"}}>
+            {[["Campaigns (status-colored)",C.green],["📝 Wall Posts",C.purpleL],["💬 Mass Messages",C.green]].map(([l,c])=>(
+              <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:C.muted}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>
             ))}
           </div>
         </div>
@@ -3024,7 +3134,7 @@ Respond ONLY with valid JSON matching this exact structure (no markdown fences):
   ]
 }
 
-Provide 5-7 wall posts and 3-5 mass messages. Space them strategically across the week. Prioritise revenue.`;
+Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messages than wall posts — if you generate 5 wall posts, you need at least 6 mass messages; if 6 wall posts, at least 7 mass messages, etc. Space them strategically across the week. Prioritise revenue.`;
   };
 
   const generate=async()=>{
