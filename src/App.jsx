@@ -823,9 +823,9 @@ function SalesTracker({user,sales,setSales,isLeadership,isAM,myModels,users}){
   );
 }
 // ── CAMPAIGNS ────────────────────────────────────────────────
-function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,models}){
+function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,models,initView}){
   const [fm,setFm]=useState("All");const [fs,setFs]=useState("All");const [showAdd,setShowAdd]=useState(false);
-  const [viewMode,setViewMode]=useState("list");
+  const [viewMode,setViewMode]=useState(initView||"list");
   const now=new Date();
   const [calYear,setCalYear]=useState(now.getFullYear());
   const [calMonth,setCalMonth]=useState(now.getMonth());
@@ -3293,14 +3293,15 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const flagged=fans.filter(f=>f.flag);
   const low=models.filter(m=>!m.archived&&campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
   const alerts=buildAlerts(tasks,shifts,models,campaigns,fans);
-  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["campaigns","Campaigns"],["content","Content"],["customs","Customs"],["mass","Mass Msgs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["mg","MG Deliverables"]];
+  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["calendar","📅 Calendar"],["ai","✨ AI Scheduler"],["content","Content"],["customs","Customs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["mg","MG Deliverables"]];
   const handleQuickAction=(action)=>{
     if(action==="todos"){setSection("todos");}
-    else if(action==="campaigns"||action==="qa"){setSection("paywall");setTab(action);}
+    else if(action==="campaigns"){setSection("paywall");setTab("calendar");}
+    else if(action==="qa"){setSection("paywall");setTab("qa");}
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
   };
-  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["analytics","Analytics"],["ai","AI Scheduler"],["admin","Admin"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["analytics","Analytics"],["admin","Admin"]];
   return(
     <div>
       <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
@@ -3363,10 +3364,10 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
         {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={true} isAM={false} myModels={allModels} users={users}/>}
-        {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={true} isAM={false} myModels={allModels} models={models}/>}
+        {tab==="calendar"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={true} isAM={false} myModels={allModels} models={models} initView="calendar"/>}
+        {tab==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={allModels}/>}
         {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={allModels} isLeadership={true} platforms={platforms} discordWebhook={discordWebhook}/>}
         {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-        {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={allModels} isLeadership={true} isAM={false}/>}
         {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
         {tab==="performance"&&<ChatterPerformance sales={sales} qaLogs={qaLogs} users={users}/>}
         {tab==="handoffs"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={true} isAM={false} models={models}/>}
@@ -3388,7 +3389,6 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="invoices"&&<StripeInvoices isLeadership={true} models={models}/>}
       </div>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
-      {section==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={allModels}/>}
       {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
@@ -3447,10 +3447,12 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
   const myTasks=tasks.filter(t=>t.am===user.name);
   const myFans=fans.filter(f=>myModels.includes(f.model));
   const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});
-  const navTabs=[["overview","Overview"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["mg","MG Deliverables"],["schedule","Sling"]];
-  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["ai","AI Scheduler"]];
+  const navTabs=[["overview","Overview"],["ttk","TTK Editor"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["calendar","📅 Calendar"],["ai","✨ AI Scheduler"],["boseos","BOS/EOS"],["qa","QA"],["mg","MG Deliverables"],["schedule","Sling"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"]];
   const handleQuickAction=(action)=>{
-    if(["overview","campaigns","qa"].includes(action)){setSection("paywall");setTab(action);}
+    if(action==="campaigns"){setSection("paywall");setTab("calendar");}
+    else if(action==="qa"){setSection("paywall");setTab("qa");}
+    else if(action==="overview"){setSection("paywall");setTab("overview");}
     else if(action==="todos"){setSection("todos");}
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
@@ -3503,7 +3505,6 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
           {!todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete").length&&<div style={{color:C.muted,fontSize:13}}>All clear ✓</div>}
         </div>}
         {tab==="ttk"&&<TTKEditor user={user} ttks={ttks} setTtks={setTtks} myModels={myModels}/>}
-        {tab==="mass"&&<MassMessageTracker user={user} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} isLeadership={false} isAM={true}/>}
         {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={myModels} isLeadership={false} platforms={platforms} discordWebhook={discordWebhook}/>}
         {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
         {tab==="fans"&&<div>
@@ -3533,7 +3534,8 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
           </Card>
         </div>}
         {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={false} isAM={true} myModels={myModels} users={users}/>}
-        {tab==="campaigns"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={false} isAM={true} myModels={myModels} models={models}/>}
+        {tab==="calendar"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={false} isAM={true} myModels={myModels} models={models} initView="calendar"/>}
+        {tab==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={myModels}/>}
         {tab==="boseos"&&<BOSEOSView user={user} boseos={boseos} setBoseos={setBoseos} tasks={tasks} setTasks={setTasks} myModels={myModels}/>}
         {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={()=>{}} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
@@ -3553,7 +3555,6 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
         {(tab==="deals"||!["deals","invoices"].includes(tab))&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="invoices"&&<StripeInvoices isLeadership={false} models={models} myModels={myModels}/>}
       </div>}
-      {section==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={myModels}/>}
     </div>
   );
 }
