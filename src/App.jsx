@@ -2876,6 +2876,285 @@ function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,sn
     </div>
   );
 }
+// ── AI SCHEDULER ─────────────────────────────────────────────
+function AISchedulerPanel({models,ttks,content,campaigns,massMessages,myModels}){
+  const modelList=myModels||models.filter(m=>!m.archived).map(m=>m.name);
+  const [selectedModel,setSelectedModel]=useState(modelList[0]||"");
+  const [weekStart,setWeekStart]=useState(new Date().toISOString().slice(0,10));
+  const [contentNotes,setContentNotes]=useState("");
+  const [perfNotes,setPerfNotes]=useState("");
+  const [screenshots,setScreenshots]=useState([]);
+  const [apiKey,setApiKey]=useState(()=>localStorage.getItem("charmed_claude_api_key")||"");
+  const [showSettings,setShowSettings]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [result,setResult]=useState(null);
+  const [error,setError]=useState("");
+  const [outputTab,setOutputTab]=useState("wall");
+
+  const saveApiKey=(key)=>{setApiKey(key);localStorage.setItem("charmed_claude_api_key",key);};
+
+  const handleScreenshots=(e)=>{
+    Array.from(e.target.files).forEach(file=>{
+      const reader=new FileReader();
+      reader.onload=(ev)=>setScreenshots(prev=>[...prev,{name:file.name,dataUrl:ev.target.result}]);
+      reader.readAsDataURL(file);
+    });
+    e.target.value="";
+  };
+
+  const removeScreenshot=(i)=>setScreenshots(prev=>prev.filter((_,idx)=>idx!==i));
+
+  const ttk=ttks.find(t=>t.model===selectedModel);
+  const modelObj=models.find(m=>m.name===selectedModel);
+  const recentContent=content.filter(c=>c.model===selectedModel).slice(0,5);
+  const recentMass=massMessages.filter(m=>m.model===selectedModel).slice(0,5);
+  const activeCampaigns=campaigns.filter(c=>c.model===selectedModel&&["Live","Scheduled"].includes(c.status));
+
+  const buildPrompt=()=>{
+    const ttkInfo=ttk?`Voice/Tone: ${ttk.voice}\nPersonality: ${ttk.personality}\nInterests: ${ttk.interests}\nFlirt Level: ${ttk.flirtLevel}\nHard No's: ${ttk.hardNos}\nEndearments: ${ttk.endearments}\nAge: ${ttk.age}, Location: ${ttk.location}\nOffline Times: ${ttk.offlineTimes}`:"No TTK data available.";
+    const contentHistory=recentContent.map(c=>`${c.date}: ${c.type} — "${c.theme}" (${c.priceTier})`).join("\n")||"None logged";
+    const massHistory=recentMass.map(m=>`${m.date}: "${m.message}" → Target: ${m.target} | Revenue: $${m.revenue}`).join("\n")||"None logged";
+    const campInfo=activeCampaigns.map(c=>`${c.name} (${c.type}) — ends ${c.endDate}`).join("\n")||"None active";
+    return `You are an expert Passes paywall content strategist for ${selectedModel}, a creator managed by Charmed Collective agency.
+
+Your primary goal is to MAXIMISE REVENUE for the week of ${weekStart}.
+
+## Model Profile
+Platform: ${modelObj?.platform||"Passes"}
+Flirt Level: ${modelObj?.flirtLevel||ttk?.flirtLevel||"N/A"}
+Status: ${modelObj?.status||"Active"}
+
+## Tone & Voice (TTK)
+${ttkInfo}
+
+## Recent Content History
+${contentHistory}
+
+## Recent Mass Message History (with revenue)
+${massHistory}
+
+## Active Campaigns
+${campInfo}
+
+## Content Calendar Notes (from AM)
+${contentNotes||"None provided"}
+
+## Past Performance Notes
+${perfNotes||"None provided"}
+
+${screenshots.length>0?`## Analytics Screenshots\n${screenshots.length} screenshot(s) attached. Analyse the wall post and mass message metrics shown — use data on views, revenue, engagement, and send times to inform your recommendations.`:""}
+
+---
+
+Generate a revenue-optimised WEEKLY SCHEDULE for the week starting ${weekStart} on Passes.
+
+Respond ONLY with valid JSON matching this exact structure (no markdown fences):
+{
+  "summary": "2-3 sentence strategic overview for this week",
+  "revenueStrategy": "paragraph explaining the revenue-maximising approach",
+  "wallPosts": [
+    {
+      "day": "Monday",
+      "date": "YYYY-MM-DD",
+      "time": "3:00 PM EST",
+      "contentType": "PS|VID|PPV|CLIP|BTS|LIVE",
+      "theme": "short theme name",
+      "priceTier": "$|$$|$$$",
+      "caption": "suggested caption hook using ${selectedModel}'s voice, 1-2 sentences",
+      "visibility": "Free|Paid Only",
+      "notes": "brief strategic note"
+    }
+  ],
+  "massMessages": [
+    {
+      "day": "Monday",
+      "date": "YYYY-MM-DD",
+      "time": "optimal send time EST",
+      "segment": "All Subscribers|Whales|Recent Spenders|VIPs|Followers|Online Fans",
+      "ppvPrice": "$XX",
+      "message": "message copy in ${selectedModel}'s voice",
+      "contentTag": "what content this promotes or teases",
+      "expectedRevenue": "low|medium|high",
+      "notes": "segmentation rationale"
+    }
+  ]
+}
+
+Provide 5-7 wall posts and 3-5 mass messages. Space them strategically across the week. Prioritise revenue.`;
+  };
+
+  const generate=async()=>{
+    if(!apiKey){setError("Add your Claude API key in Settings first.");setShowSettings(true);return;}
+    if(!selectedModel){setError("Select a model first.");return;}
+    setLoading(true);setError("");setResult(null);
+    try{
+      const msgContent=[{type:"text",text:buildPrompt()}];
+      screenshots.forEach(sc=>{
+        const[header,data]=sc.dataUrl.split(",");
+        const mediaType=header.match(/:(.*?);/)?.[1]||"image/jpeg";
+        msgContent.push({type:"image",source:{type:"base64",media_type:mediaType,data}});
+      });
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-opus-4-6",max_tokens:4096,messages:[{role:"user",content:msgContent}]})
+      });
+      if(!res.ok){const err=await res.json();throw new Error(err.error?.message||`API error ${res.status}`);}
+      const respData=await res.json();
+      const text=respData.content[0].text;
+      const jsonMatch=text.match(/\{[\s\S]*\}/);
+      if(jsonMatch){setResult(JSON.parse(jsonMatch[0]));}
+      else{setError("Could not parse AI response. Try again.");}
+    }catch(e){setError(e.message);}
+    finally{setLoading(false);}
+  };
+
+  const dayColor={Monday:C.purple,Tuesday:C.blue,Wednesday:C.green,Thursday:C.orange,Friday:C.pink,Saturday:C.yellow,Sunday:C.red};
+  const revColor={low:C.muted,medium:C.yellow,high:C.green};
+  const ctColor={PS:C.purple,VID:C.blue,PPV:C.green,CLIP:C.orange,BTS:C.pink,LIVE:C.red};
+
+  return(
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+        <div>
+          <div style={{fontSize:22,fontWeight:800,background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.01em"}}>AI Scheduler</div>
+          <div style={{fontSize:12,color:C.muted,marginTop:2}}>Revenue-optimised weekly schedule for Passes wall posts & mass messages</div>
+        </div>
+        <Btn variant="secondary" size="sm" onClick={()=>setShowSettings(p=>!p)}>{showSettings?"Close Settings":"⚙ Settings"}</Btn>
+      </div>
+
+      {showSettings&&(
+        <Card style={{marginBottom:16,borderColor:"rgba(167,139,250,0.4)"}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>API Key Settings</div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:12}}>Your key is stored locally in your browser only — never sent to any server except Anthropic directly.</div>
+          <Input label="Claude API Key" value={apiKey} onChange={saveApiKey} placeholder="sk-ant-api03-..." type="password"/>
+          <div style={{fontSize:11,color:apiKey?C.green:C.red,marginTop:-8}}>{apiKey?"✓ Key saved locally":"No key configured"}</div>
+        </Card>
+      )}
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+        <Card>
+          <Sel label="Model" value={selectedModel} onChange={setSelectedModel} options={modelList}/>
+          <Input label="Week Starting" value={weekStart} onChange={setWeekStart} type="date"/>
+          {ttk&&(
+            <div style={{background:"rgba(124,58,237,0.08)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:10,padding:"10px 12px",marginTop:2}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>TTK Auto-loaded</div>
+              <div style={{fontSize:12,color:C.purpleL,lineHeight:1.9}}>
+                <div><b>Voice:</b> {ttk.voice}</div>
+                <div><b>Flirt level:</b> {ttk.flirtLevel} &nbsp;|&nbsp; <b>Endearments:</b> {ttk.endearments}</div>
+                <div><b>Hard No's:</b> {ttk.hardNos}</div>
+                <div><b>Offline:</b> {ttk.offlineTimes}</div>
+              </div>
+            </div>
+          )}
+        </Card>
+        <Card>
+          <div style={s.label}>Analytics Screenshots (optional)</div>
+          <div style={{border:"2px dashed rgba(167,139,250,0.3)",borderRadius:10,padding:"18px",textAlign:"center",cursor:"pointer",marginBottom:10}}
+            onClick={()=>document.getElementById("ai-ss-input").click()}>
+            <input id="ai-ss-input" type="file" accept="image/*" multiple style={{display:"none"}} onChange={handleScreenshots}/>
+            <div style={{fontSize:24,marginBottom:6}}>📸</div>
+            <div style={{fontSize:12,color:C.muted}}>Upload wall post & mass message analytics screenshots</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:4}}>PNG, JPG · Multiple OK · AI will analyse metrics</div>
+          </div>
+          {screenshots.map((sc,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:6,fontSize:12}}>
+              <span style={{color:C.purpleL}}>📷 {sc.name}</span>
+              <button onClick={()=>removeScreenshot(i)} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>
+            </div>
+          ))}
+          {screenshots.length>0&&<div style={{fontSize:11,color:C.green,marginTop:4}}>✓ {screenshots.length} screenshot{screenshots.length>1?"s":""} ready to send</div>}
+        </Card>
+      </div>
+
+      <Card style={{marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <TA label="Content Calendar Notes" value={contentNotes} onChange={setContentNotes} rows={4} placeholder="e.g. beach shoot assets ready, holiday theme this week, model has event Thursday..."/>
+          <TA label="Past Performance Notes" value={perfNotes} onChange={setPerfNotes} rows={4} placeholder="e.g. last week's PPV 3x avg revenue, Tuesday 7pm sends highest open rate, whales respond to personalised intros..."/>
+        </div>
+      </Card>
+
+      {error&&<div style={{background:C.redL,border:`1px solid ${C.red}44`,borderRadius:10,padding:"10px 14px",fontSize:13,color:C.red,marginBottom:16}}>{error}</div>}
+
+      <div style={{textAlign:"center",marginBottom:24}}>
+        <Btn onClick={generate} size="lg" style={{minWidth:240}} color={loading?C.muted:undefined}>
+          {loading?"Generating…":"✨ Generate Weekly Schedule"}
+        </Btn>
+        {loading&&<div style={{fontSize:12,color:C.muted,marginTop:10}}>Analysing context{screenshots.length>0?" + "+screenshots.length+" screenshot"+(screenshots.length>1?"s":""):""}… This may take 20–40 seconds.</div>}
+      </div>
+
+      {result&&(
+        <div>
+          <Card style={{marginBottom:12,borderColor:"rgba(124,58,237,0.45)",background:"rgba(124,58,237,0.06)"}}>
+            <div style={{fontSize:12,fontWeight:700,color:C.purpleL,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Strategic Overview</div>
+            <div style={{fontSize:13,color:C.text,lineHeight:1.7}}>{result.summary}</div>
+          </Card>
+          {result.revenueStrategy&&(
+            <Card style={{marginBottom:16,borderColor:"rgba(16,185,129,0.35)",background:"rgba(16,185,129,0.05)"}}>
+              <div style={{fontSize:12,fontWeight:700,color:C.green,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Revenue Strategy</div>
+              <div style={{fontSize:13,color:C.text,lineHeight:1.7}}>{result.revenueStrategy}</div>
+            </Card>
+          )}
+
+          <Tabs tabs={[["wall",`Wall Posts (${(result.wallPosts||[]).length})`],["mass",`Mass Messages (${(result.massMessages||[]).length})`]]} active={outputTab} onChange={setOutputTab}/>
+
+          {outputTab==="wall"&&(
+            <div style={{marginTop:4}}>
+              {(result.wallPosts||[]).map((post,i)=>(
+                <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${dayColor[post.day]||C.purple}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <span style={{fontWeight:800,fontSize:15,color:dayColor[post.day]||C.text}}>{post.day}</span>
+                      <span style={{fontSize:12,color:C.muted}}>{post.date}</span>
+                      <Badge label={post.time} color={C.blue}/>
+                      <Badge label={post.contentType} color={ctColor[post.contentType]||C.purple}/>
+                      <Badge label={post.priceTier} color={C.green}/>
+                      <Badge label={post.visibility} color={post.visibility==="Free"?C.muted:C.orange}/>
+                    </div>
+                    <span style={{fontSize:13,fontWeight:700,color:C.purpleL}}>{post.theme}</span>
+                  </div>
+                  <div style={{fontSize:13,color:C.text,fontStyle:"italic",lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:post.notes?8:0}}>
+                    "{post.caption}"
+                  </div>
+                  {post.notes&&<div style={{fontSize:11,color:C.muted,marginTop:4}}>{post.notes}</div>}
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {outputTab==="mass"&&(
+            <div style={{marginTop:4}}>
+              {(result.massMessages||[]).map((msg,i)=>(
+                <Card key={i} style={{marginBottom:12,borderLeft:`3px solid ${dayColor[msg.day]||C.green}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <span style={{fontWeight:800,fontSize:15,color:dayColor[msg.day]||C.text}}>{msg.day}</span>
+                      <span style={{fontSize:12,color:C.muted}}>{msg.date}</span>
+                      <Badge label={msg.time} color={C.blue}/>
+                      <Badge label={msg.segment} color={C.purple}/>
+                      <Badge label={`PPV ${msg.ppvPrice}`} color={C.green}/>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <span style={{fontSize:11,color:C.muted}}>Expected:</span>
+                      <Badge label={msg.expectedRevenue} color={revColor[msg.expectedRevenue]||C.muted}/>
+                    </div>
+                  </div>
+                  <div style={{fontSize:13,color:C.text,lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:8}}>
+                    "{msg.message}"
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                    {msg.contentTag&&<Badge label={`Content: ${msg.contentTag}`} color={C.blue}/>}
+                    {msg.notes&&<span style={{fontSize:11,color:C.muted}}>{msg.notes}</span>}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 // ── DASHBOARDS ───────────────────────────────────────────────
 function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook}){
   const [section,setSection]=useState("home");
@@ -2893,7 +3172,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
   };
-  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["analytics","Analytics"],["admin","Admin"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["analytics","Analytics"],["ai","AI Scheduler"],["admin","Admin"]];
   return(
     <div>
       <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
@@ -2981,6 +3260,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="invoices"&&<StripeInvoices isLeadership={true} models={models}/>}
       </div>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
+      {section==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={allModels}/>}
       {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
@@ -3040,7 +3320,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
   const myFans=fans.filter(f=>myModels.includes(f.model));
   const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});
   const navTabs=[["overview","Overview"],["ttk","TTK Editor"],["mass","Mass Msgs"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["campaigns","Campaigns"],["boseos","BOS/EOS"],["qa","QA"],["mg","MG Deliverables"],["schedule","Sling"]];
-  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["ai","AI Scheduler"]];
   const handleQuickAction=(action)=>{
     if(["overview","campaigns","qa"].includes(action)){setSection("paywall");setTab(action);}
     else if(action==="todos"){setSection("todos");}
@@ -3145,6 +3425,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
         {(tab==="deals"||!["deals","invoices"].includes(tab))&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="invoices"&&<StripeInvoices isLeadership={false} models={models} myModels={myModels}/>}
       </div>}
+      {section==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={myModels}/>}
     </div>
   );
 }
