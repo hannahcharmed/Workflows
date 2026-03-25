@@ -338,6 +338,20 @@ function buildAlerts(tasks,shifts,models,campaigns,fans){
   SHIFTS.forEach(s=>{if(!shifts.find(x=>x.shift===s&&x.date===today()))a.push({type:"error",msg:`${s} shift uncovered today`});});
   models.filter(m=>!m.archived&&campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2).forEach(m=>a.push({type:"warn",msg:`${m.name} has <2 active campaigns`}));
   fans.filter(f=>f.flag).forEach(f=>a.push({type:"flag",msg:`Flagged: ${f.username} on ${f.model}`}));
+  // Stale AI schedule alerts
+  const todayISO=new Date().toISOString().slice(0,10);
+  const weekAgoDate=new Date(Date.now()-7*86400000);
+  models.filter(m=>!m.archived).forEach(m=>{
+    try{
+      const saved=JSON.parse(localStorage.getItem(`charmed_schedules_${m.name}`)||"[]");
+      if(!saved.length){a.push({type:"warn",msg:`${m.name} — no AI schedule generated yet`});return;}
+      if(new Date(saved[0].savedAt)<weekAgoDate){a.push({type:"warn",msg:`${m.name} — AI schedule is 7+ days old, regenerate`});return;}
+      const allWPs=[],allMMs=[];
+      saved.forEach(s=>{(s.result?.wallPosts||[]).forEach(p=>{if(p.date)allWPs.push(p.date);});(s.result?.massMessages||[]).forEach(msg=>{if(msg.date)allMMs.push(msg.date);});});
+      if(!allWPs.some(d=>d===todayISO))a.push({type:"warn",msg:`${m.name} — no wall post scheduled today`});
+      if(!allMMs.some(d=>d===todayISO))a.push({type:"warn",msg:`${m.name} — no mass message scheduled today`});
+    }catch{}
+  });
   return a;
 }
 function AlertsBar({alerts}){
@@ -426,18 +440,43 @@ function SlingWidget({slingApiKey,setSlingApiKey}){
   );
 }
 // ── QA REVIEW ────────────────────────────────────────────────
-function QAReview({user,qaLogs,setQaLogs,users,models}){
+function QAReview({user,qaLogs,setQaLogs,users,models,ttks}){
   const [showAdd,setShowAdd]=useState(false);
   const chatters=users.filter(u=>u.role==="chatter"||u.role==="chatlead").map(u=>u.name);
   const activeModels=models.filter(m=>!m.archived).map(m=>m.name);
   const blank={chatter:chatters[0]||"",model:activeModels[0]||"",upsellAttempt:null,toneMatch:null,hardNoViolation:null,escalationHandled:null,notes:""};
   const [form,setForm]=useState(blank);
+  const [showAI,setShowAI]=useState(false);
+  const [transcript,setTranscript]=useState("");
+  const [aiLoading,setAiLoading]=useState(false);
+  const [aiReasoning,setAiReasoning]=useState("");
   const [fc,setFc]=useState("All");
   const [fm,setFm]=useState("All");
   const [fd,setFd]=useState("");
   const calcScore=f=>{let sc=100;if(f.upsellAttempt===false)sc-=20;if(f.toneMatch===false)sc-=20;if(f.hardNoViolation===true)sc-=40;if(f.escalationHandled===false)sc-=20;return Math.max(0,sc);};
   const scoreCol=sc=>sc>=80?C.green:sc>=60?C.yellow:C.red;
-  const submit=()=>{setQaLogs(p=>[{...form,id:Date.now(),reviewer:user.name,date:today(),score:calcScore(form)},...p]);setForm(blank);setShowAdd(false);};
+  const submit=()=>{setQaLogs(p=>[{...form,id:Date.now(),reviewer:user.name,date:today(),score:calcScore(form)},...p]);setForm(blank);setShowAdd(false);setTranscript("");setAiReasoning("");setShowAI(false);};
+  const analyseTranscript=async()=>{
+    const apiKey=localStorage.getItem("charmed_claude_api_key")||"";
+    if(!apiKey){setAiReasoning("⚠ No Claude API key — add one in AI Scheduler → Settings.");return;}
+    if(!transcript.trim()){setAiReasoning("⚠ Paste a chat transcript first.");return;}
+    const ttk=ttks?.find(t=>t.model===form.model);
+    const ttkInfo=ttk?`Voice/Tone: ${ttk.voice}\nPersonality: ${ttk.personality}\nHard No's: ${ttk.hardNos}\nFlirt Level: ${ttk.flirtLevel}\nEndearments: ${ttk.endearments}`:"No TTK on file.";
+    setAiLoading(true);setAiReasoning("");
+    try{
+      const prompt=`You are a QA reviewer for a fanpage chatter managing the "${form.model}" account.\n\nTTK (Tone & Voice Guide):\n${ttkInfo}\n\nChat Transcript:\n${transcript}\n\nAnalyse this chat transcript against the TTK and respond ONLY with valid JSON (no markdown):\n{"upsellAttempt":true|false|null,"toneMatch":true|false,"hardNoViolation":true|false,"escalationHandled":true|false|null,"score":0-100,"reasoning":"2-3 sentences explaining the score and key observations"}`;
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-opus-4-6",max_tokens:512,messages:[{role:"user",content:prompt}]})});
+      if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`API ${res.status}`);}
+      const data=await res.json();
+      const match=data.content[0].text.match(/\{[\s\S]*\}/);
+      if(match){
+        const r=JSON.parse(match[0]);
+        setForm(p=>({...p,upsellAttempt:r.upsellAttempt??p.upsellAttempt,toneMatch:r.toneMatch??p.toneMatch,hardNoViolation:r.hardNoViolation??p.hardNoViolation,escalationHandled:r.escalationHandled??p.escalationHandled}));
+        setAiReasoning(r.reasoning||"Analysis complete.");
+      }else{setAiReasoning("Could not parse AI response.");}
+    }catch(e){setAiReasoning(`Error: ${e.message}`);}
+    finally{setAiLoading(false);}
+  };
   const visible=qaLogs.filter(q=>(fc==="All"||q.chatter===fc)&&(fm==="All"||q.model===fm)&&(!fd||q.date.startsWith(fd)));
   const avg=visible.length?Math.round(visible.reduce((a,q)=>a+q.score,0)/visible.length):null;
   const BoolRow=({label,field})=>(
@@ -483,7 +522,19 @@ function QAReview({user,qaLogs,setQaLogs,users,models}){
           <BoolRow label="Hard no violated?" field="hardNoViolation"/>
           <BoolRow label="Escalation handled correctly?" field="escalationHandled"/>
           <Input label="Notes / Feedback" value={form.notes} onChange={v=>setForm(p=>({...p,notes:v}))} placeholder="Feedback for chatter…" style={{marginTop:14}}/>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+          <div style={{borderTop:`1px solid ${C.border}`,marginTop:14,paddingTop:14}}>
+            <button onClick={()=>setShowAI(p=>!p)} style={{background:"rgba(124,58,237,0.1)",border:`1px solid rgba(124,58,237,0.3)`,borderRadius:8,padding:"5px 14px",cursor:"pointer",color:C.purpleL,fontSize:12,fontWeight:700,marginBottom:showAI?10:0}}>
+              {showAI?"▲ Hide AI Assist":"✨ AI Assist — analyse chat transcript"}
+            </button>
+            {showAI&&(
+              <div>
+                <textarea value={transcript} onChange={e=>setTranscript(e.target.value)} rows={5} placeholder="Paste the chat transcript here…" style={{...s.input,resize:"vertical",marginBottom:8,fontFamily:"monospace",fontSize:12}}/>
+                <Btn size="sm" onClick={analyseTranscript} color={aiLoading?C.muted:C.purple}>{aiLoading?"Analysing…":"Analyse with Claude"}</Btn>
+                {aiReasoning&&<div style={{marginTop:8,padding:"8px 12px",background:aiReasoning.startsWith("⚠")||aiReasoning.startsWith("Error")?C.redL:"rgba(124,58,237,0.08)",border:`1px solid ${aiReasoning.startsWith("⚠")||aiReasoning.startsWith("Error")?"rgba(239,68,68,0.3)":"rgba(124,58,237,0.2)"}`,borderRadius:8,fontSize:12,color:C.text,lineHeight:1.6}}>{aiReasoning}</div>}
+              </div>
+            )}
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
             <span style={{fontSize:13,color:C.muted}}>Score: <b style={{color:scoreCol(calcScore(form))}}>{calcScore(form)}%</b></span>
             <div style={{display:"flex",gap:8}}><Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn><Btn size="sm" onClick={submit}>Submit Review</Btn></div>
           </div>
@@ -701,7 +752,7 @@ function BOSEOSView({user,boseos,setBoseos,tasks,setTasks,myModels}){
   );
 }
 // ── SHIFT HANDOFF ────────────────────────────────────────────
-function ShiftHandoff({user,handoffs,setHandoffs,isLeadership,isAM,models}){
+function ShiftHandoff({user,handoffs,setHandoffs,isLeadership,isAM,models,sales,fans,todos,qaLogs}){
   const activeModels=models.filter(m=>!m.archived).map(m=>m.name);
   const [form,setForm]=useState({model:activeModels[0]||"",incoming:"",shift:"11-7",activeConvos:"",whalesOnline:"",doNotContact:"none",massSent:"N",notes:""});
   const [posted,setPosted]=useState(null);
@@ -712,11 +763,31 @@ function ShiftHandoff({user,handoffs,setHandoffs,isLeadership,isAM,models}){
     setPosted(`🔄 HANDOFF — ${form.model}\nOutgoing: ${user.name} | Shift: ${form.shift}\nIncoming: ${form.incoming}\n\nACTIVE CONVOS:\n${form.activeConvos||"none"}\n\nWHALES ONLINE: ${form.whalesOnline||"none"}\nDO NOT CONTACT: ${form.doNotContact}\nMASS SENT: ${form.massSent}\nNOTES: ${form.notes||"none"}`);
     setForm({model:activeModels[0]||"",incoming:"",shift:"11-7",activeConvos:"",whalesOnline:"",doNotContact:"none",massSent:"N",notes:""});
   };
+  const autoFill=()=>{
+    const m=form.model;const todayStr=today();
+    const todaySales=(sales||[]).filter(s=>s.model===m&&s.date===todayStr).sort((a,b)=>b.amount-a.amount);
+    const whales=(fans||[]).filter(f=>f.model===m&&(f.type==="Whale"||f.type==="VIP")&&todaySales.some(s=>s.fanUsername===f.username)).map(f=>f.username);
+    const flagged=(fans||[]).filter(f=>f.model===m&&f.flag).map(f=>`${f.username} — ${f.notes||f.type}`);
+    const openTodos=(todos||[]).filter(t=>t.model===m&&(t.status||"Pending")!=="Complete").slice(0,3).map(t=>t.task);
+    const violations=(qaLogs||[]).filter(q=>q.model===m&&q.date===todayStr&&q.hardNoViolation).map(q=>`⚠ Hard No by ${q.chatter}`);
+    const convosText=todaySales.slice(0,5).map(s=>`- ${s.fanUsername||"fan"} — ${s.type} $${s.amount}${s.note?` (${s.note})`:""}`).join("\n")||"";
+    const notesArr=[...violations,...openTodos.map(t=>`Todo: ${t}`)];
+    setForm(p=>({...p,
+      activeConvos:convosText||p.activeConvos,
+      whalesOnline:whales.join(", ")||p.whalesOnline,
+      doNotContact:flagged.length?flagged.join("; "):p.doNotContact,
+      notes:notesArr.length?notesArr.join("\n"):p.notes
+    }));
+  };
   return(
     <div>
       <SectionHeader icon="🔄" title="Shift Handoffs"/>
       {!isLeadership&&!isAM&&(
         <Card style={{marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <span style={{fontWeight:700,fontSize:13}}>New Handoff</span>
+            <Btn size="sm" variant="secondary" onClick={autoFill}>⚡ Auto-fill from today</Btn>
+          </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={activeModels}/>
             <Sel label="Shift" value={form.shift} onChange={v=>setForm(p=>({...p,shift:v}))} options={SHIFTS}/>
@@ -819,6 +890,92 @@ function SalesTracker({user,sales,setSales,isLeadership,isAM,myModels,users}){
           <Btn onClick={()=>{if(!form.amount||!form.fanUsername)return;setSales(p=>[...p,{...form,id:Date.now(),chatter:user.name,date:new Date().toISOString().slice(0,10),amount:Number(form.amount)}]);setForm(p=>({...p,amount:"",fanUsername:"",note:""}));}}>Log Sale</Btn>
         </Card>
       )}
+    </div>
+  );
+}
+// ── MODEL OVERVIEW CARDS ─────────────────────────────────────
+function ModelOverviewCards({models,campaigns,customs,sales,ttks,revenueGoals,setRevenueGoals,myModels,isLeadership}){
+  const vm=isLeadership?models.filter(m=>!m.archived):models.filter(m=>myModels.includes(m.name)&&!m.archived);
+  const [editingGoal,setEditingGoal]=useState(null);
+  const todayISO=new Date().toISOString().slice(0,10);
+  const weekAgoISO=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+  return(
+    <div style={{marginTop:24}}>
+      <div style={{fontSize:14,fontWeight:700,marginBottom:12,color:C.text}}>Model Snapshots</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:12}}>
+        {vm.map(m=>{
+          // AI scheduler data from localStorage
+          let lastWallDate=null,lastMassDate=null;
+          try{
+            const saved=JSON.parse(localStorage.getItem(`charmed_schedules_${m.name}`)||"[]");
+            saved.forEach(s=>{
+              (s.result?.wallPosts||[]).forEach(p=>{if(p.date&&(!lastWallDate||p.date>lastWallDate))lastWallDate=p.date;});
+              (s.result?.massMessages||[]).forEach(msg=>{if(msg.date&&(!lastMassDate||msg.date>lastMassDate))lastMassDate=msg.date;});
+            });
+          }catch{}
+          const daysSinceWall=lastWallDate?Math.floor((new Date(todayISO)-new Date(lastWallDate))/86400000):null;
+          const daysSinceMass=lastMassDate?Math.floor((new Date(todayISO)-new Date(lastMassDate))/86400000):null;
+          // TTK completeness
+          const ttk=ttks?.find(t=>t.model===m.name);
+          const ttkFields=["voice","age","location","personality","interests","physicalDesc","personalFacts","hardNos","endearments"];
+          const ttkPct=ttk?Math.round(ttkFields.filter(f=>ttk[f]&&ttk[f]!=="TBD"&&ttk[f]!=="").length/ttkFields.length*100):0;
+          // Revenue this week
+          const weekRev=(sales||[]).filter(s=>s.model===m.name&&s.date&&s.date>=weekAgoISO).reduce((a,s)=>a+Number(s.amount),0);
+          // Goals
+          const goal=(revenueGoals||{})[m.name]||{weekly:0,monthly:0};
+          const weeklyPct=goal.weekly>0?Math.min(100,Math.round(weekRev/goal.weekly*100)):null;
+          // Stats
+          const activeCamps=(campaigns||[]).filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length;
+          const openCustoms=(customs||[]).filter(c=>c.model===m.name&&!["Paid","Complete","Delivered"].includes(c.status)).length;
+          const staleWall=daysSinceWall!==null&&daysSinceWall>3;
+          const staleMass=daysSinceMass!==null&&daysSinceMass>3;
+          return(
+            <Card key={m.id}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div><div style={{fontWeight:700,fontSize:14}}>{m.name}</div><div style={{fontSize:11,color:C.muted,marginTop:1}}>{m.platform} · {m.flirtLevel}</div></div>
+                <Badge label={m.status} color={m.status==="Active"?C.green:C.yellow}/>
+              </div>
+              {/* Revenue + goal */}
+              <div style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:10,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em"}}>Revenue This Week</span>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <span style={{fontSize:13,fontWeight:700,color:C.green}}>{fmtMoney(weekRev)}</span>
+                    {goal.weekly>0&&<span style={{fontSize:10,color:C.muted}}>/ {fmtMoney(goal.weekly)}</span>}
+                    <button onClick={()=>setEditingGoal(editingGoal===m.name?null:m.name)} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:5,padding:"1px 7px",cursor:"pointer",color:C.muted,fontSize:10,fontWeight:600}}>{editingGoal===m.name?"Done":"Goal"}</button>
+                  </div>
+                </div>
+                {weeklyPct!==null&&<div style={{height:4,borderRadius:99,background:"rgba(255,255,255,0.1)"}}><div style={{width:`${weeklyPct}%`,height:"100%",borderRadius:99,background:weeklyPct>=100?C.green:weeklyPct>=70?C.yellow:C.purple,transition:"width 0.3s"}}/></div>}
+                {editingGoal===m.name&&(
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    <input type="number" placeholder="Weekly $" value={goal.weekly||""} onChange={e=>setRevenueGoals(p=>({...p,[m.name]:{...goal,weekly:Number(e.target.value)||0}}))} style={{...s.input,fontSize:12,padding:"4px 8px",flex:1}}/>
+                    <input type="number" placeholder="Monthly $" value={goal.monthly||""} onChange={e=>setRevenueGoals(p=>({...p,[m.name]:{...goal,monthly:Number(e.target.value)||0}}))} style={{...s.input,fontSize:12,padding:"4px 8px",flex:1}}/>
+                  </div>
+                )}
+              </div>
+              {/* Quick stats */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:10}}>
+                {[
+                  ["Last Wall Post",daysSinceWall!==null?`${daysSinceWall}d ago`:"None",staleWall?C.orange:C.green],
+                  ["Last Mass Msg",daysSinceMass!==null?`${daysSinceMass}d ago`:"None",staleMass?C.orange:C.green],
+                  ["Active Campaigns",activeCamps,activeCamps>0?C.green:C.red],
+                  ["Open Customs",openCustoms,openCustoms>0?C.orange:C.muted],
+                ].map(([lbl,val,col])=>(
+                  <div key={lbl} style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"5px 8px"}}>
+                    <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:2}}>{lbl}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:col}}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              {/* TTK completeness */}
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,marginBottom:3}}>
+                <span>TTK Completeness</span><span style={{color:ttkPct>=80?C.green:ttkPct>=50?C.yellow:C.red,fontWeight:700}}>{ttkPct}%</span>
+              </div>
+              <div style={{height:3,borderRadius:99,background:"rgba(255,255,255,0.1)"}}><div style={{width:`${ttkPct}%`,height:"100%",borderRadius:99,background:ttkPct>=80?C.green:ttkPct>=50?C.yellow:C.red,transition:"width 0.3s"}}/></div>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2987,7 +3144,7 @@ function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,sn
   );
 }
 // ── AI SCHEDULER ─────────────────────────────────────────────
-function AISchedulerPanel({models,ttks,content,campaigns,massMessages,myModels}){
+function AISchedulerPanel({models,ttks,content,campaigns,massMessages,setMassMessages,myModels,user}){
   const modelList=myModels||models.filter(m=>!m.archived).map(m=>m.name);
   const [selectedModel,setSelectedModel]=useState(modelList[0]||"");
   const [weekStart,setWeekStart]=useState(new Date().toISOString().slice(0,10));
@@ -3004,6 +3161,8 @@ function AISchedulerPanel({models,ttks,content,campaigns,massMessages,myModels})
   const [editMode,setEditMode]=useState(false);
   const [editedResult,setEditedResult]=useState(null);
   const [expandedSaved,setExpandedSaved]=useState(null);
+  const [copiedKey,setCopiedKey]=useState(null);
+  const [loggedSentKeys,setLoggedSentKeys]=useState(new Set());
 
   // ── localStorage helpers ──────────────────────────────────
   const loadSaved=(model)=>{try{return JSON.parse(localStorage.getItem(`charmed_schedules_${model}`))||[];}catch{return[];}};
@@ -3028,6 +3187,7 @@ function AISchedulerPanel({models,ttks,content,campaigns,massMessages,myModels})
   useEffect(()=>{
     setSavedSchedules(loadSaved(selectedModel));
     setResult(null);setEditedResult(null);setEditMode(false);setExpandedSaved(null);
+    setCopiedKey(null);setLoggedSentKeys(new Set());
   },[selectedModel]);
 
   const saveApiKey=(key)=>{setApiKey(key);localStorage.setItem("charmed_claude_api_key",key);};
@@ -3173,6 +3333,12 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
 
   const updateWallPost=(i,field,val)=>setEditedResult(p=>({...p,wallPosts:p.wallPosts.map((x,xi)=>xi===i?{...x,[field]:val}:x)}));
   const updateMassMsg=(i,field,val)=>setEditedResult(p=>({...p,massMessages:p.massMessages.map((x,xi)=>xi===i?{...x,[field]:val}:x)}));
+  const copyText=(text,key)=>{navigator.clipboard?.writeText(text);setCopiedKey(key);setTimeout(()=>setCopiedKey(k=>k===key?null:k),1500);};
+  const logAsSent=(msg,key)=>{
+    if(!setMassMessages||!user)return;
+    setMassMessages(p=>[{id:Date.now(),model:selectedModel,message:msg.message,target:msg.segment||"All subscribers",revenue:0,notes:msg.notes||"",sentBy:user.name,date:msg.date||new Date().toISOString().slice(0,10),sentAt:new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})},...p]);
+    setLoggedSentKeys(s=>{const n=new Set(s);n.add(key);return n;});
+  };
 
   const renderScheduleCards=(res,editable=false)=>(
     <div>
@@ -3212,7 +3378,7 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
               </div>
               {editable
                 ?<textarea value={post.caption||""} onChange={e=>updateWallPost(i,"caption",e.target.value)} rows={2} style={{...s.input,resize:"vertical",fontStyle:"italic",marginBottom:6}}/>
-                :<div style={{fontSize:13,color:C.text,fontStyle:"italic",lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:post.notes?8:0}}>"{post.caption}"</div>}
+                :<div><div style={{fontSize:13,color:C.text,fontStyle:"italic",lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:4}}>"{post.caption}"</div><button onClick={()=>copyText(post.caption,`wp-${i}`)} style={{background:"none",border:`1px solid ${copiedKey===`wp-${i}`?C.green:C.border}`,borderRadius:6,padding:"2px 10px",cursor:"pointer",color:copiedKey===`wp-${i}`?C.green:C.muted,fontSize:11,fontWeight:600,marginBottom:post.notes?8:0}}>{copiedKey===`wp-${i}`?"✓ Copied":"📋 Copy Caption"}</button></div>}
               {editable
                 ?<input value={post.notes||""} onChange={e=>updateWallPost(i,"notes",e.target.value)} placeholder="Strategic note…" style={{...s.input,fontSize:11,padding:"4px 8px"}}/>
                 :post.notes&&<div style={{fontSize:11,color:C.muted,marginTop:4}}>{post.notes}</div>}
@@ -3241,7 +3407,14 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
               </div>
               {editable
                 ?<textarea value={msg.message||""} onChange={e=>updateMassMsg(i,"message",e.target.value)} rows={2} style={{...s.input,resize:"vertical",marginBottom:8}}/>
-                :<div style={{fontSize:13,color:C.text,lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:8}}>"{msg.message}"</div>}
+                :<div><div style={{fontSize:13,color:C.text,lineHeight:1.65,padding:"8px 12px",background:"rgba(255,255,255,0.04)",borderRadius:8,marginBottom:6}}>"{msg.message}"</div>
+                <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                  <button onClick={()=>copyText(msg.message,`mm-${i}`)} style={{background:"none",border:`1px solid ${copiedKey===`mm-${i}`?C.green:C.border}`,borderRadius:6,padding:"2px 10px",cursor:"pointer",color:copiedKey===`mm-${i}`?C.green:C.muted,fontSize:11,fontWeight:600}}>{copiedKey===`mm-${i}`?"✓ Copied":"📋 Copy Message"}</button>
+                  {setMassMessages&&user&&(loggedSentKeys.has(`mm-${i}`)
+                    ?<span style={{fontSize:11,color:C.green,fontWeight:700,padding:"2px 8px",background:"rgba(16,185,129,0.1)",borderRadius:6,border:"1px solid rgba(16,185,129,0.25)"}}>✓ Logged as Sent</span>
+                    :<button onClick={()=>logAsSent(msg,`mm-${i}`)} style={{background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.35)",borderRadius:6,padding:"2px 10px",cursor:"pointer",color:C.green,fontSize:11,fontWeight:700}}>✓ Log as Sent</button>
+                  )}
+                </div></div>}
               <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                 {msg.contentTag&&<Badge label={`Content: ${msg.contentTag}`} color={C.blue}/>}
                 {editable
@@ -3394,7 +3567,7 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
   );
 }
 // ── DASHBOARDS ───────────────────────────────────────────────
-function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook}){
+function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook,revenueGoals,setRevenueGoals}){
   const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const allModels=models.filter(m=>!m.archived).map(m=>m.name);
@@ -3437,7 +3610,8 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
             <StatCard label="Flagged Fans" value={flagged.length} color={flagged.length>0?C.red:C.green}/>
             <StatCard label="Need Campaigns" value={low.length} color={low.length>0?C.red:C.green}/>
           </div>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>AM Accountability</div>
+          <ModelOverviewCards models={models} campaigns={campaigns} customs={customs} sales={sales} ttks={ttks} revenueGoals={revenueGoals} setRevenueGoals={setRevenueGoals} myModels={allModels} isLeadership={true}/>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:12,marginTop:24}}>AM Accountability</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
             {amStats.map(s=>(
               <Card key={s.am}>
@@ -3475,12 +3649,12 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
         {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={true} isAM={false} myModels={allModels} users={users}/>}
         {tab==="calendar"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={true} isAM={false} myModels={allModels} models={models} initView="calendar"/>}
-        {tab==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={allModels}/>}
+        {tab==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} setMassMessages={setMassMessages} myModels={allModels} user={user}/>}
         {tab==="content"&&<ContentLog user={user} content={content} setContent={setContent} promos={promos} setPromos={setPromos} myModels={allModels} isLeadership={true} platforms={platforms} discordWebhook={discordWebhook}/>}
         {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-        {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
+        {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models} ttks={ttks}/>}
         {tab==="performance"&&<ChatterPerformance sales={sales} qaLogs={qaLogs} users={users}/>}
-        {tab==="handoffs"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={true} isAM={false} models={models}/>}
+        {tab==="handoffs"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={true} isAM={false} models={models} sales={sales} fans={fans} todos={todos} qaLogs={qaLogs}/>}
         {tab==="summary"&&<DailySummary tasks={tasks} sales={sales} handoffs={handoffs} shifts={shifts} fans={fans} qaLogs={qaLogs} models={models}/>}
         {tab==="mg"&&<MGDeliverables user={user} mg={mg} setMg={setMg} models={models} isLeadership={true} isAM={false} myModels={allModels}/>}
       </div>}
@@ -3550,7 +3724,7 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
     </div>
   );
 }
-function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook}){
+function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampaigns,boseos,setBoseos,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,ttks,setTtks,massMessages,setMassMessages,platforms,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,shifts,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,revenueGoals,setRevenueGoals}){
   const [section,setSection]=useState("home");
   const [tab,setTab]=useState("overview");
   const myModels=models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name);
@@ -3585,7 +3759,8 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
       {section==="paywall"&&<div>
         <Tabs tabs={navTabs} active={tab} onChange={setTab}/>
         {tab==="overview"&&<div>
-          <div style={{fontSize:14,fontWeight:700,marginBottom:12}}>Today's Tasks</div>
+          <ModelOverviewCards models={models} campaigns={campaigns} customs={customs} sales={sales} ttks={ttks} revenueGoals={revenueGoals} setRevenueGoals={setRevenueGoals} myModels={myModels} isLeadership={false}/>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:12,marginTop:24}}>Today's Tasks</div>
           {myTasks.map(t=>{const keys=["bos","eos","content","notion","promos"],done=keys.filter(k=>t[k]===true).length,hasInc=keys.some(k=>t[k]===false);return(
             <Card key={t.id} style={{marginBottom:12,borderLeft:`3px solid ${hasInc?C.red:done===keys.length?C.green:C.purple}`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
@@ -3645,9 +3820,9 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
         </div>}
         {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={false} isAM={true} myModels={myModels} users={users}/>}
         {tab==="calendar"&&<CampaignCalendar campaigns={campaigns} setCampaigns={setCampaigns} isLeadership={false} isAM={true} myModels={myModels} models={models} initView="calendar"/>}
-        {tab==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} myModels={myModels}/>}
+        {tab==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} user={user}/>}
         {tab==="boseos"&&<BOSEOSView user={user} boseos={boseos} setBoseos={setBoseos} tasks={tasks} setTasks={setTasks} myModels={myModels}/>}
-        {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
+        {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models} ttks={ttks}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={()=>{}} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
         {tab==="mg"&&<MGDeliverables user={user} mg={mg} setMg={setMg} models={models} isLeadership={false} isAM={true} myModels={myModels}/>}
       </div>}
@@ -3693,7 +3868,7 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
       <Tabs tabs={[["sales","Sales"],["customs","Customs"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
       {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models}/>}
+      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models} sales={sales} fans={fans} todos={todos} qaLogs={qaLogs}/>}
       {tab==="ref"&&<div>
         <SectionHeader icon="📋" title="Quick Reference"/>
         {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttkData=(ttks||[]).find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");return(
@@ -3753,8 +3928,8 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
       <Tabs tabs={[["sales","Sales"],["customs","Customs"],["qa","QA Reviews"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
       {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-      {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models}/>}
-      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models}/>}
+      {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models} ttks={ttks}/>}
+      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models} sales={sales} fans={fans} todos={todos} qaLogs={qaLogs}/>}
       {tab==="ref"&&<div>
         <SectionHeader icon="📋" title="Quick Reference"/>
         {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttkData=(ttks||[]).find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");const isEditing=refEdit===m.name;return(
@@ -3872,13 +4047,15 @@ export default function App(){
   const [modelEvents,setModelEvents]=useState(INIT_MODEL_EVENTS);
   const [mg,setMg]=useState(INIT_MG);
   const [discordWebhook,setDiscordWebhook]=useState("");
+  const [revenueGoals,setRevenueGoals]=useState(()=>{try{return JSON.parse(localStorage.getItem("charmed_revenue_goals")||"{}");}catch{return {};}});
+  useEffect(()=>{localStorage.setItem("charmed_revenue_goals",JSON.stringify(revenueGoals));},[revenueGoals]);
   const [showSearch,setShowSearch]=useState(false);
   useEffect(()=>{
     const down=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setShowSearch(p=>!p);}if(e.key==="Escape")setShowSearch(false);};
     window.addEventListener("keydown",down);return()=>window.removeEventListener("keydown",down);
   },[]);
   if(!user)return <LoginView onLogin={setUser} users={users}/>;
-  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook};
+  const shared={users,models,tasks,setTasks,fans,setFans,sales,setSales,campaigns,setCampaigns,handoffs,setHandoffs,boseos,setBoseos,content,setContent,promos,setPromos,todos,setTodos,shifts,setShifts,slingApiKey,setSlingApiKey,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook,revenueGoals,setRevenueGoals};
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 20% 90%,rgba(124,58,237,0.18) 0%,transparent 50%),radial-gradient(ellipse at 80% 5%,rgba(192,38,211,0.12) 0%,transparent 45%),#07070e",fontFamily:"'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:C.text}}>
       {showSearch&&<GlobalSearch models={models} users={users} fans={fans} sales={sales} onClose={()=>setShowSearch(false)}/>}
