@@ -2529,16 +2529,16 @@ function TeamManagement({users,setUsers,models}){
   );
 }
 // ── ADMIN ────────────────────────────────────────────────────
-function AdminPanel({users,setUsers,models,setModels,tasks,setTasks,platforms,setPlatforms,modelPlatforms,setModelPlatforms,discordWebhook,setDiscordWebhook}){
-  const [tab,setTab]=useState("users");const [editId,setEditId]=useState(null);const blank={name:"",role:"chatter",email:"",password:"charmed123"};const [form,setForm]=useState(blank);const [showAdd,setShowAdd]=useState(false);const [newPlat,setNewPlat]=useState("");const [newMPlat,setNewMPlat]=useState("");
+function AdminPanel({users,setUsers,models,setModels,tasks,setTasks,platforms,setPlatforms,modelPlatforms,setModelPlatforms,discordWebhook,setDiscordWebhook,isLeadership=false}){
+  const [tab,setTab]=useState(isLeadership?"models":"users");const [editId,setEditId]=useState(null);const blank={name:"",role:"chatter",email:"",password:"charmed123"};const [form,setForm]=useState(blank);const [showAdd,setShowAdd]=useState(false);const [newPlat,setNewPlat]=useState("");const [newMPlat,setNewMPlat]=useState("");
   const [webhookInput,setWebhookInput]=useState(discordWebhook||"");const [webhookSaved,setWebhookSaved]=useState(false);
   const saveUser=()=>{if(!form.name||!form.email)return;if(editId){setUsers(p=>p.map(u=>u.id===editId?{...u,...form}:u));setEditId(null);}else setUsers(p=>[...p,{...form,id:Date.now()}]);setForm(blank);setShowAdd(false);};
   const addPlat=(list,set,val,setVal)=>{const v=val.trim();if(!v||list.includes(v))return;set(p=>[...p,v]);setVal("");};
   return(
     <div>
       <SectionHeader icon="⚙️" title="Admin Panel"/>
-      <Tabs tabs={[["models","Models"],["users","Users"],["roles","Roles"],["platforms","Platforms"],["notifications","Notifications"]]} active={tab} onChange={setTab}/>
-      {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
+      <Tabs tabs={[...(isLeadership?[["models","Models"]]:[]),["users","Users"],["roles","Roles"],["platforms","Platforms"],["notifications","Notifications"]]} active={tab} onChange={setTab}/>
+      {isLeadership&&tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
       {showAdd&&(
         <Modal title={editId?"Edit User":"New User"} onClose={()=>{setShowAdd(false);setEditId(null);}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -3813,7 +3813,7 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
       </div>}
       {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={allModels}/>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
-      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} tasks={tasks} setTasks={setTasks} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
+      {section==="admin"&&<AdminPanel isLeadership={true} users={users} setUsers={setUsers} models={models} setModels={setModels} tasks={tasks} setTasks={setTasks} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
 }
