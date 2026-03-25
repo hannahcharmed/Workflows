@@ -462,12 +462,17 @@ function QAReview({user,qaLogs,setQaLogs,users,models,ttks}){
   const [transcript,setTranscript]=useState("");
   const [aiLoading,setAiLoading]=useState(false);
   const [aiReasoning,setAiReasoning]=useState("");
+  const [aiScore,setAiScore]=useState(null);
   const [fc,setFc]=useState("All");
   const [fm,setFm]=useState("All");
   const [fd,setFd]=useState("");
-  const calcScore=f=>{let sc=100;if(f.upsellAttempt===false)sc-=20;if(f.toneMatch===false)sc-=20;if(f.hardNoViolation===true)sc-=40;if(f.escalationHandled===false)sc-=20;return Math.max(0,sc);};
+  const calcScore=f=>{
+    // If Claude returned a score, use it as the base; apply hard-no penalty on top
+    if(aiScore!==null){let sc=aiScore;if(f.hardNoViolation===true)sc=Math.min(sc,30);return Math.max(0,Math.min(100,sc));}
+    let sc=100;if(f.upsellAttempt===false)sc-=20;if(f.toneMatch===false)sc-=20;if(f.hardNoViolation===true)sc-=40;if(f.escalationHandled===false)sc-=20;return Math.max(0,sc);
+  };
   const scoreCol=sc=>sc>=80?C.green:sc>=60?C.yellow:C.red;
-  const submit=()=>{setQaLogs(p=>[{...form,id:Date.now(),reviewer:user.name,date:today(),score:calcScore(form)},...p]);setForm(blank);setShowAdd(false);setTranscript("");setAiReasoning("");setShowAI(false);};
+  const submit=()=>{setQaLogs(p=>[{...form,id:Date.now(),reviewer:user.name,date:today(),score:calcScore(form),aiScored:aiScore!==null},...p]);setForm(blank);setShowAdd(false);setTranscript("");setAiReasoning("");setAiScore(null);setShowAI(false);};
   const analyseTranscript=async()=>{
     const apiKey=localStorage.getItem("charmed_claude_api_key")||"";
     if(!apiKey){setAiReasoning("⚠ No Claude API key — add one in AI Scheduler → Settings.");return;}
@@ -484,6 +489,7 @@ function QAReview({user,qaLogs,setQaLogs,users,models,ttks}){
       if(match){
         const r=JSON.parse(match[0]);
         setForm(p=>({...p,upsellAttempt:r.upsellAttempt??p.upsellAttempt,toneMatch:r.toneMatch??p.toneMatch,hardNoViolation:r.hardNoViolation??p.hardNoViolation,escalationHandled:r.escalationHandled??p.escalationHandled}));
+        if(typeof r.score==="number")setAiScore(r.score);
         setAiReasoning(r.reasoning||"Analysis complete.");
       }else{setAiReasoning("Could not parse AI response.");}
     }catch(e){setAiReasoning(`Error: ${e.message}`);}
@@ -546,9 +552,13 @@ function QAReview({user,qaLogs,setQaLogs,users,models,ttks}){
               </div>
             )}
           </div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12}}>
-            <span style={{fontSize:13,color:C.muted}}>Score: <b style={{color:scoreCol(calcScore(form))}}>{calcScore(form)}%</b></span>
-            <div style={{display:"flex",gap:8}}><Btn variant="secondary" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Btn><Btn size="sm" onClick={submit}>Submit Review</Btn></div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,flexWrap:"wrap",gap:8}}>
+            <div>
+              <span style={{fontSize:13,color:C.muted}}>Score: <b style={{color:scoreCol(calcScore(form))}}>{calcScore(form)}%</b></span>
+              {aiScore!==null&&<span style={{fontSize:11,color:C.purple,marginLeft:8}}>✦ AI-graded ({aiScore}% base)</span>}
+              {aiScore===null&&<span style={{fontSize:10,color:C.muted,marginLeft:8}}>Use AI Assist for nuanced scoring</span>}
+            </div>
+            <div style={{display:"flex",gap:8}}><Btn variant="secondary" size="sm" onClick={()=>{setShowAdd(false);setAiScore(null);}}>Cancel</Btn><Btn size="sm" onClick={submit}>Submit Review</Btn></div>
           </div>
         </Modal>
       )}
@@ -569,6 +579,7 @@ function QAReview({user,qaLogs,setQaLogs,users,models,ttks}){
               {q.toneMatch!==null&&<Badge label={`Tone ${q.toneMatch?"✓":"✗"}`} color={q.toneMatch?C.green:C.red}/>}
               {q.hardNoViolation&&<Badge label="⚠ Hard No" color={C.red}/>}
               {q.escalationHandled!==null&&<Badge label={`Escalation ${q.escalationHandled?"✓":"✗"}`} color={q.escalationHandled?C.green:C.red}/>}
+              {q.aiScored&&<Badge label="✦ AI-graded" color={C.purple}/>}
             </div>
             {q.notes&&<p style={{fontSize:12,color:C.muted,margin:"8px 0 0"}}>{q.notes}</p>}
           </Card>
@@ -1192,7 +1203,7 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
           <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
             {calCells.map((d,i)=>{
               const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===todayStr;
-              const {camps,wps,mms}=d?getDayItems(d):{camps:[],wps:[],mms:[]};
+              const {ds,camps,wps,mms}=d?getDayItems(d):{ds:"",camps:[],wps:[],mms:[]};
               const total=camps.length+wps.length+mms.length;
               return(
                 <div key={i}
@@ -2518,7 +2529,7 @@ function TeamManagement({users,setUsers,models}){
   );
 }
 // ── ADMIN ────────────────────────────────────────────────────
-function AdminPanel({users,setUsers,models,setModels,platforms,setPlatforms,modelPlatforms,setModelPlatforms,discordWebhook,setDiscordWebhook}){
+function AdminPanel({users,setUsers,models,setModels,tasks,setTasks,platforms,setPlatforms,modelPlatforms,setModelPlatforms,discordWebhook,setDiscordWebhook}){
   const [tab,setTab]=useState("users");const [editId,setEditId]=useState(null);const blank={name:"",role:"chatter",email:"",password:"charmed123"};const [form,setForm]=useState(blank);const [showAdd,setShowAdd]=useState(false);const [newPlat,setNewPlat]=useState("");const [newMPlat,setNewMPlat]=useState("");
   const [webhookInput,setWebhookInput]=useState(discordWebhook||"");const [webhookSaved,setWebhookSaved]=useState(false);
   const saveUser=()=>{if(!form.name||!form.email)return;if(editId){setUsers(p=>p.map(u=>u.id===editId?{...u,...form}:u));setEditId(null);}else setUsers(p=>[...p,{...form,id:Date.now()}]);setForm(blank);setShowAdd(false);};
@@ -2526,7 +2537,8 @@ function AdminPanel({users,setUsers,models,setModels,platforms,setPlatforms,mode
   return(
     <div>
       <SectionHeader icon="⚙️" title="Admin Panel"/>
-      <Tabs tabs={[["users","Users"],["roles","Roles"],["platforms","Platforms"],["notifications","Notifications"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["models","Models"],["users","Users"],["roles","Roles"],["platforms","Platforms"],["notifications","Notifications"]]} active={tab} onChange={setTab}/>
+      {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
       {showAdd&&(
         <Modal title={editId?"Edit User":"New User"} onClose={()=>{setShowAdd(false);setEditId(null);}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -3228,6 +3240,7 @@ function AISchedulerPanel({models,ttks,content,campaigns,massMessages,setMassMes
   const [editMode,setEditMode]=useState(false);
   const [editedResult,setEditedResult]=useState(null);
   const [expandedSaved,setExpandedSaved]=useState(null);
+  const [editingSavedKey,setEditingSavedKey]=useState(null);
   const [copiedKey,setCopiedKey]=useState(null);
   const [loggedSentKeys,setLoggedSentKeys]=useState(new Set());
 
@@ -3253,7 +3266,7 @@ function AISchedulerPanel({models,ttks,content,campaigns,massMessages,setMassMes
 
   useEffect(()=>{
     setSavedSchedules(loadSaved(selectedModel));
-    setResult(null);setEditedResult(null);setEditMode(false);setExpandedSaved(null);
+    setResult(null);setEditedResult(null);setEditMode(false);setExpandedSaved(null);setEditingSavedKey(null);
     setCopiedKey(null);setLoggedSentKeys(new Set());
   },[selectedModel]);
 
@@ -3616,14 +3629,28 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
                     </div>
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    {!readOnly&&editingSavedKey!==saved.weekStart&&<button onClick={e=>{e.stopPropagation();setEditingSavedKey(saved.weekStart);setEditedResult(JSON.parse(JSON.stringify(saved.result)));setEditMode(false);setExpandedSaved(saved.weekStart);}} style={{background:"rgba(124,58,237,0.12)",border:"1px solid rgba(124,58,237,0.3)",color:C.purpleL,cursor:"pointer",fontSize:11,fontWeight:700,borderRadius:6,padding:"2px 10px"}}>✏ Edit</button>}
                     {!readOnly&&<button onClick={e=>{e.stopPropagation();deleteSchedule(saved.weekStart);}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"2px 6px"}}>×</button>}
                     <span style={{color:C.muted,fontSize:16}}>{expandedSaved===saved.weekStart?"▲":"▼"}</span>
                   </div>
                 </div>
                 {expandedSaved===saved.weekStart&&(
                   <div style={{marginTop:16,borderTop:`1px solid ${C.border}`,paddingTop:16}}>
-                    <div style={{fontSize:12,color:C.muted,fontStyle:"italic",marginBottom:12}}>{saved.result.summary}</div>
-                    {renderScheduleCards(saved.result,false)}
+                    {editingSavedKey===saved.weekStart?(
+                      <div>
+                        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12,flexWrap:"wrap"}}>
+                          <span style={{fontSize:12,color:C.purpleL,fontWeight:700}}>Editing schedule</span>
+                          <Btn size="sm" color={C.green} onClick={()=>{saveSchedule(selectedModel,saved.weekStart,editedResult);setEditingSavedKey(null);setEditedResult(null);}}>Save Changes</Btn>
+                          <Btn size="sm" variant="secondary" onClick={()=>{setEditingSavedKey(null);setEditedResult(null);}}>Cancel</Btn>
+                        </div>
+                        {renderScheduleCards(editedResult,true)}
+                      </div>
+                    ):(
+                      <div>
+                        <div style={{fontSize:12,color:C.muted,fontStyle:"italic",marginBottom:12}}>{saved.result.summary}</div>
+                        {renderScheduleCards(saved.result,false)}
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
@@ -3644,7 +3671,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
   const flagged=fans.filter(f=>f.flag);
   const low=models.filter(m=>!m.archived&&campaigns.filter(c=>c.model===m.name&&["Live","Scheduled"].includes(c.status)).length<2);
   const alerts=buildAlerts(tasks,shifts,models,campaigns,fans);
-  const navTabs=[["overview","Overview"],["models","Models"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["calendar","📅 Calendar"],["ai","✨ AI Scheduler"],["content","Content"],["customs","Customs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["mg","MG Deliverables"]];
+  const navTabs=[["overview","Overview"],["team","Team"],["schedule","Schedule"],["sales","Sales"],["calendar","📅 Calendar"],["ai","✨ AI Scheduler"],["content","Content"],["customs","Customs"],["qa","QA"],["performance","Performance"],["handoffs","Handoffs"],["summary","Summary"],["mg","MG Deliverables"]];
   const handleQuickAction=(action)=>{
     if(action==="todos"){setSection("todos");}
     else if(action==="campaigns"){setSection("paywall");setTab("calendar");}
@@ -3712,7 +3739,6 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
             <Card><div style={{fontWeight:700,marginBottom:12,color:C.yellow,fontSize:13}}>⚠ Low Campaigns</div>{!low.length?<div style={{color:C.muted,fontSize:13}}>All good ✓</div>:low.map(m=><div key={m.id} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}><div style={{fontWeight:600}}>{m.name}</div><div style={{color:C.muted,fontSize:12}}>AM: {m.am}</div></div>)}</Card>
           </div>
         </div>}
-        {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
         {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
         {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={()=>{}} isLeadership={true} isAM={false} myModels={allModels} users={users}/>}
@@ -3741,7 +3767,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="invoices"&&<StripeInvoices isLeadership={true} models={models}/>}
       </div>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
-      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
+      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} tasks={tasks} setTasks={setTasks} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
 }
@@ -3773,8 +3799,7 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
       {section==="home"&&<HomeDashboard user={user} role="ops-assistant" sales={sales||[]} todos={todos} setTodos={setTodos} campaigns={campaigns||[]} brandDeals={brandDeals||[]} qaLogs={qaLogs||[]} shifts={shifts} models={models} snapRevenue={snapRevenue||[]} socialMetrics={socialMetrics||[]} onAction={handleQuickAction}/>}
       {section==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={allModels}/>}
       {section==="paywall"&&<div>
-        <Tabs tabs={[["models","Models"],["team","Team"],["schedule","Schedule"],["customs","Customs"]]} active={tab} onChange={setTab}/>
-        {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
+        <Tabs tabs={[["team","Team"],["schedule","Schedule"],["customs","Customs"]]} active={tab} onChange={setTab}/>
         {tab==="team"&&<TeamManagement users={users} setUsers={setUsers} models={models}/>}
         {tab==="schedule"&&<ShiftSchedule shifts={shifts} setShifts={setShifts} users={users} models={models} slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
         {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
@@ -3788,7 +3813,7 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
       </div>}
       {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={allModels}/>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
-      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
+      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} tasks={tasks} setTasks={setTasks} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
 }
