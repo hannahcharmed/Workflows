@@ -16,7 +16,9 @@ const roleLabel={leadership:"Leadership",am:"Account Manager",chatlead:"Chat Lea
 const CONTENT_TYPES=["PS","VID","PPV","CUS","LIVE","CLIP","BTS"];
 const PRICE_TIERS=["$","$$","$$$"];
 const DEFAULT_PLATFORMS=["Instagram","TikTok","Snapchat","X / Twitter","Reddit","Other"];
-const DEFAULT_MODEL_PLATFORMS=["OnlyFans","Passes","Both"];
+const DEFAULT_MODEL_PLATFORMS=["FanFix","Passes"];
+const MODEL_SERVICES=["Paywall","Snapchat","Organic/Social","Brand Deals"];
+const GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID_HERE"; // Replace with your Google OAuth Client ID
 const SHIFTS=["11-7","7-3","3-11"];
 const ALL_ROLES=["leadership","am","chatlead","chatter","ops-assistant","model"];
 const TTK_SECTIONS=["identity","voice","interests","physical","personal","rules","scripts"];
@@ -25,6 +27,17 @@ function today(){return new Date().toLocaleDateString("en-US",{weekday:"short",m
 function sendDiscord(webhookUrl,message){if(!webhookUrl||!webhookUrl.startsWith("https://discord.com/api/webhooks/"))return;fetch(webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:message,username:"Charmed Ops"})}).catch(()=>{});}
 function fmtMoney(n){return"$"+Number(n).toLocaleString();}
 function generateTag(t,th,ti,o){return`${t||"PS"}-${(th||"Untitled").replace(/\s+/g,"")}-${ti||"$"}-${o||1}`;}
+// Returns bar style info for multi-day calendar events
+function getBarStyle(startDate,endDate,ds){
+  if(!startDate||!endDate||startDate===endDate)return{borderRadius:3,ml:0,mr:0,showLabel:true};
+  const isStart=ds===startDate;const isEnd=ds===endDate;
+  const dow=new Date(ds+"T00:00:00").getDay();
+  const rowStart=isStart||dow===0;const rowEnd=isEnd||dow===6;
+  return{
+    borderRadius:`${rowStart?3:0}px ${rowEnd?3:0}px ${rowEnd?3:0}px ${rowStart?3:0}px`,
+    ml:rowStart?0:-2,mr:rowEnd?0:-2,showLabel:rowStart,
+  };
+}
 // ── ANALYTICS HELPERS ─────────────────────────────────────────
 // Contract: format a raw metric number to human-readable string
 function fmtMetricVal(n){const num=Number(n||0);return num>=1000?`${(num/1000).toFixed(1)}k`:String(num);}
@@ -82,39 +95,39 @@ const INIT_USERS=[
   {id:7,name:"Chatter2",role:"chatter",email:"chatter2@charmed.com",password:"charmed123"},
   {id:8,name:"OpsUser",role:"ops-assistant",email:"ops@charmed.com",password:"charmed123"},
   {id:9,name:"Autumn",role:"model",email:"autumn@charmed.com",password:"charmed123"},
-  {id:10,name:"Mia",role:"model",email:"mia@charmed.com",password:"charmed123"},
+  {id:10,name:"Mikayla",role:"model",email:"mia@charmed.com",password:"charmed123"},
 ];
 const INIT_MODELS=[
-  {id:1,name:"Autumn",am:"Tate",platform:"Passes",status:"Active",flirtLevel:"PG-17",archived:false},
-  {id:2,name:"Mia",am:"Tate",platform:"OnlyFans",status:"Active",flirtLevel:"R",archived:false},
-  {id:3,name:"Jordan",am:"Jonathan",platform:"Passes",status:"Active",flirtLevel:"PG-13",archived:false},
-  {id:4,name:"Brianna",am:"Jonathan",platform:"Both",status:"Onboarding",flirtLevel:"PG",archived:false},
+  {id:1,name:"Autumn",am:"Tate",platform:"Passes",status:"Active",flirtLevel:"PG-17",archived:false,services:["Paywall","Snapchat"]},
+  {id:2,name:"Mikayla",am:"Tate",platform:"FanFix",status:"Active",flirtLevel:"R",archived:false,services:["Paywall","Snapchat","Organic/Social","Brand Deals"]},
+  {id:3,name:"Jordan",am:"Jonathan",platform:"Passes",status:"Active",flirtLevel:"PG-13",archived:false,services:["Paywall"]},
+  {id:4,name:"Gabby",am:"Jonathan",platform:"Passes",status:"Onboarding",flirtLevel:"PG",archived:false,services:["Paywall","Brand Deals"]},
 ];
 function initTasks(){return[
   {id:1,am:"Tate",model:"Autumn",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
   {id:2,am:"Jonathan",model:"Jordan",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
-  {id:3,am:"Tate",model:"Mia",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
-  {id:4,am:"Jonathan",model:"Brianna",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
+  {id:3,am:"Tate",model:"Mikayla",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
+  {id:4,am:"Jonathan",model:"Gabby",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
 ];}
 const INIT_TTKS=[
   {id:1,model:"Autumn",flirtLevel:"PG-17",voice:"Lowercase, casual, lots of emojis 🍂",endearments:"babe, bb",hardNos:"Politics, religion, ex names",offlineTimes:"6am–10am EST",lastUpdated:"2024-01-08",updatedBy:"Tate",age:"25",location:"California",personality:"Adventurous, outdoorsy",interests:"Hiking, photography, coffee",physicalDesc:'5\'6", athletic, auburn hair',personalFacts:"Has a golden retriever named Biscuit",sections:{identity:true,voice:true,interests:true,physical:true,personal:true,rules:true,scripts:true},scripts:[{id:1,trigger:"Meetup request",response:"Omg I wish! My schedule is so crazy rn babe 🥺 but this is our little world right here 💕"}]},
-  {id:2,model:"Mia",flirtLevel:"R",voice:"Uppercase, direct, minimal emojis",endearments:"baby, love",hardNos:"Real name, location, family",offlineTimes:"2am–9am EST",lastUpdated:"2024-01-05",updatedBy:"Tate",age:"23",location:"Miami",personality:"Confident, mysterious",interests:"Fashion, travel, nightlife",physicalDesc:'5\'8", slim, dark hair',personalFacts:"Former dancer",sections:{identity:true,voice:true,interests:false,physical:false,personal:true,rules:true,scripts:false},scripts:[]},
+  {id:2,model:"Mikayla",flirtLevel:"R",voice:"Uppercase, direct, minimal emojis",endearments:"baby, love",hardNos:"Real name, location, family",offlineTimes:"2am–9am EST",lastUpdated:"2024-01-05",updatedBy:"Tate",age:"23",location:"Miami",personality:"Confident, mysterious",interests:"Fashion, travel, nightlife",physicalDesc:'5\'8", slim, dark hair',personalFacts:"Former dancer",sections:{identity:true,voice:true,interests:false,physical:false,personal:true,rules:true,scripts:false},scripts:[]},
   {id:3,model:"Jordan",flirtLevel:"PG-13",voice:"Mixed case, playful, 💕👀",endearments:"love, honey",hardNos:"Meetups, phone calls, address",offlineTimes:"12am–8am EST",lastUpdated:"2024-01-10",updatedBy:"Jonathan",age:"22",location:"Nashville",personality:"Sweet, bubbly",interests:"Music, baking",physicalDesc:'5\'5", curvy, blonde',personalFacts:"Plays guitar, two cats",sections:{identity:true,voice:true,interests:true,physical:true,personal:true,rules:true,scripts:true},scripts:[{id:1,trigger:"Phone number",response:"Aww honey I keep things here where it's just us 💕"}]},
-  {id:4,model:"Brianna",flirtLevel:"PG",voice:"TBD",endearments:"TBD",hardNos:"TBD",offlineTimes:"TBD",lastUpdated:"2024-01-11",updatedBy:"Jonathan",age:"",location:"",personality:"",interests:"",physicalDesc:"",personalFacts:"",sections:{identity:false,voice:false,interests:false,physical:false,personal:false,rules:false,scripts:false},scripts:[]},
+  {id:4,model:"Gabby",flirtLevel:"PG",voice:"TBD",endearments:"TBD",hardNos:"TBD",offlineTimes:"TBD",lastUpdated:"2024-01-11",updatedBy:"Jonathan",age:"",location:"",personality:"",interests:"",physicalDesc:"",personalFacts:"",sections:{identity:false,voice:false,interests:false,physical:false,personal:false,rules:false,scripts:false},scripts:[]},
 ];
 const INIT_FANS=[
   {id:1,model:"Autumn",username:"bigspender99",type:"Whale",spend:"$4,200",notes:"Responds well to personalised intros",flag:false},
   {id:2,model:"Jordan",username:"problemfan_x",type:"Problem Fan",spend:"$0",notes:"Requested meetup twice.",flag:true},
-  {id:3,model:"Mia",username:"whale_miami",type:"Whale",spend:"$8,100",notes:"Suspected reseller — monitor",flag:true},
+  {id:3,model:"Mikayla",username:"whale_miami",type:"Whale",spend:"$8,100",notes:"Suspected reseller — monitor",flag:true},
 ];
 const INIT_SALES=[
   {id:1,chatter:"Chatter1",model:"Autumn",type:"PPV",amount:120,fanUsername:"bigspender99",note:"Tier 2 beach set",date:new Date().toISOString().slice(0,10),shift:"11-7"},
-  {id:2,chatter:"Chatter2",model:"Mia",type:"PPV",amount:200,fanUsername:"whale_miami",note:"Custom video upsell",date:new Date().toISOString().slice(0,10),shift:"7-3"},
+  {id:2,chatter:"Chatter2",model:"Mikayla",type:"PPV",amount:200,fanUsername:"whale_miami",note:"Custom video upsell",date:new Date().toISOString().slice(0,10),shift:"7-3"},
 ];
 const INIT_CAMPAIGNS=[
   {id:1,model:"Autumn",name:"Valentine's Flash Sale",type:"Flash Sale",status:"Live",startDate:"2024-02-10",endDate:"2024-02-14",revenue:1240,notes:""},
   {id:2,model:"Jordan",name:"Birthday Month Live",type:"Live",status:"Live",startDate:"2024-02-01",endDate:"2024-02-28",revenue:3200,notes:""},
-  {id:3,model:"Mia",name:"Easter Bundle",type:"Bundle",status:"Planning",startDate:"2024-03-28",endDate:"2024-04-01",revenue:0,notes:""},
+  {id:3,model:"Mikayla",name:"Easter Bundle",type:"Bundle",status:"Planning",startDate:"2024-03-28",endDate:"2024-04-01",revenue:0,notes:""},
 ];
 const INIT_CONTENT=[
   {id:1,model:"Autumn",type:"PS",theme:"Beach",priceTier:"$$",upsellOrder:1,assetCount:12,tag:"PS-Beach-$$-1",date:"2024-01-10",loggedBy:"Tate",notes:""},
@@ -130,14 +143,14 @@ const INIT_TODOS=[
 ];
 const INIT_SHIFTS=[
   {id:1,chatter:"Chatter1",shift:"11-7",date:today(),models:["Autumn","Jordan"],source:"manual"},
-  {id:2,chatter:"Chatter2",shift:"7-3",date:today(),models:["Mia","Brianna"],source:"manual"},
-  {id:3,chatter:"Kayla",shift:"3-11",date:today(),models:["Autumn","Mia"],source:"manual"},
+  {id:2,chatter:"Chatter2",shift:"7-3",date:today(),models:["Mikayla","Gabby"],source:"manual"},
+  {id:3,chatter:"Kayla",shift:"3-11",date:today(),models:["Autumn","Mikayla"],source:"manual"},
 ];
 const INIT_MASS=[{id:1,model:"Autumn",sentBy:"Tate",message:"Hey babe 🍂 just dropped something special for my top fans 💌",target:"All subscribers",sentAt:"10:30 AM",date:today(),revenue:340,notes:"Valentine's lead-in"}];
 const INIT_QA=[{id:1,chatter:"Chatter1",model:"Autumn",date:today(),reviewer:"Kayla",upsellAttempt:true,toneMatch:true,hardNoViolation:false,escalationHandled:null,score:90,notes:"Good upsell on beach set"}];
 const INIT_CUSTOMS=[
   {id:1,model:"Autumn",price:250,fan:"bigspender99",description:"Personalised beach video, mention his name",paid:false,status:"In Progress",loggedBy:"Tate",date:today()},
-  {id:2,model:"Mia",price:400,fan:"whale_miami",description:"Full custom set, 3 outfits",paid:true,status:"Paid",loggedBy:"Tate",date:today()},
+  {id:2,model:"Mikayla",price:400,fan:"whale_miami",description:"Full custom set, 3 outfits",paid:true,status:"Paid",loggedBy:"Tate",date:today()},
   {id:3,model:"Jordan",price:150,fan:"regularfan22",description:"Birthday shoutout video",paid:false,status:"Pending Confirmation",loggedBy:"Jonathan",date:today()},
 ];
 const INIT_SOCIAL_METRICS=[
@@ -145,33 +158,33 @@ const INIT_SOCIAL_METRICS=[
   {id:1,model:"Autumn",platform:"TikTok",date:"2026-03-01",followers:45200,views:128000,likes:9200,comments:410,shares:1380,notes:"Spring campaign boosted views"},
   {id:2,model:"Autumn",platform:"Instagram",date:"2026-03-01",followers:12800,views:0,likes:1850,comments:124,shares:0,notes:""},
   {id:3,model:"Autumn",platform:"Snapchat",date:"2026-03-01",followers:8400,views:22000,likes:0,comments:0,shares:0,notes:"Story views up 12%"},
-  {id:4,model:"Mia",platform:"TikTok",date:"2026-03-01",followers:31000,views:89000,likes:6100,comments:280,shares:940,notes:""},
+  {id:4,model:"Mikayla",platform:"TikTok",date:"2026-03-01",followers:31000,views:89000,likes:6100,comments:280,shares:940,notes:""},
   {id:5,model:"Jordan",platform:"Instagram",date:"2026-03-01",followers:9200,views:0,likes:1100,comments:78,shares:0,notes:""},
   // February 2026 (MOM baseline)
   {id:6,model:"Autumn",platform:"TikTok",date:"2026-02-01",followers:41800,views:98000,likes:7200,comments:310,shares:1050,notes:"Feb baseline"},
   {id:7,model:"Autumn",platform:"Instagram",date:"2026-02-01",followers:11500,views:0,likes:1520,comments:98,shares:0,notes:""},
   {id:8,model:"Autumn",platform:"Snapchat",date:"2026-02-01",followers:7800,views:18500,likes:0,comments:0,shares:0,notes:""},
-  {id:9,model:"Mia",platform:"TikTok",date:"2026-02-01",followers:28200,views:72000,likes:5100,comments:220,shares:810,notes:""},
+  {id:9,model:"Mikayla",platform:"TikTok",date:"2026-02-01",followers:28200,views:72000,likes:5100,comments:220,shares:810,notes:""},
   {id:10,model:"Jordan",platform:"Instagram",date:"2026-02-01",followers:8700,views:0,likes:950,comments:65,shares:0,notes:""},
   // January 2026 (YOY reference)
   {id:11,model:"Autumn",platform:"TikTok",date:"2025-03-01",followers:28400,views:61000,likes:4100,comments:190,shares:620,notes:"YOY reference"},
-  {id:12,model:"Mia",platform:"TikTok",date:"2025-03-01",followers:18900,views:44000,likes:3200,comments:140,shares:490,notes:""},
+  {id:12,model:"Mikayla",platform:"TikTok",date:"2025-03-01",followers:18900,views:44000,likes:3200,comments:140,shares:490,notes:""},
   {id:13,model:"Jordan",platform:"Instagram",date:"2025-03-01",followers:6100,views:0,likes:710,comments:42,shares:0,notes:""},
 ];
 const INIT_GROWTH_CAMPAIGNS=[
   {id:1,model:"Autumn",platform:"TikTok",type:"Sound Promo",name:"Spring Vibe Sound",status:"Active",startDate:"2026-03-01",endDate:"2026-03-31",notes:"Trending audio collaboration"},
-  {id:2,model:"Mia",platform:"Snapchat",type:"Trend Tracking",name:"March Spotlight",status:"Planned",startDate:"2026-03-15",endDate:"2026-03-22",notes:""},
+  {id:2,model:"Mikayla",platform:"Snapchat",type:"Trend Tracking",name:"March Spotlight",status:"Planned",startDate:"2026-03-15",endDate:"2026-03-22",notes:""},
   {id:3,model:"Jordan",platform:"Instagram",type:"Viral Content",name:"Before & After Reel",status:"Active",startDate:"2026-03-10",endDate:"2026-03-20",notes:""},
 ];
 const INIT_BRAND_DEALS=[
   {id:1,model:"Autumn",brand:"FitTea Co",type:"Sponsored Post",deliverables:"1 TikTok + 2 IG Stories",deadline:"2026-03-31",payment:1500,paid:false,status:"In Progress",stripeId:"",notes:"Send product shots by 3/20"},
-  {id:2,model:"Mia",brand:"GlowSkin",type:"Ambassador",deliverables:"Monthly IG post + Story",deadline:"2026-04-30",payment:3000,paid:true,status:"Active",stripeId:"pi_mock_001",notes:"Ongoing monthly deal"},
+  {id:2,model:"Mikayla",brand:"GlowSkin",type:"Ambassador",deliverables:"Monthly IG post + Story",deadline:"2026-04-30",payment:3000,paid:true,status:"Active",stripeId:"pi_mock_001",notes:"Ongoing monthly deal"},
 ];
 const INIT_SNAP_REVENUE=[
   {id:1,model:"Autumn",date:"2026-03-14",revenue:320,notes:""},
   {id:2,model:"Autumn",date:"2026-03-15",revenue:410,notes:"Story promo active"},
-  {id:3,model:"Mia",date:"2026-03-14",revenue:190,notes:""},
-  {id:4,model:"Mia",date:"2026-03-15",revenue:240,notes:""},
+  {id:3,model:"Mikayla",date:"2026-03-14",revenue:190,notes:""},
+  {id:4,model:"Mikayla",date:"2026-03-15",revenue:240,notes:""},
 ];
 const INIT_CONTENT_METRICS=[
   {id:1,model:"Autumn",platform:"TikTok",type:"Video",date:"2026-03-15",caption:"Day in my life ☀️",views:89400,likes:7100,comments:340,shares:1200,saves:0,engRate:9.5},
@@ -180,14 +193,14 @@ const INIT_CONTENT_METRICS=[
   {id:4,model:"Autumn",platform:"Instagram",type:"Reel",date:"2026-03-12",caption:"Glow up ✨",views:12000,likes:1800,comments:95,shares:0,saves:420,engRate:19.3},
   {id:5,model:"Autumn",platform:"Instagram",type:"Photo",date:"2026-03-08",caption:"Golden hour 🌅",views:0,likes:1420,comments:76,shares:0,saves:280,engRate:13.9},
   {id:6,model:"Autumn",platform:"Snapchat",type:"Story",date:"2026-03-14",caption:"BTS moment",views:8900,likes:0,comments:0,shares:0,saves:0,engRate:0},
-  {id:7,model:"Mia",platform:"TikTok",type:"Video",date:"2026-03-16",caption:"GRWM night out 💋",views:67300,likes:5400,comments:290,shares:890,saves:0,engRate:9.7},
-  {id:8,model:"Mia",platform:"TikTok",type:"Video",date:"2026-03-08",caption:"Fashion haul",views:32100,likes:2100,comments:120,shares:380,saves:0,engRate:8.1},
+  {id:7,model:"Mikayla",platform:"TikTok",type:"Video",date:"2026-03-16",caption:"GRWM night out 💋",views:67300,likes:5400,comments:290,shares:890,saves:0,engRate:9.7},
+  {id:8,model:"Mikayla",platform:"TikTok",type:"Video",date:"2026-03-08",caption:"Fashion haul",views:32100,likes:2100,comments:120,shares:380,saves:0,engRate:8.1},
   {id:9,model:"Jordan",platform:"Instagram",type:"Photo",date:"2026-03-11",caption:"Monday mood 💕",views:0,likes:980,comments:55,shares:0,saves:130,engRate:12.7},
 ];
 const INIT_MODEL_EVENTS=[
   {id:1,model:"Autumn",date:"2026-03-28",title:"Biscuit's Birthday",type:"birthday",notes:"Dog's birthday 🐶",color:"#ec4899"},
   {id:2,model:"Autumn",date:"2026-04-20",title:"Fitness Competition",type:"competition",notes:"NPC Regional qualifier",color:"#f59e0b"},
-  {id:3,model:"Mia",date:"2026-04-05",title:"Miami Brand Event",type:"event",notes:"GlowSkin brand activation",color:"#0ea5e9"},
+  {id:3,model:"Mikayla",date:"2026-04-05",title:"Miami Brand Event",type:"event",notes:"GlowSkin brand activation",color:"#0ea5e9"},
 ];
 const INIT_MG=[
   {id:1,model:"Autumn",mgAmount:3000,period:"2026-03",deliverables:[
@@ -196,7 +209,7 @@ const INIT_MG=[
     {id:3,label:"1x IG Reel",done:false,notes:"",fileUrl:null},
     {id:4,label:"2x Snapchat Stories",done:false,notes:"",fileUrl:null},
   ]},
-  {id:2,model:"Mia",mgAmount:5000,period:"2026-03",deliverables:[
+  {id:2,model:"Mikayla",mgAmount:5000,period:"2026-03",deliverables:[
     {id:1,label:"2x TikTok Videos",done:true,notes:"Both posted",fileUrl:null},
     {id:2,label:"4x IG Stories",done:true,notes:"",fileUrl:null},
     {id:3,label:"1x IG Reel",done:false,notes:"Scheduled for 3/28",fileUrl:null},
@@ -305,8 +318,7 @@ function Tabs({tabs,active,onChange}){
   );
 }
 const StatCard=({label,value,color=C.purple,sub,icon})=>(
-  <Card style={{textAlign:"center",padding:"18px 14px",position:"relative",overflow:"hidden"}}>
-    <div style={{position:"absolute",top:-8,right:-8,opacity:0.06}}><StarMark size={44} color={color}/></div>
+  <Card style={{textAlign:"center",padding:"18px 14px"}}>
     {icon&&<div style={{display:"flex",justifyContent:"center",marginBottom:8}}><IconBadge icon={icon} color={color} size={32}/></div>}
     <div style={{fontSize:26,fontWeight:800,color,lineHeight:1,fontFamily:"'DM Sans',sans-serif",letterSpacing:"-0.02em"}}>{value}</div>
     <div style={{fontSize:10,color:C.muted,marginTop:7,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em"}}>{label}</div>
@@ -880,14 +892,19 @@ function SalesTracker({user,sales,setSales,isLeadership,isAM,myModels,users}){
         <Card>
           <div style={{fontWeight:700,marginBottom:14,fontSize:13}}>Log Sale</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Sel label="Model" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={myModels}/>
-            <Sel label="Type" value={form.type} onChange={v=>setForm(p=>({...p,type:v}))} options={["PPV","Tip"]}/>
-            <Input label="Amount ($)" value={form.amount} onChange={v=>setForm(p=>({...p,amount:v}))} placeholder="120" type="number"/>
-            <Input label="Fan Username" value={form.fanUsername} onChange={v=>setForm(p=>({...p,fanUsername:v}))} placeholder="bigspender99"/>
-            <Sel label="Shift" value={form.shift} onChange={v=>setForm(p=>({...p,shift:v}))} options={SHIFTS}/>
-            <Input label="Note" value={form.note} onChange={v=>setForm(p=>({...p,note:v}))} placeholder="Beach upsell"/>
+            <Sel label="Model *" value={form.model} onChange={v=>setForm(p=>({...p,model:v}))} options={myModels}/>
+            <Sel label="Type *" value={form.type} onChange={v=>setForm(p=>({...p,type:v}))} options={["PPV","Tip"]}/>
+            <div>
+              <Input label="Amount ($) *" value={form.amount} onChange={v=>setForm(p=>({...p,amount:v}))} placeholder="120" type="number"/>
+              {!form.amount&&<div style={{fontSize:10,color:C.red,marginTop:-8,marginBottom:4}}>Required</div>}
+            </div>
+            <div>
+              <Input label="Fan Username *" value={form.fanUsername} onChange={v=>setForm(p=>({...p,fanUsername:v}))} placeholder="bigspender99"/>
+              {!form.fanUsername&&<div style={{fontSize:10,color:C.red,marginTop:-8,marginBottom:4}}>Required</div>}
+            </div>
+            <Input label="Note" value={form.note} onChange={v=>setForm(p=>({...p,note:v}))} placeholder="Beach upsell" style={{gridColumn:"1/-1"}}/>
           </div>
-          <Btn onClick={()=>{if(!form.amount||!form.fanUsername)return;setSales(p=>[...p,{...form,id:Date.now(),chatter:user.name,date:new Date().toISOString().slice(0,10),amount:Number(form.amount)}]);setForm(p=>({...p,amount:"",fanUsername:"",note:""}));}}>Log Sale</Btn>
+          <Btn onClick={()=>{if(!form.amount||!form.fanUsername||!form.model)return;setSales(p=>[...p,{...form,id:Date.now(),chatter:user.name,date:new Date().toISOString().slice(0,10),amount:Number(form.amount)}]);setForm(p=>({...p,amount:"",fanUsername:"",note:""}));}}>Log Sale</Btn>
         </Card>
       )}
     </div>
@@ -1186,11 +1203,11 @@ function CampaignCalendar({campaigns,setCampaigns,isLeadership,isAM,myModels,mod
                   onMouseEnter={e=>{if(d&&total>0)e.currentTarget.style.background="rgba(124,58,237,0.1)";}}
                   onMouseLeave={e=>{if(d)e.currentTarget.style.background=C.bg;}}>
                   {d&&<div style={{fontSize:10,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:2}}>{d}</div>}
-                  {camps.slice(0,1).map(c=>(
-                    <div key={c.id} title={`${c.model}: ${c.name}`} style={{fontSize:9,background:sc[c.status]+"22",color:sc[c.status],borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>
-                      📅 {c.name}
+                  {camps.slice(0,1).map(c=>{const bs=getBarStyle(c.startDate,c.endDate,ds);return(
+                    <div key={c.id} title={`${c.model}: ${c.name}`} style={{fontSize:9,background:sc[c.status]+"22",color:sc[c.status],borderRadius:bs.borderRadius,marginLeft:bs.ml,marginRight:bs.mr,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>
+                      {bs.showLabel?`📅 ${c.name}`:""}
                     </div>
-                  ))}
+                  );})}
                   {wps.slice(0,1).map((p,pi)=>(
                     <div key={pi} title={`${p.model}: ${p.theme}`} style={{fontSize:9,background:"rgba(124,58,237,0.18)",color:C.purpleL,borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>
                       📝 {p.model}
@@ -1470,7 +1487,7 @@ function TodoPanel({user,todos,setTodos,myModels}){
   );
 }
 // ── HOME DASHBOARD ───────────────────────────────────────────
-function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLogs,shifts,models,snapRevenue,socialMetrics,modelEvents,onAction}){
+function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLogs,shifts,models,snapRevenue,socialMetrics,modelEvents,setModelEvents,onAction}){
   const myModels=role==="am"?models.filter(m=>m.am===user.name&&!m.archived).map(m=>m.name):models.filter(m=>!m.archived).map(m=>m.name);
   const mySales=sales.filter(s=>role==="am"?myModels.includes(s.model):true);
   const todayRev=mySales.reduce((a,s)=>a+Number(s.amount),0);
@@ -1490,6 +1507,9 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
   const [calMonth,setCalMonth]=useState(now.getMonth());
   const [calFilter,setCalFilter]=useState("All");
   const [gcalId,setGcalId]=useState("");const [gcalSaved,setGcalSaved]=useState("");const [showGcal,setShowGcal]=useState(false);
+  // Add event modal
+  const [addEventDate,setAddEventDate]=useState(null);
+  const [newEvtForm,setNewEvtForm]=useState({title:"",notes:"",model:"",color:"#ec4899"});
   const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
   const pad=n=>String(n).padStart(2,"0");
   const daysInMo=(y,m)=>new Date(y,m+1,0).getDate();
@@ -1500,7 +1520,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
     const ds=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
     const evts=[];
     const filteredCamps=activeCampaigns.filter(c=>calFilter==="All"||c.model===calFilter);
-    filteredCamps.filter(c=>c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate).forEach(c=>evts.push({label:c.name,color:C.purple,sub:c.model}));
+    filteredCamps.filter(c=>c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate).forEach(c=>{const bs=getBarStyle(c.startDate,c.endDate,ds);evts.push({label:c.name,color:C.purple,sub:c.model,bs});});
     const filteredTodos=myTodos.filter(t=>(calFilter==="All"||(t.model&&t.model===calFilter))&&t.dueDate===ds);
     filteredTodos.forEach(t=>evts.push({label:t.task,color:{High:C.red,Medium:C.yellow,Low:C.green}[t.priority]}));
     const filteredDeals=myBrandDeals.filter(d=>(calFilter==="All"||d.model===calFilter)&&d.deadline===ds);
@@ -1575,7 +1595,7 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
           </div>
         </Card>
       )}
-      {(role==="leadership"||role==="am")&&(
+      {(role==="leadership"||role==="am")&&(<>
         <Card style={{marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1609,10 +1629,11 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
             {calCells.map((d,i)=>{
               const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===new Date().toISOString().slice(0,10);
               const evts=d?getCalEvents(d):[];
+              const ds=d?`${calYear}-${pad(calMonth+1)}-${pad(d)}`:"";
               return(
-                <div key={i} style={{minHeight:60,background:d?C.bg:"transparent",borderRadius:6,padding:d?"3px 4px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"rgba(124,58,237,0.15)":"transparent"}`}}>
+                <div key={i} onClick={()=>{if(d&&setModelEvents){setAddEventDate(ds);setNewEvtForm({title:"",notes:"",model:myModels[0]||"",color:"#ec4899"});}}} style={{minHeight:60,background:d?C.bg:"transparent",borderRadius:6,padding:d?"3px 4px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"rgba(124,58,237,0.15)":"transparent"}`,cursor:d&&setModelEvents?"pointer":"default"}}>
                   {d&&<div style={{fontSize:10,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:1}}>{d}</div>}
-                  {evts.slice(0,2).map((e,ei)=><div key={ei} title={e.label} style={{fontSize:9,background:e.color+"22",color:e.color,borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>{e.label}</div>)}
+                  {evts.slice(0,2).map((e,ei)=>{const bs=e.bs;return(<div key={ei} title={e.label} style={{fontSize:9,background:e.color+"22",color:e.color,borderRadius:bs?bs.borderRadius:3,marginLeft:bs?bs.ml:0,marginRight:bs?bs.mr:0,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>{bs&&!bs.showLabel?"":e.label}</div>);})}
                   {evts.length>2&&<div style={{fontSize:9,color:C.muted}}>+{evts.length-2}</div>}
                 </div>
               );
@@ -1622,9 +1643,32 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
             {[["Campaigns",C.purple],["To-Do Due Dates",C.red],["Brand Deal Deadlines",C.orange],["Model Events","#ec4899"]].map(([l,c])=>(
               <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:C.muted}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>
             ))}
+            {setModelEvents&&<div style={{fontSize:10,color:C.muted,fontStyle:"italic"}}>· Click a date to add event</div>}
           </div>
         </Card>
-      )}
+        {addEventDate&&setModelEvents&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+            <Card style={{width:380,maxWidth:"100%"}}>
+              <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>Add Model Event · {addEventDate}</div>
+              <Input label="Title" value={newEvtForm.title} onChange={v=>setNewEvtForm(p=>({...p,title:v}))} placeholder="Event title"/>
+              <Sel label="Model" value={newEvtForm.model} onChange={v=>setNewEvtForm(p=>({...p,model:v}))} options={myModels}/>
+              <TA label="Notes" value={newEvtForm.notes} onChange={v=>setNewEvtForm(p=>({...p,notes:v}))} rows={2} placeholder="Optional notes"/>
+              <div style={{marginBottom:12}}>
+                <label style={s.label}>Color</label>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {["#ec4899","#7c3aed","#0ea5e9","#10b981","#f59e0b","#ef4444"].map(col=>(
+                    <div key={col} onClick={()=>setNewEvtForm(p=>({...p,color:col}))} style={{width:24,height:24,borderRadius:"50%",background:col,cursor:"pointer",border:newEvtForm.color===col?"3px solid white":"3px solid transparent"}}/>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                <Btn variant="secondary" size="sm" onClick={()=>setAddEventDate(null)}>Cancel</Btn>
+                <Btn size="sm" onClick={()=>{if(!newEvtForm.title)return;setModelEvents(p=>[...p,{id:Date.now(),date:addEventDate,title:newEvtForm.title,notes:newEvtForm.notes,model:newEvtForm.model,color:newEvtForm.color}]);setAddEventDate(null);}}>Add Event</Btn>
+              </div>
+            </Card>
+          </div>
+        )}
+      </>)}
       <Card>
         <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>Quick Actions</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -1924,7 +1968,7 @@ function StripeInvoices({isLeadership,models,myModels}){
   const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels||[];
   const SAMPLE_INVOICES=[
     {id:"in_001",customer_name:"Brand Deal — FitTea Co",amount_paid:150000,currency:"usd",status:"paid",created:Date.now()/1000-86400*5,hosted_invoice_url:"#",model:"Autumn"},
-    {id:"in_002",customer_name:"Brand Deal — GlowSkin",amount_paid:300000,currency:"usd",status:"paid",created:Date.now()/1000-86400*12,hosted_invoice_url:"#",model:"Mia"},
+    {id:"in_002",customer_name:"Brand Deal — GlowSkin",amount_paid:300000,currency:"usd",status:"paid",created:Date.now()/1000-86400*12,hosted_invoice_url:"#",model:"Mikayla"},
     {id:"in_003",customer_name:"Monthly Retainer",amount_paid:50000,currency:"usd",status:"open",created:Date.now()/1000-86400*2,hosted_invoice_url:"#",model:"Jordan"},
   ];
   const displayInvoices=(savedKey?invoices:SAMPLE_INVOICES).filter(inv=>fm==="All"||(inv.model&&inv.model===fm));
@@ -2359,7 +2403,7 @@ function ShiftSchedule({shifts,setShifts,users,models,slingApiKey,setSlingApiKey
 function ModelManagement({models,setModels,users,tasks,setTasks,modelPlatforms}){
   const ams=users.filter(u=>u.role==="am").map(u=>u.name);
   const [showAdd,setShowAdd]=useState(false);const [showArchived,setShowArchived]=useState(false);const [editId,setEditId]=useState(null);
-  const blank={name:"",am:ams[0]||"",platform:(modelPlatforms||DEFAULT_MODEL_PLATFORMS)[0],status:"Onboarding",flirtLevel:"PG"};
+  const blank={name:"",am:ams[0]||"",platform:(modelPlatforms||DEFAULT_MODEL_PLATFORMS)[0],status:"Onboarding",flirtLevel:"PG",services:["Paywall"]};
   const [form,setForm]=useState(blank);
   const active=models.filter(m=>!m.archived);const archived=models.filter(m=>m.archived);
   const save=()=>{
@@ -2384,7 +2428,18 @@ function ModelManagement({models,setModels,users,tasks,setTasks,modelPlatforms})
             <Sel label="Status" value={form.status} onChange={v=>setForm(p=>({...p,status:v}))} options={["Onboarding","Active","Paused"]}/>
             <Sel label="Flirt Level" value={form.flirtLevel} onChange={v=>setForm(p=>({...p,flirtLevel:v}))} options={["PG","PG-13","PG-17","R"]}/>
           </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <div style={{marginTop:8}}>
+            <div style={{...s.label,marginBottom:6}}>Services (scope of work)</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {MODEL_SERVICES.map(svc=>{const on=(form.services||[]).includes(svc);return(
+                <button key={svc} onClick={()=>setForm(p=>({...p,services:on?(p.services||[]).filter(x=>x!==svc):[...(p.services||[]),svc]}))}
+                  style={{padding:"5px 14px",borderRadius:99,border:`1.5px solid ${on?C.purple:C.border}`,background:on?C.purpleXL:"rgba(255,255,255,0.06)",color:on?C.purpleL:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  {svc}
+                </button>
+              );})}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
             <Btn variant="secondary" size="sm" onClick={()=>{setShowAdd(false);setEditId(null);}}>Cancel</Btn>
             <Btn size="sm" onClick={save}>{editId?"Save":"Add Model"}</Btn>
           </div>
@@ -2398,13 +2453,14 @@ function ModelManagement({models,setModels,users,tasks,setTasks,modelPlatforms})
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                 <Badge label={m.status} color={statusCol[m.status]}/><Badge label={m.platform} color={C.muted} bg="rgba(255,255,255,0.1)"/>
                 <Badge label={m.flirtLevel} color={flirtCol[m.flirtLevel]}/><Badge label={`AM: ${m.am}`} color={C.blue}/>
+                {(m.services||[]).map(svc=><Badge key={svc} label={svc} color={svc==="Paywall"?C.purple:svc==="Snapchat"?C.yellow:svc==="Brand Deals"?C.orange:C.green}/>)}
               </div>
             </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
               <select value={m.am} onChange={e=>{setModels(p=>p.map(x=>x.id===m.id?{...x,am:e.target.value}:x));setTasks(p=>p.map(t=>t.model===m.name?{...t,am:e.target.value}:t));}} style={{...s.input,width:"auto",marginBottom:0,fontSize:12}}>
                 {ams.map(a=><option key={a}>{a}</option>)}
               </select>
-              <Btn variant="secondary" size="sm" onClick={()=>{setForm({name:m.name,am:m.am,platform:m.platform,status:m.status,flirtLevel:m.flirtLevel});setEditId(m.id);setShowAdd(true);}}>Edit</Btn>
+              <Btn variant="secondary" size="sm" onClick={()=>{setForm({name:m.name,am:m.am,platform:m.platform,status:m.status,flirtLevel:m.flirtLevel,services:m.services||["Paywall"]});setEditId(m.id);setShowAdd(true);}}>Edit</Btn>
               <Btn variant="danger" size="sm" onClick={()=>setModels(p=>p.map(x=>x.id===m.id?{...x,archived:true,status:"Archived"}:x))}>Archive</Btn>
             </div>
           </div>
@@ -2773,7 +2829,7 @@ function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setConte
       <div style={{display:"flex",gap:4,marginBottom:20,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(167,139,250,0.18)",borderRadius:12,padding:4}}>
         {PLATFORMS.map(p=>(
           <button key={p} onClick={()=>{setPlatform(p);setSubTab("metrics");}} style={{flex:1,padding:"9px 4px",borderRadius:9,border:platform===p?"1px solid rgba(167,139,250,0.35)":"1px solid transparent",background:platform===p?"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(192,38,211,0.35))":"transparent",color:platform===p?C.white:C.muted,fontWeight:platform===p?700:500,fontSize:13,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <span style={{fontWeight:800,fontSize:11,letterSpacing:"0.05em"}}>{PLAT_ICON[p]}</span>{p}
+            {p}
           </button>
         ))}
       </div>
@@ -2907,7 +2963,8 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
   const [selModel,setSelModel]=useState(vm[0]||"");
   const [period,setPeriod]=useState(new Date().toISOString().slice(0,7));
   const [showAdd,setShowAdd]=useState(false);
-  const [mgForm,setMgForm]=useState({model:vm[0]||"",mgAmount:"",period:new Date().toISOString().slice(0,7),deliverables:[]});
+  const [mgForm,setMgForm]=useState({model:vm[0]||"",mgAmount:"",period:new Date().toISOString().slice(0,7),writtenBy:"Charmed",duration:"",startingPeriod:"",deliverables:[]});
+  const calcRange=(start,months)=>{if(!start||!months)return"";const s=new Date(start+"T00:00:00");const e=new Date(s);e.setMonth(e.getMonth()+Number(months));return`${s.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})} – ${e.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`;};
   const [newDel,setNewDel]=useState("");
   const myMg=isLeadership||isAM?mg:mg.filter(m=>m.model===user.name);
   const selMg=myMg.find(m=>(isLeadership||isAM?m.model===selModel:m.model===user.name)&&m.period===period);
@@ -2953,6 +3010,15 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Sel label="Model" value={mgForm.model} onChange={v=>setMgForm(p=>({...p,model:v}))} options={vm}/>
             <Input label="MG Amount ($)" value={mgForm.mgAmount} onChange={v=>setMgForm(p=>({...p,mgAmount:v}))} placeholder="3000" type="number"/>
+            <Sel label="MG Written By" value={mgForm.writtenBy} onChange={v=>setMgForm(p=>({...p,writtenBy:v}))} options={["Charmed","Platform"]}/>
+            <Input label="Duration (months)" value={mgForm.duration} onChange={v=>setMgForm(p=>({...p,duration:v}))} placeholder="3" type="number"/>
+            <div>
+              <label style={s.label}>Starting Period</label>
+              <input type="date" value={mgForm.startingPeriod} onChange={e=>setMgForm(p=>({...p,startingPeriod:e.target.value}))} style={{...s.input}}/>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+              {mgForm.startingPeriod&&mgForm.duration?<div style={{background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:8,padding:"8px 10px",fontSize:12,color:C.green,fontWeight:600}}>📅 {calcRange(mgForm.startingPeriod,mgForm.duration)}</div>:<div style={{fontSize:11,color:C.muted}}>Enter start date + duration to see range</div>}
+            </div>
             <div style={{gridColumn:"1/-1",marginBottom:14}}>
               <label style={s.label}>Period (YYYY-MM)</label>
               <input type="month" value={mgForm.period} onChange={e=>setMgForm(p=>({...p,period:e.target.value}))} style={{...s.input}}/>
@@ -2993,7 +3059,8 @@ function MGDeliverables({user,mg,setMg,models,isLeadership,isAM,myModels}){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
             <div>
               <div style={{fontWeight:700,fontSize:15,fontFamily:"'Playfair Display',Georgia,serif"}}>{selMg.model} — {selMg.period}</div>
-              <div style={{fontSize:12,color:C.muted,marginTop:2}}>MG: <span style={{color:C.green,fontWeight:700}}>${Number(selMg.mgAmount).toLocaleString()}</span></div>
+              <div style={{fontSize:12,color:C.muted,marginTop:2}}>MG: <span style={{color:C.green,fontWeight:700}}>${Number(selMg.mgAmount).toLocaleString()}</span>{selMg.writtenBy&&<span style={{marginLeft:8}}> · Written by: <b style={{color:C.text}}>{selMg.writtenBy}</b></span>}</div>
+              {selMg.startingPeriod&&selMg.duration&&<div style={{fontSize:11,color:C.blue,marginTop:2}}>📅 {calcRange(selMg.startingPeriod,selMg.duration)}</div>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{width:80,height:6,borderRadius:99,background:"rgba(255,255,255,0.1)"}}>
@@ -3144,7 +3211,7 @@ function AnalyticsOverview({sales,socialMetrics,qaLogs,tasks,models,campaigns,sn
   );
 }
 // ── AI SCHEDULER ─────────────────────────────────────────────
-function AISchedulerPanel({models,ttks,content,campaigns,massMessages,setMassMessages,myModels,user}){
+function AISchedulerPanel({models,ttks,content,campaigns,massMessages,setMassMessages,myModels,user,readOnly=false}){
   const modelList=myModels||models.filter(m=>!m.archived).map(m=>m.name);
   const [selectedModel,setSelectedModel]=useState(modelList[0]||"");
   const [weekStart,setWeekStart]=useState(new Date().toISOString().slice(0,10));
@@ -3157,7 +3224,7 @@ function AISchedulerPanel({models,ttks,content,campaigns,massMessages,setMassMes
   const [result,setResult]=useState(null);
   const [error,setError]=useState("");
   const [outputTab,setOutputTab]=useState("wall");
-  const [mainTab,setMainTab]=useState("generate");
+  const [mainTab,setMainTab]=useState(readOnly?"saved":"generate");
   const [editMode,setEditMode]=useState(false);
   const [editedResult,setEditedResult]=useState(null);
   const [expandedSaved,setExpandedSaved]=useState(null);
@@ -3437,11 +3504,11 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {savedSchedules.length>0&&<Badge label={`${savedSchedules.length} saved`} color={C.green}/>}
-          <Btn variant="secondary" size="sm" onClick={()=>setShowSettings(p=>!p)}>{showSettings?"Close Settings":"⚙ Settings"}</Btn>
+          {!readOnly&&<Btn variant="secondary" size="sm" onClick={()=>setShowSettings(p=>!p)}>{showSettings?"Close Settings":"⚙ Settings"}</Btn>}
         </div>
       </div>
 
-      {showSettings&&(
+      {!readOnly&&showSettings&&(
         <Card style={{marginBottom:16,borderColor:"rgba(167,139,250,0.4)"}}>
           <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>API Key Settings</div>
           <div style={{fontSize:12,color:C.muted,marginBottom:12}}>Your key is stored locally in your browser only — never sent to any server except Anthropic directly.</div>
@@ -3450,9 +3517,10 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
         </Card>
       )}
 
-      <Tabs tabs={[["generate","Generate"],["saved",`Saved Schedules${savedSchedules.length?` (${savedSchedules.length})`:""}`]]} active={mainTab} onChange={setMainTab}/>
+      {!readOnly&&<Tabs tabs={[["generate","Generate"],["saved",`Saved Schedules${savedSchedules.length?` (${savedSchedules.length})`:""}`]]} active={mainTab} onChange={setMainTab}/>}
+      {readOnly&&<div style={{fontSize:12,color:C.muted,marginBottom:12}}>Viewing saved schedules for your assigned models.</div>}
 
-      {mainTab==="generate"&&(
+      {!readOnly&&mainTab==="generate"&&(
         <div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
             <Card>
@@ -3531,13 +3599,13 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
         </div>
       )}
 
-      {mainTab==="saved"&&(
+      {(readOnly||mainTab==="saved")&&(
         <div>
           <div style={{marginBottom:12}}>
             <Sel label="Model" value={selectedModel} onChange={setSelectedModel} options={modelList}/>
           </div>
           {savedSchedules.length===0
-            ?<Card><div style={{textAlign:"center",color:C.muted,fontSize:14,padding:"24px 0"}}>No saved schedules for {selectedModel} yet. Generate one to get started.</div></Card>
+            ?<Card><div style={{textAlign:"center",color:C.muted,fontSize:14,padding:"24px 0"}}>No saved schedules for {selectedModel} yet.</div></Card>
             :savedSchedules.map(saved=>(
               <Card key={saved.weekStart} style={{marginBottom:12,borderColor:expandedSaved===saved.weekStart?"rgba(124,58,237,0.5)":C.border}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}} onClick={()=>setExpandedSaved(p=>p===saved.weekStart?null:saved.weekStart)}>
@@ -3548,7 +3616,7 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
                     </div>
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <button onClick={e=>{e.stopPropagation();deleteSchedule(saved.weekStart);}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"2px 6px"}}>×</button>
+                    {!readOnly&&<button onClick={e=>{e.stopPropagation();deleteSchedule(saved.weekStart);}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:18,lineHeight:1,padding:"2px 6px"}}>×</button>}
                     <span style={{color:C.muted,fontSize:16}}>{expandedSaved===saved.weekStart?"▲":"▼"}</span>
                   </div>
                 </div>
@@ -3627,7 +3695,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
           <Card style={{padding:0,overflow:"hidden",marginBottom:20}}>
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                <thead><tr style={{background:"rgba(124,58,237,0.2)",color:"#c4b5fd"}}>{["AM","Model","BOS","EOS","Content","Notion","Promos","Notes"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:["AM","Model","Notes"].includes(h)?"left":"center",fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"rgba(124,58,237,0.2)",color:"#c4b5fd"}}>{["AM","Model","BOS","EOS","Content","Group Chat","Promos","Notes"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:["AM","Model","Notes"].includes(h)?"left":"center",fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>)}</tr></thead>
                 <tbody>{tasks.map((t,ri)=>{const inc=["bos","eos","content","notion","promos"].some(k=>t[k]===false),all=["bos","eos","content","notion","promos"].every(k=>t[k]===true);return(
                   <tr key={t.id} style={{background:inc?C.redL:all?C.greenL:ri%2===0?"rgba(255,255,255,0.03)":"transparent",borderBottom:`1px solid rgba(124,58,237,0.12)`}}>
                     <td style={{padding:"8px 14px",fontWeight:600,color:C.text}}>{t.am}</td>
@@ -3768,7 +3836,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
                 <Badge label={`${done}/${keys.length}`} color={done===keys.length?C.green:C.purple}/>
               </div>
               <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-                {[["bos","BOS"],["eos","EOS"],["content","Content"],["notion","Notion"],["promos","Promos"]].map(([k,l])=>(
+                {[["bos","BOS"],["eos","EOS"],["content","Content"],["notion","Group Chat"],["promos","Promos"]].map(([k,l])=>(
                   <div key={k} style={{textAlign:"center"}}>
                     <div style={{fontSize:10,color:C.muted,marginBottom:4,textTransform:"uppercase",fontWeight:600,letterSpacing:"0.05em"}}>{l}</div>
                     <TaskCell val={t[k]} onChange={v=>setTasks(p=>p.map(r=>r.id===t.id?{...r,[k]:v}:r))}/>
@@ -3865,29 +3933,48 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
         <StatCard label="QA Score" value={avgQA!==null?`${avgQA}%`:"—"} color={avgQA!==null?scoreCol(avgQA):C.muted}/>
         <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete").length} color={C.blue}/>
       </div>
-      <Tabs tabs={[["sales","Sales"],["customs","Customs"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["sales","Sales"],["ttk","TTK"],["customs","Customs"],["fans","Fans"],["todos","To-Dos"],["handoff","Handoff"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
-      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models} sales={sales} fans={fans} todos={todos} qaLogs={qaLogs}/>}
-      {tab==="ref"&&<div>
-        <SectionHeader icon="📋" title="Quick Reference"/>
+      {tab==="ttk"&&<div>
+        <SectionHeader icon="📖" title="TTK"/>
         {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttkData=(ttks||[]).find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");return(
           <Card key={m.id} style={{marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-              <span style={{fontWeight:700,fontSize:14}}>{m.name}</span>
-              <Badge label={m.flirtLevel} color={C.purple}/>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+              <span style={{fontWeight:700,fontSize:15}}>{m.name}</span>
+              <div style={{display:"flex",gap:6}}><Badge label={m.flirtLevel} color={C.purple}/><Badge label={m.platform} color={C.muted} bg="rgba(255,255,255,0.1)"/></div>
             </div>
-            {ttkData&&<div style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:8,padding:"10px 12px",fontSize:13}}>
-              <div><b>Voice:</b> {ttkData.voice}</div>
-              <div style={{marginTop:4}}><b>Call fans:</b> {ttkData.endearments}</div>
-              <div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttkData.hardNos}</div>
-              <div style={{marginTop:4,color:C.muted}}>Offline: {ttkData.offlineTimes}</div>
-              {ttkData.scripts?.length>0&&<div style={{marginTop:8,borderTop:`1px solid ${C.border}`,paddingTop:8}}>
-                <div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Scripts</div>
-                {ttkData.scripts.map(sc=><div key={sc.id} style={{marginBottom:6}}><div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div><div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>"{sc.response}"</div></div>)}
+            {ttkData&&<div style={{display:"flex",flexDirection:"column",gap:8,fontSize:13}}>
+              <div style={{background:"rgba(124,58,237,0.07)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Voice & Persona</div>
+                <div><b>Voice:</b> {ttkData.voice}</div>
+                {ttkData.personality&&<div style={{marginTop:3}}><b>Personality:</b> {ttkData.personality}</div>}
+                <div style={{marginTop:3}}><b>Call fans:</b> {ttkData.endearments}</div>
+                {ttkData.offlineTimes&&<div style={{marginTop:3,color:C.muted}}><b>Offline:</b> {ttkData.offlineTimes}</div>}
+              </div>
+              {ttkData.interests&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Interests</div>
+                <div>{ttkData.interests}</div>
+              </div>}
+              {(ttkData.age||ttkData.location||ttkData.physicalDesc)&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Identity</div>
+                {ttkData.age&&<div>Age: {ttkData.age}</div>}
+                {ttkData.location&&<div>Location: {ttkData.location}</div>}
+                {ttkData.physicalDesc&&<div>Appearance: {ttkData.physicalDesc}</div>}
+              </div>}
+              {ttkData.personalFacts&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Personal Facts</div>
+                <div>{ttkData.personalFacts}</div>
+              </div>}
+              <div style={{background:C.redL,border:`1px solid ${C.red}25`,borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.red,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>🚫 Hard No's — Never discuss</div>
+                <div style={{color:C.red,fontWeight:600}}>{ttkData.hardNos}</div>
+              </div>
+              {ttkData.scripts?.length>0&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Scripts</div>
+                {ttkData.scripts.map(sc=><div key={sc.id} style={{marginBottom:8,padding:"8px 10px",background:"rgba(124,58,237,0.07)",borderRadius:6}}><div style={{fontSize:11,fontWeight:700,color:C.purple,marginBottom:3}}>{sc.trigger}</div><div style={{fontSize:12,color:C.text,fontStyle:"italic"}}>"{sc.response}"</div></div>)}
               </div>}
             </div>}
-            {wh.length>0&&<div style={{marginTop:8}}><div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Whales</div>{wh.map(f=><div key={f.id} style={{fontSize:12,padding:"2px 0",color:C.purple,fontWeight:600}}>{f.username} — {f.notes}</div>)}</div>}
+            {wh.length>0&&<div style={{marginTop:10,borderTop:`1px solid ${C.border}`,paddingTop:10}}><div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>🐋 Whales</div>{wh.map(f=><div key={f.id} style={{fontSize:12,padding:"2px 0",color:C.purple,fontWeight:600}}>{f.username} — {f.notes||f.spend}</div>)}</div>}
           </Card>
         );})}
         <Card style={{background:C.redL,border:`1px solid ${C.red}25`}}>
@@ -3895,28 +3982,65 @@ function ChatterDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,s
           <div style={{fontSize:13,lineHeight:1.9}}><b>Suicide/self-harm:</b> Use script → screenshot → #escalations → stop responding<br/><b>Illegal/minor:</b> Do not respond → screenshot → #escalations immediately<br/><b>Meetup request:</b> Deflect with script → redirect to content</div>
         </Card>
       </div>}
+      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
+      {tab==="fans"&&<div>
+        <SectionHeader icon="🌟" title="Fans"/>
+        {myModels.map(mn=>{const mFans=fans.filter(f=>f.model===mn);return mFans.length===0?null:(
+          <div key={mn} style={{marginBottom:16}}>
+            <div style={{fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{mn}</div>
+            {mFans.map(f=>(
+              <Card key={f.id} style={{marginBottom:8,borderLeft:`3px solid ${f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div><div style={{fontWeight:700}}>{f.username}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{f.spend}</div></div>
+                  <div style={{display:"flex",gap:6}}><Badge label={f.type} color={f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}/>{f.flag&&<Badge label="⚠" color={C.red}/>}</div>
+                </div>
+                {f.notes&&<p style={{fontSize:12,color:C.muted,margin:"4px 0 0"}}>{f.notes}</p>}
+              </Card>
+            ))}
+          </div>
+        );})}
+      </div>}
       {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
+      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models} sales={sales} fans={fans} todos={todos} qaLogs={qaLogs}/>}
       {tab==="schedule"&&<SlingWidget slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
     </div>
   );
 }
-function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,setTodos,shifts,models,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms,ttks,setTtks}){
+function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,setFans,todos,setTodos,shifts,models,qaLogs,setQaLogs,users,slingApiKey,setSlingApiKey,customs,setCustoms,ttks,setTtks,campaigns,content,massMessages,setMassMessages,modelEvents}){
   const [tab,setTab]=useState("sales");
-  const [refEdit,setRefEdit]=useState(null); // model name being edited
-  const [refForm,setRefForm]=useState({});
+  const [ttkEdit,setTtkEdit]=useState(null);
+  const [ttkForm,setTtkForm]=useState({});
   const [newScript,setNewScript]=useState({trigger:"",response:""});
+  const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:""});
   const todayShift=shifts.find(sh=>sh.chatter===user.name&&sh.date===today());
   const myModels=todayShift?todayShift.models:models.filter(m=>!m.archived).map(m=>m.name);
   const mySales=sales.filter(s=>s.chatter===user.name);
   const todayRev=mySales.reduce((a,s)=>a+Number(s.amount),0);
-  const startEdit=(ttkData)=>{setRefEdit(ttkData.model);setRefForm({voice:ttkData.voice||"",endearments:ttkData.endearments||"",offlineTimes:ttkData.offlineTimes||"",scripts:[...(ttkData.scripts||[])]});setNewScript({trigger:"",response:""});};
-  const saveRef=()=>{setTtks(p=>p.map(x=>x.model===refEdit?{...x,...refForm,lastUpdated:new Date().toISOString().slice(0,10),updatedBy:user.name}:x));setRefEdit(null);};
-  const addScript=()=>{if(!newScript.trigger||!newScript.response)return;setRefForm(p=>({...p,scripts:[...p.scripts,{id:Date.now(),...newScript}]}));setNewScript({trigger:"",response:""});};
-  const removeScript=(id)=>setRefForm(p=>({...p,scripts:p.scripts.filter(sc=>sc.id!==id)}));
+  const startEdit=(ttkData)=>{setTtkEdit(ttkData.model);setTtkForm({voice:ttkData.voice||"",endearments:ttkData.endearments||"",offlineTimes:ttkData.offlineTimes||"",scripts:[...(ttkData.scripts||[])]});setNewScript({trigger:"",response:""});};
+  const saveTtk=()=>{setTtks(p=>p.map(x=>x.model===ttkEdit?{...x,...ttkForm,lastUpdated:new Date().toISOString().slice(0,10),updatedBy:user.name}:x));setTtkEdit(null);};
+  const addScript=()=>{if(!newScript.trigger||!newScript.response)return;setTtkForm(p=>({...p,scripts:[...p.scripts,{id:Date.now(),...newScript}]}));setNewScript({trigger:"",response:""});};
+  const removeScript=(id)=>setTtkForm(p=>({...p,scripts:p.scripts.filter(sc=>sc.id!==id)}));
+  const myFans=fans.filter(f=>myModels.includes(f.model));
+  // Calendar state
+  const now=new Date();
+  const [calYear,setCalYear]=useState(now.getFullYear());
+  const [calMonth,setCalMonth]=useState(now.getMonth());
+  const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const pad=n=>String(n).padStart(2,"0");
+  const daysInMo=(y,m)=>new Date(y,m+1,0).getDate();
+  const firstDay=(y,m)=>new Date(y,m,1).getDay();
+  const calDays=daysInMo(calYear,calMonth);const calStart=firstDay(calYear,calMonth);
+  const calCells=[];for(let i=0;i<calStart;i++)calCells.push(null);for(let d=1;d<=calDays;d++)calCells.push(d);
+  const getCalEvents=(d)=>{
+    const ds=`${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const evts=[];
+    (campaigns||[]).filter(c=>myModels.includes(c.model)&&c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate).forEach(c=>evts.push({label:c.name,color:C.purple}));
+    (modelEvents||[]).filter(e=>myModels.includes(e.model)&&e.date===ds).forEach(e=>evts.push({label:e.title,color:e.color||C.pink}));
+    return evts;
+  };
   return(
     <div>
-      <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
-        <StarMark size={22} color="white" style={{opacity:0.85,filter:"drop-shadow(0 0 8px rgba(167,139,250,0.7))"}}/>
+      <div style={{marginBottom:6}}>
         <span style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-0.02em"}}>Hey {user.name}</span>
       </div>
       {todayShift?<div style={{fontSize:13,color:C.green,marginBottom:4,fontWeight:600}}>✓ On shift: {todayShift.shift} · {myModels.join(", ")}</div>:<div style={{fontSize:13,color:C.muted,marginBottom:4}}>No shift scheduled today</div>}
@@ -3925,41 +4049,44 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
         <StatCard label="QA Reviews" value={qaLogs.filter(q=>q.reviewer===user.name).length} color={C.purple}/>
         <StatCard label="Open To-Dos" value={todos.filter(t=>t.owner===user.name&&(t.status||"Pending")!=="Complete").length} color={C.blue}/>
       </div>
-      <Tabs tabs={[["sales","Sales"],["customs","Customs"],["qa","QA Reviews"],["handoff","Handoff"],["ref","Quick Ref"],["todos","To-Dos"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[["sales","Sales"],["ttk","TTK"],["customs","Customs"],["fans","Fans"],["calendar","Calendar"],["ai","AI Scheduler"],["qa","QA"],["todos","To-Dos"],["handoff","Handoff"],["schedule","Sling"]]} active={tab} onChange={setTab}/>
       {tab==="sales"&&<SalesTracker user={user} sales={sales} setSales={setSales} isLeadership={false} isAM={false} myModels={myModels} users={users}/>}
-      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
-      {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models} ttks={ttks}/>}
-      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models} sales={sales} fans={fans} todos={todos} qaLogs={qaLogs}/>}
-      {tab==="ref"&&<div>
-        <SectionHeader icon="📋" title="Quick Reference"/>
-        {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttkData=(ttks||[]).find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");const isEditing=refEdit===m.name;return(
+      {tab==="ttk"&&<div>
+        <SectionHeader icon="📋" title="TTK"/>
+        {models.filter(m=>myModels.includes(m.name)).map(m=>{const ttkData=(ttks||[]).find(t=>t.model===m.name);const wh=fans.filter(f=>f.model===m.name&&f.type==="Whale");const isEditing=ttkEdit===m.name;return(
           <Card key={m.id} style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <span style={{fontWeight:700,fontSize:14}}>{m.name}</span>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
                 <Badge label={m.flirtLevel} color={C.purple}/>
                 {!isEditing&&<button onClick={()=>ttkData&&startEdit(ttkData)} style={{background:"linear-gradient(135deg,#7c3aed,#c026d3)",color:C.white,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>✏️ Edit</button>}
-                {isEditing&&<><button onClick={saveRef} style={{background:C.green,color:C.white,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Save</button><button onClick={()=>setRefEdit(null)} style={{background:C.dark,color:C.muted,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button></>}
+                {isEditing&&<><button onClick={saveTtk} style={{background:C.green,color:C.white,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Save</button><button onClick={()=>setTtkEdit(null)} style={{background:C.dark,color:C.muted,border:"none",borderRadius:6,padding:"3px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button></>}
               </div>
             </div>
             {ttkData&&!isEditing&&<div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.12)",borderRadius:8,padding:"10px 12px",fontSize:13}}>
-              <div><b>Voice:</b> {ttkData.voice}</div>
-              <div style={{marginTop:4}}><b>Call fans:</b> {ttkData.endearments}</div>
-              <div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Never: {ttkData.hardNos}</div>
-              <div style={{marginTop:4,color:C.muted}}>Offline: {ttkData.offlineTimes}</div>
+              {ttkData.voice&&<div><b>Voice / Persona:</b> {ttkData.voice}</div>}
+              {ttkData.endearments&&<div style={{marginTop:4}}><b>Call fans:</b> {ttkData.endearments}</div>}
+              {ttkData.age&&<div style={{marginTop:4}}><b>Age:</b> {ttkData.age}</div>}
+              {ttkData.location&&<div style={{marginTop:4}}><b>Location:</b> {ttkData.location}</div>}
+              {ttkData.personality&&<div style={{marginTop:4}}><b>Personality:</b> {ttkData.personality}</div>}
+              {ttkData.interests&&<div style={{marginTop:4}}><b>Interests:</b> {ttkData.interests}</div>}
+              {ttkData.physicalDesc&&<div style={{marginTop:4}}><b>Look:</b> {ttkData.physicalDesc}</div>}
+              {ttkData.personalFacts&&<div style={{marginTop:4}}><b>Personal facts:</b> {ttkData.personalFacts}</div>}
+              {ttkData.hardNos&&<div style={{marginTop:4,color:C.red,fontWeight:600}}>🚫 Hard Nos: {ttkData.hardNos}</div>}
+              {ttkData.offlineTimes&&<div style={{marginTop:4,color:C.muted}}>Offline: {ttkData.offlineTimes}</div>}
               {ttkData.scripts?.length>0&&<div style={{marginTop:8,borderTop:`1px solid ${C.border}`,paddingTop:8}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Scripts</div>
                 {ttkData.scripts.map(sc=><div key={sc.id} style={{marginBottom:6}}><div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div><div style={{fontSize:12,color:C.muted,fontStyle:"italic"}}>"{sc.response}"</div></div>)}
               </div>}
             </div>}
             {isEditing&&<div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.12)",borderRadius:8,padding:"10px 12px",fontSize:13,display:"flex",flexDirection:"column",gap:8}}>
-              <div><label style={{...s.label,fontSize:11}}>Voice / Persona</label><textarea value={refForm.voice} onChange={e=>setRefForm(p=>({...p,voice:e.target.value}))} rows={2} style={{...s.input,resize:"vertical",fontSize:12}}/></div>
-              <div><label style={{...s.label,fontSize:11}}>Call fans (endearments)</label><input value={refForm.endearments} onChange={e=>setRefForm(p=>({...p,endearments:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
-              <div><label style={{...s.label,fontSize:11}}>Offline times</label><input value={refForm.offlineTimes} onChange={e=>setRefForm(p=>({...p,offlineTimes:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
+              <div><label style={{...s.label,fontSize:11}}>Voice / Persona</label><textarea value={ttkForm.voice} onChange={e=>setTtkForm(p=>({...p,voice:e.target.value}))} rows={2} style={{...s.input,resize:"vertical",fontSize:12}}/></div>
+              <div><label style={{...s.label,fontSize:11}}>Call fans (endearments)</label><input value={ttkForm.endearments} onChange={e=>setTtkForm(p=>({...p,endearments:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
+              <div><label style={{...s.label,fontSize:11}}>Offline times</label><input value={ttkForm.offlineTimes} onChange={e=>setTtkForm(p=>({...p,offlineTimes:e.target.value}))} style={{...s.input,fontSize:12}}/></div>
               <div style={{color:C.red,fontSize:11,fontWeight:600}}>🚫 Hard Nos: {ttkData?.hardNos} <span style={{color:C.muted,fontWeight:400}}>(managed by AM)</span></div>
               <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Scripts</div>
-                {refForm.scripts.map(sc=>(
+                {ttkForm.scripts.map(sc=>(
                   <div key={sc.id} style={{display:"flex",alignItems:"flex-start",gap:6,marginBottom:6,background:C.dark,borderRadius:6,padding:"6px 8px"}}>
                     <div style={{flex:1}}>
                       <div style={{fontSize:11,fontWeight:700,color:C.purple}}>{sc.trigger}</div>
@@ -3980,18 +4107,93 @@ function ChatLeadDashboard({user,sales,setSales,handoffs,setHandoffs,fans,todos,
         );})}
         <Card style={{background:C.redL}}><div style={{fontWeight:700,color:C.red,marginBottom:8}}>🚨 Escalation Protocol</div><div style={{fontSize:13,lineHeight:1.9}}><b>Suicide/self-harm:</b> Script → screenshot → #escalations → stop<br/><b>Illegal/minor:</b> Don't respond → screenshot → #escalations<br/><b>Meetup:</b> Deflect → redirect</div></Card>
       </div>}
+      {tab==="customs"&&<CustomsTracker user={user} customs={customs} setCustoms={setCustoms} models={models}/>}
+      {tab==="fans"&&<div>
+        <SectionHeader icon="🌟" title="Fans"/>
+        {myFans.map(f=>(
+          <Card key={f.id} style={{marginBottom:10,borderLeft:`3px solid ${f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontWeight:700}}>{f.username}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{f.model} · {f.spend}</div></div>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}><Badge label={f.type} color={f.type==="Whale"?C.purple:f.type==="Problem Fan"?C.red:f.type==="VIP"?C.yellow:C.blue}/>{f.flag&&<Badge label="⚠" color={C.red}/>}</div>
+            </div>
+            {f.notes&&<p style={{fontSize:13,color:C.muted,margin:"6px 0 0"}}>{f.notes}</p>}
+          </Card>
+        ))}
+        <Card style={{marginTop:12}}>
+          <div style={{fontWeight:700,marginBottom:14,fontSize:13}}>Add Fan</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <Input label="Username" value={newFan.username} onChange={v=>setNewFan(p=>({...p,username:v}))} placeholder="fanusername"/>
+            <Input label="Spend" value={newFan.spend} onChange={v=>setNewFan(p=>({...p,spend:v}))} placeholder="$500"/>
+            <Sel label="Model" value={newFan.model||myModels[0]||""} onChange={v=>setNewFan(p=>({...p,model:v}))} options={myModels}/>
+            <Sel label="Type" value={newFan.type} onChange={v=>setNewFan(p=>({...p,type:v}))} options={["Whale","VIP","Watch List","Problem Fan"]}/>
+            <Input label="Notes" value={newFan.notes} onChange={v=>setNewFan(p=>({...p,notes:v}))} placeholder="Key notes" style={{gridColumn:"1/-1"}}/>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+            <input type="checkbox" checked={newFan.flag} onChange={e=>setNewFan(p=>({...p,flag:e.target.checked}))}/><label style={{fontSize:13,color:C.red,fontWeight:600}}>⚠ Flag this fan</label>
+          </div>
+          <Btn size="sm" onClick={()=>{if(!newFan.username)return;setFans(p=>[...p,{...newFan,model:newFan.model||myModels[0]||"",id:Date.now()}]);setNewFan({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});}}>Add Fan</Btn>
+        </Card>
+      </div>}
+      {tab==="calendar"&&<Card>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+          <span style={{fontWeight:700,fontSize:13}}>Calendar</span>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <button onClick={()=>{if(calMonth===0){setCalMonth(11);setCalYear(y=>y-1);}else setCalMonth(m=>m-1);}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>‹</button>
+            <span style={{fontSize:12,fontWeight:700,minWidth:120,textAlign:"center"}}>{MONTHS[calMonth]} {calYear}</span>
+            <button onClick={()=>{if(calMonth===11){setCalMonth(0);setCalYear(y=>y+1);}else setCalMonth(m=>m+1);}} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>›</button>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:4}}>
+          {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:C.muted,padding:"2px 0"}}>{d}</div>)}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
+          {calCells.map((d,i)=>{
+            const isToday=d&&`${calYear}-${pad(calMonth+1)}-${pad(d)}`===new Date().toISOString().slice(0,10);
+            const evts=d?getCalEvents(d):[];
+            return(
+              <div key={i} style={{minHeight:60,background:d?C.bg:"transparent",borderRadius:6,padding:d?"3px 4px":0,border:isToday?`2px solid ${C.purple}`:`1px solid ${d?"rgba(124,58,237,0.15)":"transparent"}`}}>
+                {d&&<div style={{fontSize:10,fontWeight:isToday?800:500,color:isToday?C.purple:C.text,marginBottom:1}}>{d}</div>}
+                {evts.slice(0,2).map((e,ei)=><div key={ei} title={e.label} style={{fontSize:9,background:e.color+"22",color:e.color,borderRadius:3,padding:"1px 3px",marginBottom:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontWeight:600}}>{e.label}</div>)}
+                {evts.length>2&&<div style={{fontSize:9,color:C.muted}}>+{evts.length-2}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </Card>}
+      {tab==="ai"&&<AISchedulerPanel models={models} ttks={ttks} content={content} campaigns={campaigns} massMessages={massMessages} setMassMessages={setMassMessages} myModels={myModels} user={user} readOnly={true}/>}
+      {tab==="qa"&&<QAReview user={user} qaLogs={qaLogs} setQaLogs={setQaLogs} users={users} models={models} ttks={ttks}/>}
       {tab==="todos"&&<TodoPanel user={user} todos={todos} setTodos={setTodos} myModels={myModels}/>}
+      {tab==="handoff"&&<ShiftHandoff user={user} handoffs={handoffs} setHandoffs={setHandoffs} isLeadership={false} isAM={false} models={models} sales={sales} fans={fans} todos={todos} qaLogs={qaLogs}/>}
       {tab==="schedule"&&<SlingWidget slingApiKey={slingApiKey} setSlingApiKey={setSlingApiKey}/>}
     </div>
   );
 }
 function LoginView({onLogin,users}){
   const [email,setEmail]=useState("");const [pw,setPw]=useState("");const [err,setErr]=useState("");
+  useEffect(()=>{
+    if(document.getElementById("google-gsi"))return;
+    const s=document.createElement("script");s.id="google-gsi";s.src="https://accounts.google.com/gsi/client";s.async=true;s.defer=true;document.head.appendChild(s);
+  },[]);
+  const handleGoogleLogin=()=>{
+    if(!GOOGLE_CLIENT_ID||GOOGLE_CLIENT_ID==="YOUR_GOOGLE_CLIENT_ID_HERE"){setErr("Google SSO not configured yet. Ask your admin to add the Client ID.");return;}
+    if(typeof window.google==="undefined"){setErr("Google Identity Services not loaded. Check your internet connection.");return;}
+    window.google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:(res)=>{
+      try{
+        const payload=JSON.parse(atob(res.credential.split(".")[1]));
+        const u=users.find(u=>u.email===payload.email);
+        if(u){onLogin(u);}else{setErr(`No account found for ${payload.email}. Contact your admin.`);}
+      }catch{setErr("Google sign-in failed. Try email/password.");}
+    }});
+    window.google.accounts.id.prompt();
+  };
   return(
     <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 28% 65%,rgba(109,40,217,0.55) 0%,transparent 55%),radial-gradient(ellipse at 78% 18%,rgba(192,38,211,0.32) 0%,transparent 48%),linear-gradient(160deg,#07070e 0%,#0d0a1a 60%,#07070e 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',system-ui,sans-serif",padding:20}}>
       <div style={{width:420,maxWidth:"100%",background:"rgba(7,7,18,0.88)",backdropFilter:"blur(32px)",borderRadius:28,padding:"44px 48px",boxShadow:"0 40px 100px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.07)",border:"1px solid rgba(167,139,250,0.28)"}}>
         <div style={{textAlign:"center",marginBottom:40}}>
-          <img src="/logo.png" alt="Charmed Collective" style={{width:200,height:"auto",display:"block",margin:"0 auto 8px"}}/>
+          <img src="/logo.png" alt="Charmed Collective"
+            style={{width:200,height:"auto",display:"block",margin:"0 auto 8px"}}
+            onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextSibling.style.display="block";}}/>
+          <div style={{display:"none",fontSize:26,fontWeight:800,fontFamily:"'Playfair Display',Georgia,serif",background:"linear-gradient(135deg,#b197fc,#c026d3)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:4}}>Charmed Collective</div>
           <div style={{fontSize:10,color:C.muted,marginTop:12,letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:700}}>Operations Platform</div>
         </div>
         <div style={{marginBottom:16}}>
@@ -4012,7 +4214,19 @@ function LoginView({onLogin,users}){
           onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 4px 28px rgba(124,58,237,0.45)";}}>
           Sign In
         </button>
-        <div style={{marginTop:24,fontSize:11,color:C.muted,textAlign:"center",lineHeight:2.4}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@ · autumn@ · mia@charmed.com · pw: charmed123</div>
+        <div style={{display:"flex",alignItems:"center",gap:10,margin:"18px 0 14px"}}>
+          <div style={{flex:1,height:1,background:"rgba(255,255,255,0.08)"}}/>
+          <span style={{fontSize:11,color:C.muted,whiteSpace:"nowrap"}}>or continue with</span>
+          <div style={{flex:1,height:1,background:"rgba(255,255,255,0.08)"}}/>
+        </div>
+        <button onClick={handleGoogleLogin}
+          style={{width:"100%",background:"rgba(255,255,255,0.07)",color:C.white,border:"1px solid rgba(255,255,255,0.15)",borderRadius:12,padding:"12px 0",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontFamily:"'DM Sans',sans-serif",transition:"all 0.2s"}}
+          onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.12)";e.currentTarget.style.borderColor="rgba(255,255,255,0.3)";}}
+          onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.07)";e.currentTarget.style.borderColor="rgba(255,255,255,0.15)";}}>
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+          Sign in with Google
+        </button>
+        <div style={{marginTop:20,fontSize:11,color:C.muted,textAlign:"center",lineHeight:2.4}}>hannah@ · tate@ · jonathan@ · kayla@<br/>chatter1@ · ops@ · autumn@ · mikayla@ · pw: charmed123</div>
       </div>
     </div>
   );
