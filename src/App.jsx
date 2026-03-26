@@ -103,6 +103,14 @@ const INIT_MODELS=[
   {id:3,name:"Jordan",am:"Jonathan",platform:"Passes",status:"Active",flirtLevel:"PG-13",archived:false,services:["Paywall"]},
   {id:4,name:"Gabby",am:"Jonathan",platform:"Passes",status:"Onboarding",flirtLevel:"PG",archived:false,services:["Paywall","Brand Deals"]},
 ];
+const SERVICE_PLATFORMS={"Organic/Social":["TikTok","Instagram","X/Twitter"],"Snapchat":["Snapchat"]};
+function getModelSocialPlatforms(model){
+  if(!model)return[];
+  const svc=model.services||[];
+  const plats=[];
+  svc.forEach(s=>{(SERVICE_PLATFORMS[s]||[]).forEach(p=>{if(!plats.includes(p))plats.push(p);});});
+  return plats;
+}
 function initTasks(){return[
   {id:1,am:"Tate",model:"Autumn",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
   {id:2,am:"Jonathan",model:"Jordan",date:today(),bos:null,eos:null,content:null,notion:null,promos:null,notes:"",outreach:{}},
@@ -1696,17 +1704,19 @@ function HomeDashboard({user,role,sales,todos,setTodos,campaigns,brandDeals,qaLo
 }
 // ── SOCIAL METRICS ────────────────────────────────────────────
 function SocialMetrics({user,socialMetrics,setSocialMetrics,models,isLeadership,myModels}){
-  const PLATFORMS=["TikTok","Instagram","Snapchat","Streaming"];
-  const PLAT_ICON={TikTok:"🎵",Instagram:"📸",Snapchat:"👻",Streaming:"🎥"};
-  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b",Streaming:C.purple};
-  const [platform,setPlatform]=useState("TikTok");
+  const PLAT_ICON={TikTok:"🎵",Instagram:"📸",Snapchat:"👻","X/Twitter":"🐦",Streaming:"🎥"};
+  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b","X/Twitter":"#1d9bf0",Streaming:C.purple};
+  const vmObj=isLeadership?models.filter(m=>!m.archived):(myModels||[]).map(n=>models.find(m=>m.name===n)).filter(Boolean);
+  const PLATFORMS=[...new Set(vmObj.flatMap(m=>getModelSocialPlatforms(m)))];
+  const [platform,setPlatform]=useState(()=>PLATFORMS[0]||"TikTok");
   const [fm,setFm]=useState("All");
   const [showAdd,setShowAdd]=useState(false);
-  const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
+  const vm=vmObj.filter(m=>getModelSocialPlatforms(m).includes(platform)).map(m=>m.name);
   const blank={model:vm[0]||"",platform,date:new Date().toISOString().slice(0,10),followers:"",views:"",likes:"",comments:"",shares:"",notes:""};
   const [form,setForm]=useState(blank);
-  useEffect(()=>setForm(p=>({...p,platform})),[platform]);
-  const entries=socialMetrics.filter(e=>(fm==="All"||e.model===fm)&&e.platform===platform&&(isLeadership||myModels.includes(e.model))).sort((a,b)=>b.date.localeCompare(a.date));
+  useEffect(()=>{setForm(p=>({...p,platform,model:vm[0]||p.model}));},[platform]);
+  useEffect(()=>{if(fm!=="All"&&!vm.includes(fm))setFm("All");},[platform]);
+  const entries=socialMetrics.filter(e=>(fm==="All"||e.model===fm)&&e.platform===platform&&vmObj.some(m=>m.name===e.model)).sort((a,b)=>b.date.localeCompare(a.date));
   const latestByModel={};
   entries.forEach(e=>{if(!latestByModel[e.model])latestByModel[e.model]=e;});
   const totalFollowers=Object.values(latestByModel).reduce((a,e)=>a+Number(e.followers||0),0);
@@ -2055,16 +2065,21 @@ function StripeInvoices({isLeadership,models,myModels}){
 // ── PLATFORM CONNECTIONS ───────────────────────────────────────
 function PlatformConnections({models,isLeadership,myModels}){
   const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels||[];
-  const [connections,setConnections]=useState(()=>Object.fromEntries(vm.map(m=>[m,{tiktok:"",instagram:"",snapchat:""}])));
+  const [connections,setConnections]=useState(()=>Object.fromEntries(vm.map(m=>[m,{tiktok:"",instagram:"",snapchat:"",twitter:""}])));
   const [selModel,setSelModel]=useState(vm[0]||"");
-  const PLATFORMS=[
+  const ALL_CONN_PLATFORMS=[
     {key:"tiktok",label:"TikTok",icon:"🎵",color:"#000000",placeholder:"TikTok API Token",note:"TikTok for Developers → Long-lived access token"},
     {key:"instagram",label:"Instagram",icon:"📸",color:C.pink,placeholder:"Instagram Graph API Token",note:"Meta for Developers → Graph API → User Access Token"},
     {key:"snapchat",label:"Snapchat",icon:"👻",color:"#f59e0b",placeholder:"Snapchat Marketing API Token",note:"Snap Business → API Access → OAuth Bearer Token"},
+    {key:"twitter",label:"X/Twitter",icon:"🐦",color:"#1d9bf0",placeholder:"X/Twitter API Bearer Token",note:"Twitter Developer Portal → Project & App → Bearer Token"},
   ];
-  const conn=connections[selModel]||{tiktok:"",instagram:"",snapchat:""};
+  const selModelObj=models.find(m=>m.name===selModel);
+  const modelPlatKeys=getModelSocialPlatforms(selModelObj).map(p=>p==="X/Twitter"?"twitter":p.toLowerCase());
+  const PLATFORMS=ALL_CONN_PLATFORMS.filter(p=>modelPlatKeys.includes(p.key));
+  const conn=connections[selModel]||{tiktok:"",instagram:"",snapchat:"",twitter:""};
   const setConn=(field,val)=>setConnections(p=>({...p,[selModel]:{...p[selModel],[field]:val}}));
-  const connectedCount=Object.values(conn).filter(v=>v).length;
+  const connectedCount=PLATFORMS.filter(p=>conn[p.key]).length;
+  const totalForModel=PLATFORMS.length;
   return(
     <div>
       <SectionHeader icon="🔗" title="Platform API Connections"/>
@@ -2074,9 +2089,9 @@ function PlatformConnections({models,isLeadership,myModels}){
       </Card>
       {vm.length>1&&(
         <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-          {vm.map(m=>{const c=connections[m]||{};const cnt=Object.values(c).filter(v=>v).length;return(
+          {vm.map(m=>{const mObj=models.find(x=>x.name===m);const mPlats=getModelSocialPlatforms(mObj).map(p=>p==="X/Twitter"?"twitter":p.toLowerCase());const c=connections[m]||{};const cnt=mPlats.filter(k=>c[k]).length;const tot=mPlats.length;return(
             <button key={m} onClick={()=>setSelModel(m)} style={{padding:"6px 14px",borderRadius:99,border:`1.5px solid ${selModel===m?C.purple:"rgba(255,255,255,0.15)"}`,background:selModel===m?C.purpleXL:"rgba(255,255,255,0.06)",color:selModel===m?C.purpleL:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-              {m} {cnt>0&&<Badge label={`${cnt}/3`} color={cnt===3?C.green:C.blue}/>}
+              {m} {cnt>0&&tot>0&&<Badge label={`${cnt}/${tot}`} color={cnt===tot?C.green:C.blue}/>}
             </button>
           );})}
         </div>
@@ -2085,8 +2100,9 @@ function PlatformConnections({models,isLeadership,myModels}){
         <Card>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div style={{fontWeight:700,fontSize:14}}>{selModel} — Platform Connections</div>
-            <Badge label={`${connectedCount}/3 connected`} color={connectedCount===3?C.green:connectedCount>0?C.blue:C.muted}/>
+            <Badge label={`${connectedCount}/${totalForModel} connected`} color={connectedCount===totalForModel&&totalForModel>0?C.green:connectedCount>0?C.blue:C.muted}/>
           </div>
+          {PLATFORMS.length===0&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"24px 0"}}>No social platforms configured for {selModel}. Assign Snapchat or Organic/Social services in Model Management to enable connections.</div>}
           {PLATFORMS.map(p=>(
             <div key={p.key} style={{marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${C.border}`}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
@@ -2096,12 +2112,12 @@ function PlatformConnections({models,isLeadership,myModels}){
               </div>
               <div style={{fontSize:11,color:C.muted,marginBottom:8}}>{p.note}</div>
               <div style={{display:"flex",gap:8}}>
-                <input type="password" value={conn[p.key]} onChange={e=>setConn(p.key,e.target.value)} placeholder={p.placeholder} style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=p.color} onBlur={e=>e.target.style.borderColor=C.border}/>
+                <input type="password" value={conn[p.key]||""} onChange={e=>setConn(p.key,e.target.value)} placeholder={p.placeholder} style={{...s.input,flex:1}} onFocus={e=>e.target.style.borderColor=p.color} onBlur={e=>e.target.style.borderColor=C.border}/>
                 {conn[p.key]&&<Btn size="sm" variant="danger" onClick={()=>setConn(p.key,"")}>Clear</Btn>}
               </div>
             </div>
           ))}
-          <Btn size="sm" onClick={()=>alert("Tokens saved locally. Backend integration coming soon.")}>Save Connections</Btn>
+          {PLATFORMS.length>0&&<Btn size="sm" onClick={()=>alert("Tokens saved locally. Backend integration coming soon.")}>Save Connections</Btn>}
         </Card>
       )}
       {!vm.length&&<div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"32px 0"}}>No models assigned</div>}
@@ -2529,16 +2545,16 @@ function TeamManagement({users,setUsers,models}){
   );
 }
 // ── ADMIN ────────────────────────────────────────────────────
-function AdminPanel({users,setUsers,models,setModels,tasks,setTasks,platforms,setPlatforms,modelPlatforms,setModelPlatforms,discordWebhook,setDiscordWebhook}){
-  const [tab,setTab]=useState("users");const [editId,setEditId]=useState(null);const blank={name:"",role:"chatter",email:"",password:"charmed123"};const [form,setForm]=useState(blank);const [showAdd,setShowAdd]=useState(false);const [newPlat,setNewPlat]=useState("");const [newMPlat,setNewMPlat]=useState("");
+function AdminPanel({users,setUsers,models,setModels,tasks,setTasks,platforms,setPlatforms,modelPlatforms,setModelPlatforms,discordWebhook,setDiscordWebhook,isLeadership=false}){
+  const [tab,setTab]=useState(isLeadership?"models":"users");const [editId,setEditId]=useState(null);const blank={name:"",role:"chatter",email:"",password:"charmed123"};const [form,setForm]=useState(blank);const [showAdd,setShowAdd]=useState(false);const [newPlat,setNewPlat]=useState("");const [newMPlat,setNewMPlat]=useState("");
   const [webhookInput,setWebhookInput]=useState(discordWebhook||"");const [webhookSaved,setWebhookSaved]=useState(false);
   const saveUser=()=>{if(!form.name||!form.email)return;if(editId){setUsers(p=>p.map(u=>u.id===editId?{...u,...form}:u));setEditId(null);}else setUsers(p=>[...p,{...form,id:Date.now()}]);setForm(blank);setShowAdd(false);};
   const addPlat=(list,set,val,setVal)=>{const v=val.trim();if(!v||list.includes(v))return;set(p=>[...p,v]);setVal("");};
   return(
     <div>
       <SectionHeader icon="⚙️" title="Admin Panel"/>
-      <Tabs tabs={[["models","Models"],["users","Users"],["roles","Roles"],["platforms","Platforms"],["notifications","Notifications"]]} active={tab} onChange={setTab}/>
-      {tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
+      <Tabs tabs={[...(isLeadership?[["models","Models"]]:[]),["users","Users"],["roles","Roles"],["platforms","Platforms"],["notifications","Notifications"]]} active={tab} onChange={setTab}/>
+      {isLeadership&&tab==="models"&&<ModelManagement models={models} setModels={setModels} users={users} tasks={tasks} setTasks={setTasks} modelPlatforms={modelPlatforms}/>}
       {showAdd&&(
         <Modal title={editId?"Edit User":"New User"} onClose={()=>{setShowAdd(false);setEditId(null);}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -2794,12 +2810,14 @@ function CustomsTracker({user,customs,setCustoms,models}){
 }
 // ── SOCIAL ANALYTICS (ENHANCED) ──────────────────────────────
 function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setContentMetrics,models,isLeadership,myModels}){
-  const PLATFORMS=["TikTok","Instagram","Snapchat"];
-  const PLAT_ICON={TikTok:"TT",Instagram:"IG",Snapchat:"SC"};
-  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b"};
+  const PLAT_ICON={TikTok:"TT",Instagram:"IG",Snapchat:"SC","X/Twitter":"𝕏"};
+  const PLAT_COL={TikTok:C.purple,Instagram:C.pink,Snapchat:"#f59e0b","X/Twitter":"#1d9bf0"};
   const vm=isLeadership?models.filter(m=>!m.archived).map(m=>m.name):myModels;
   const [selModel,setSelModel]=useState(vm[0]||"");
-  const [platform,setPlatform]=useState("TikTok");
+  const selModelObj=models.find(m=>m.name===selModel);
+  const PLATFORMS=getModelSocialPlatforms(selModelObj);
+  const [platform,setPlatform]=useState(()=>PLATFORMS[0]||"TikTok");
+  useEffect(()=>{if(PLATFORMS.length>0&&!PLATFORMS.includes(platform))setPlatform(PLATFORMS[0]);},[selModel]);
   const [subTab,setSubTab]=useState("metrics");
   const [showAdd,setShowAdd]=useState(false);
   const [showLogMetric,setShowLogMetric]=useState(false);
@@ -2898,7 +2916,7 @@ function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setConte
           {showAdd&&(
             <Modal title={`Log ${platform} Post — ${selModel}`} onClose={()=>setShowAdd(false)}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <Sel label="Type" value={postForm.type} onChange={v=>setPostForm(p=>({...p,type:v}))} options={platform==="TikTok"?["Video","Live"]:platform==="Instagram"?["Reel","Photo","Story","Carousel"]:["Story","Spotlight"]}/>
+                <Sel label="Type" value={postForm.type} onChange={v=>setPostForm(p=>({...p,type:v}))} options={platform==="TikTok"?["Video","Live"]:platform==="Instagram"?["Reel","Photo","Story","Carousel"]:platform==="X/Twitter"?["Tweet","Thread","Space"]:["Story","Spotlight"]}/>
                 <Input label="Date" value={postForm.date} onChange={v=>setPostForm(p=>({...p,date:v}))} type="date"/>
                 <div style={{gridColumn:"1/-1"}}><Input label="Caption / Title" value={postForm.caption} onChange={v=>setPostForm(p=>({...p,caption:v}))} placeholder="Caption preview…"/></div>
                 {platform!=="Instagram"&&<Input label="Views" value={postForm.views} onChange={v=>setPostForm(p=>({...p,views:v}))} placeholder="45000" type="number"/>}
@@ -3813,7 +3831,7 @@ function OpsAssistantDashboard({user,models,setModels,users,setUsers,shifts,setS
       </div>}
       {section==="brand"&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={allModels}/>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
-      {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} tasks={tasks} setTasks={setTasks} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
+      {section==="admin"&&<AdminPanel isLeadership={true} users={users} setUsers={setUsers} models={models} setModels={setModels} tasks={tasks} setTasks={setTasks} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
 }
