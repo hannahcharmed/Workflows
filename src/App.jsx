@@ -2961,27 +2961,7 @@ function SocialAnalytics({socialMetrics,setSocialMetrics,contentMetrics,setConte
       )}
       {subTab==="log"&&(
         <div>
-          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
-            <Btn size="sm" onClick={()=>{setMetricForm({...blankMetric,model:selModel,platform});setShowLogMetric(true);}}>+ Log Metrics</Btn>
-          </div>
-          {showLogMetric&&(
-            <Modal title={`Log ${platform} Metrics — ${selModel}`} onClose={()=>setShowLogMetric(false)}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <Input label="Date" value={metricForm.date} onChange={v=>setMetricForm(p=>({...p,date:v}))} type="date"/>
-                <Input label="Followers" value={metricForm.followers} onChange={v=>setMetricForm(p=>({...p,followers:v}))} placeholder="45000" type="number"/>
-                {platform!=="Instagram"&&<Input label="Views" value={metricForm.views} onChange={v=>setMetricForm(p=>({...p,views:v}))} placeholder="120000" type="number"/>}
-                <Input label="Likes" value={metricForm.likes} onChange={v=>setMetricForm(p=>({...p,likes:v}))} placeholder="8400" type="number"/>
-                <Input label="Comments" value={metricForm.comments} onChange={v=>setMetricForm(p=>({...p,comments:v}))} placeholder="340" type="number"/>
-                {platform!=="Instagram"&&<Input label="Shares" value={metricForm.shares} onChange={v=>setMetricForm(p=>({...p,shares:v}))} placeholder="1200" type="number"/>}
-              </div>
-              <Input label="Notes" value={metricForm.notes} onChange={v=>setMetricForm(p=>({...p,notes:v}))} placeholder="Any context…"/>
-              <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-                <Btn variant="secondary" size="sm" onClick={()=>setShowLogMetric(false)}>Cancel</Btn>
-                <Btn size="sm" onClick={()=>{if(!metricForm.followers)return;setSocialMetrics(p=>[{...metricForm,id:Date.now(),model:selModel,platform},...p]);setShowLogMetric(false);}}>Save</Btn>
-              </div>
-            </Modal>
-          )}
-          <SocialMetrics user={{name:"log"}} socialMetrics={socialMetrics.filter(e=>e.model===selModel)} setSocialMetrics={()=>{}} models={models} isLeadership={isLeadership} myModels={[selModel]}/>
+          <SocialMetrics user={{name:"log"}} socialMetrics={socialMetrics.filter(e=>e.model===selModel)} setSocialMetrics={setSocialMetrics} models={models} isLeadership={isLeadership} myModels={[selModel]}/>
         </div>
       )}
     </div>
