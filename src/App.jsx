@@ -3659,6 +3659,194 @@ Provide 5-7 wall posts. IMPORTANT RULE: You must always generate MORE mass messa
     </div>
   );
 }
+// ── WEEKLY MODEL REPORT ──────────────────────────────────────
+function WeeklyModelReport({models,sales,campaigns,socialMetrics,content,fans,ttks,users,user}){
+  const activeModels=models.filter(m=>!m.archived);
+  const [modelName,setModelName]=useState(activeModels[0]?.name||"");
+  const [weekOf,setWeekOf]=useState(()=>{
+    const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);
+    d.setDate(diff);return d.toISOString().slice(0,10);
+  });
+  const [fields,setFields]=useState({weeklyRevenue:"",ppvRevenue:"",customRevenue:"",activeCampaigns:"",topContent:"",socialSnapshot:"",fanHighlights:"",goalsNextWeek:"",amNotes:"",reminders:"",incentives:"",shoutouts:""});
+  const [savedReports,setSavedReports]=useState(()=>{try{return JSON.parse(localStorage.getItem("charmed_weekly_reports")||"[]");}catch{return[];}});
+  const [showSaved,setShowSaved]=useState(false);
+  const [saveMsg,setSaveMsg]=useState("");
+
+  const model=models.find(m=>m.name===modelName);
+
+  useEffect(()=>{
+    if(!modelName)return;
+    const ms=sales.filter(s=>s.model===modelName);
+    const totalRev=ms.reduce((a,s)=>a+Number(s.amount),0);
+    const ppvRev=ms.filter(s=>s.type==="PPV").reduce((a,s)=>a+Number(s.amount),0);
+    const cusRev=ms.filter(s=>s.type==="CUS"||s.type==="Custom").reduce((a,s)=>a+Number(s.amount),0);
+    const liveCamp=campaigns.filter(c=>c.model===modelName&&["Live","Scheduled"].includes(c.status));
+    const mc=content.filter(c=>c.model===modelName).slice(0,5);
+    const metrics=socialMetrics.filter(m=>m.model===modelName).sort((a,b)=>b.date.localeCompare(a.date));
+    const latestByPlat={};metrics.forEach(m=>{if(!latestByPlat[m.platform])latestByPlat[m.platform]=m;});
+    const socialStr=Object.values(latestByPlat).map(m=>`${m.platform}: ${(m.followers||0).toLocaleString()} followers · ${(m.views||0).toLocaleString()} views · ${(m.likes||0).toLocaleString()} likes`).join("\n");
+    const topFans=fans.filter(f=>f.model===modelName&&f.type==="Whale").slice(0,3);
+    setFields(p=>({...p,
+      weeklyRevenue:totalRev>0?`$${totalRev.toLocaleString()}`:"",
+      ppvRevenue:ppvRev>0?`$${ppvRev.toLocaleString()}`:"",
+      customRevenue:cusRev>0?`$${cusRev.toLocaleString()}`:"",
+      activeCampaigns:liveCamp.length>0?liveCamp.map(c=>`${c.name} (${c.status})`).join("\n"):"None scheduled",
+      topContent:mc.length>0?mc.map(c=>`${c.type} — ${c.theme} · ${c.priceTier} · ${c.assetCount} assets`).join("\n"):"",
+      socialSnapshot:socialStr||"",
+      fanHighlights:topFans.length>0?topFans.map(f=>`${f.username} — ${f.spend}${f.notes?` (${f.notes})`:""}`).join("\n"):"",
+    }));
+  },[modelName]);
+
+  const set=(k,v)=>setFields(p=>({...p,[k]:v}));
+
+  const weekEnd=new Date(new Date(weekOf+"T12:00:00").getTime()+6*86400000).toISOString().slice(0,10);
+
+  const handleSave=()=>{
+    const entry={id:Date.now(),model:modelName,weekOf,fields:{...fields},savedBy:user.name,savedAt:new Date().toISOString()};
+    const updated=[entry,...savedReports].slice(0,50);
+    setSavedReports(updated);
+    try{localStorage.setItem("charmed_weekly_reports",JSON.stringify(updated));}catch{}
+    setSaveMsg("Saved!");setTimeout(()=>setSaveMsg(""),2000);
+  };
+
+  const loadReport=(r)=>{setModelName(r.model);setWeekOf(r.weekOf);setFields(r.fields);setShowSaved(false);};
+
+  const handlePrint=()=>{
+    const existing=document.getElementById("charmed-print-style");
+    if(existing)existing.remove();
+    const styleEl=document.createElement("style");
+    styleEl.id="charmed-print-style";
+    styleEl.textContent=`@media print{body *{visibility:hidden!important;}#charmed-print-report,#charmed-print-report *{visibility:visible!important;}#charmed-print-report{position:fixed;top:0;left:0;width:100%;background:white;color:#111;padding:20px 30px;box-sizing:border-box;z-index:99999;}@page{margin:12mm;size:A4 portrait;}}`;
+    document.head.appendChild(styleEl);
+    window.print();
+    setTimeout(()=>{const el=document.getElementById("charmed-print-style");if(el)el.remove();},3000);
+  };
+
+  const pSec=(title,value,emoji)=>!value?null:(
+    `<div style="margin-bottom:14px;padding:12px 16px;border:1px solid #e5e7eb;border-radius:8px;page-break-inside:avoid">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7c3aed;margin-bottom:7px">${emoji} ${title}</div>
+      <div style="font-size:13px;white-space:pre-wrap;line-height:1.7;color:#222">${value}</div>
+    </div>`
+  );
+
+  const printHTML=`
+    <div style="font-family:Georgia,serif;color:#111">
+      <div style="text-align:center;margin-bottom:22px;padding-bottom:14px;border-bottom:3px solid #7c3aed">
+        <div style="font-size:22px;font-weight:800;color:#7c3aed;letter-spacing:-0.01em">Charmed Collective</div>
+        <div style="font-size:17px;font-weight:700;margin-top:6px">Weekly Model Report</div>
+        <div style="font-size:12px;color:#555;margin-top:5px">${modelName} · Week of ${weekOf} – ${weekEnd}</div>
+        ${model?`<div style="font-size:11px;color:#888;margin-top:3px">Account Manager: ${model.am} · Platform: ${model.platform}</div>`:""}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+        ${[["Total Revenue",fields.weeklyRevenue],["PPV Revenue",fields.ppvRevenue],["Custom Revenue",fields.customRevenue]].map(([l,v])=>v?
+          `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7c3aed;margin-bottom:4px">${l}</div>
+            <div style="font-size:20px;font-weight:800;color:#111">${v}</div>
+          </div>`:"").join("")}
+      </div>
+      ${[["Active Campaigns",fields.activeCampaigns,"📣"],["Top Content This Week",fields.topContent,"📦"],["Social Snapshot",fields.socialSnapshot,"📱"],["Fan Highlights",fields.fanHighlights,"🐋"],["Goals for Next Week",fields.goalsNextWeek,"🎯"],["AM Notes & Instructions",fields.amNotes,"📝"],["Reminders",fields.reminders,"🔔"],["Shoutouts",fields.shoutouts,"🌟"],["Incentives",fields.incentives,"💎"]].map(([t,v,e])=>pSec(t,v,e)||"").join("")}
+      <div style="margin-top:22px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:9px;color:#bbb;text-align:center">
+        Generated by Charmed Ops · ${new Date().toLocaleDateString()} · Confidential
+      </div>
+    </div>`;
+
+  return(
+    <div>
+      <SectionHeader icon="📄" title="Weekly Model Reports" action={
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {saveMsg&&<span style={{fontSize:12,color:C.green,fontWeight:700}}>{saveMsg}</span>}
+          <Btn size="sm" variant="secondary" onClick={()=>setShowSaved(!showSaved)}>Saved ({savedReports.length})</Btn>
+          <Btn size="sm" variant="secondary" onClick={handleSave}>Save Draft</Btn>
+          <Btn size="sm" onClick={handlePrint}>Download PDF</Btn>
+        </div>
+      }/>
+
+      {showSaved&&(
+        <Card style={{marginBottom:20}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>Saved Reports</div>
+          {!savedReports.length&&<div style={{color:C.muted,fontSize:13}}>No saved reports yet.</div>}
+          {savedReports.map(r=>(
+            <div key={r.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div>
+                <span style={{fontWeight:700,fontSize:13}}>{r.model}</span>
+                <span style={{color:C.muted,fontSize:12,marginLeft:10}}>Week of {r.weekOf} · Saved by {r.savedBy}</span>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <Btn size="sm" variant="secondary" onClick={()=>loadReport(r)}>Load</Btn>
+                <Btn size="sm" variant="danger" onClick={()=>{const u=savedReports.filter(x=>x.id!==r.id);setSavedReports(u);try{localStorage.setItem("charmed_weekly_reports",JSON.stringify(u));}catch{}}}>Delete</Btn>
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      <Card style={{marginBottom:20,padding:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,alignItems:"end"}}>
+          <div>
+            <label style={s.label}>Model</label>
+            <select value={modelName} onChange={e=>setModelName(e.target.value)} style={{...s.input,appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239d9abf' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",paddingRight:32}}>
+              {activeModels.map(m=><option key={m.name}>{m.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={s.label}>Week Of (Monday)</label>
+            <input type="date" value={weekOf} onChange={e=>setWeekOf(e.target.value)} style={s.input} onFocus={e=>e.target.style.borderColor=C.purple} onBlur={e=>e.target.style.borderColor=C.border}/>
+          </div>
+        </div>
+        {model&&<div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
+          <Badge label={`AM: ${model.am}`} color={C.blue}/>
+          <Badge label={model.platform} color={C.purple}/>
+          <Badge label={model.flirtLevel} color={C.pink}/>
+          <Badge label={model.status} color={model.status==="Active"?C.green:C.yellow}/>
+        </div>}
+      </Card>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>💰 Revenue Summary</div>
+          <Input label="Total Weekly Revenue" value={fields.weeklyRevenue} onChange={v=>set("weeklyRevenue",v)} placeholder="$0"/>
+          <Input label="PPV Revenue" value={fields.ppvRevenue} onChange={v=>set("ppvRevenue",v)} placeholder="$0"/>
+          <Input label="Custom Revenue" value={fields.customRevenue} onChange={v=>set("customRevenue",v)} placeholder="$0"/>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>📣 Active Campaigns</div>
+          <TA label="Running Campaigns" value={fields.activeCampaigns} onChange={v=>set("activeCampaigns",v)} rows={5} placeholder="List active campaigns..."/>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>📦 Top Content This Week</div>
+          <TA label="Content Highlights" value={fields.topContent} onChange={v=>set("topContent",v)} rows={5} placeholder="List top content pieces..."/>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>📱 Social Snapshot</div>
+          <TA label="Social Media Metrics" value={fields.socialSnapshot} onChange={v=>set("socialSnapshot",v)} rows={5} placeholder="Followers, views, engagement..."/>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>🐋 Fan Highlights</div>
+          <TA label="Notable Fan Activity" value={fields.fanHighlights} onChange={v=>set("fanHighlights",v)} rows={4} placeholder="Whale activity, notable subs..."/>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>🎯 Goals for Next Week</div>
+          <TA label="Revenue Targets & Objectives" value={fields.goalsNextWeek} onChange={v=>set("goalsNextWeek",v)} rows={4} placeholder="Hit $X revenue, post Y content..."/>
+        </Card>
+        <Card style={{gridColumn:"1/-1"}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>📝 AM Notes & Instructions</div>
+          <TA label="Message from your AM" value={fields.amNotes} onChange={v=>set("amNotes",v)} rows={4} placeholder="Weekly instructions, strategy, what worked this week..."/>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>🔔 Reminders</div>
+          <TA label="Deadlines & Important Dates" value={fields.reminders} onChange={v=>set("reminders",v)} rows={4} placeholder="Brand deal deliverables due, events, follow-ups..."/>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12,color:C.purpleL}}>🌟 Shoutouts & Incentives</div>
+          <TA label="Shoutouts" value={fields.shoutouts} onChange={v=>set("shoutouts",v)} rows={2} placeholder="Great work on..."/>
+          <TA label="Incentives This Week" value={fields.incentives} onChange={v=>set("incentives",v)} rows={2} placeholder="Bonus if you hit $X..."/>
+        </Card>
+      </div>
+
+      <div id="charmed-print-report" style={{display:"none"}} dangerouslySetInnerHTML={{__html:printHTML}}/>
+    </div>
+  );
+}
 // ── DASHBOARDS ───────────────────────────────────────────────
 function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampaigns,handoffs,setHandoffs,content,setContent,promos,setPromos,todos,setTodos,models,setModels,users,setUsers,shifts,setShifts,slingApiKey,setSlingApiKey,boseos,setBoseos,platforms,setPlatforms,modelPlatforms,setModelPlatforms,ttks,setTtks,massMessages,setMassMessages,qaLogs,setQaLogs,customs,setCustoms,socialMetrics,setSocialMetrics,growthCampaigns,setGrowthCampaigns,brandDeals,setBrandDeals,snapRevenue,setSnapRevenue,contentMetrics,setContentMetrics,modelEvents,setModelEvents,mg,setMg,discordWebhook,setDiscordWebhook,revenueGoals,setRevenueGoals}){
   const [section,setSection]=useState("home");
@@ -3677,7 +3865,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
     else if(action==="social"||action==="snap"){setSection("social");}
     else if(action==="brand"){setSection("brand");}
   };
-  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["analytics","Analytics"],["admin","Admin"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["analytics","Analytics"],["reports","📄 Reports"],["admin","Admin"]];
   return(
     <div>
       <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:12}}>
@@ -3765,6 +3953,7 @@ function LeadershipDashboard({user,tasks,setTasks,fans,sales,campaigns,setCampai
         {tab==="invoices"&&<StripeInvoices isLeadership={true} models={models}/>}
       </div>}
       {section==="analytics"&&<AnalyticsOverview sales={sales} socialMetrics={socialMetrics} qaLogs={qaLogs} tasks={tasks} models={models} campaigns={campaigns} snapRevenue={snapRevenue} brandDeals={brandDeals}/>}
+      {section==="reports"&&<WeeklyModelReport models={models} sales={sales} campaigns={campaigns} socialMetrics={socialMetrics} content={content} fans={fans} ttks={ttks} users={users} user={user}/>}
       {section==="admin"&&<AdminPanel users={users} setUsers={setUsers} models={models} setModels={setModels} tasks={tasks} setTasks={setTasks} platforms={platforms} setPlatforms={setPlatforms} modelPlatforms={modelPlatforms} setModelPlatforms={setModelPlatforms} discordWebhook={discordWebhook} setDiscordWebhook={setDiscordWebhook}/>}
     </div>
   );
@@ -3823,7 +4012,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
   const myFans=fans.filter(f=>myModels.includes(f.model));
   const [newFan,setNewFan]=useState({username:"",type:"Whale",spend:"",notes:"",flag:false,model:myModels[0]||""});
   const navTabs=[["overview","Overview"],["ttk","TTK Editor"],["content","Content"],["customs","Customs"],["fans","Fans"],["sales","Sales"],["calendar","📅 Calendar"],["ai","✨ AI Scheduler"],["boseos","BOS/EOS"],["qa","QA"],["mg","MG Deliverables"],["schedule","Sling"]];
-  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"]];
+  const SECTIONS=[["home","Home"],["todos","To-Dos"],["paywall","Paywall"],["social","Social"],["brand","Brand"],["reports","📄 Reports"]];
   const handleQuickAction=(action)=>{
     if(action==="campaigns"){setSection("paywall");setTab("calendar");}
     else if(action==="qa"){setSection("paywall");setTab("qa");}
@@ -3931,6 +4120,7 @@ function AMDashboard({user,tasks,setTasks,fans,setFans,sales,campaigns,setCampai
         {(tab==="deals"||!["deals","invoices"].includes(tab))&&<BrandDeals user={user} brandDeals={brandDeals} setBrandDeals={setBrandDeals} models={models} isLeadership={false} myModels={myModels}/>}
         {tab==="invoices"&&<StripeInvoices isLeadership={false} models={models} myModels={myModels}/>}
       </div>}
+      {section==="reports"&&<WeeklyModelReport models={models.filter(m=>myModels.includes(m.name))} sales={sales} campaigns={campaigns} socialMetrics={socialMetrics} content={content} fans={fans} ttks={ttks} users={users} user={user}/>}
     </div>
   );
 }
